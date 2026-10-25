@@ -20,3 +20,5 @@ access_asset_change_user,asset change wizard,ebshel.asset.change,account.group_a
 access_asset_dispose_user,asset dispose wizard,ebshel.asset.dispose,account.group_account_invoice,crud,
 access_asset_simulate_user,asset simulate wizard,ebshel.asset.simulate,account.group_account_readonly,crud,
 access_ebshel_asset_simulate_billing_read,ebshel_asset_simulate billing read,ebshel.asset.simulate,account.group_account_invoice,r,
+access_asset_from_bill_user,asset from bill wizard,ebshel.asset.from.bill,account.group_account_invoice,crud,
+access_asset_from_bill_line_user,asset from bill wizard line,ebshel.asset.from.bill.line,account.group_account_invoice,crud,

@@ -18,6 +18,7 @@ import logging
 from odoo.modules import module as odoo_module
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.fields import Domain
 from odoo.tools import date_utils, float_compare, float_round
 
 METHODS = [('linear', 'Straight line'), ('declining', 'Declining balance'),
@@ -29,21 +30,44 @@ STATES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'),
 EVENTS = [('created', 'Created'), ('running', 'Confirmed'), ('paused', 'Paused'), ('resumed', 'Resumed'),
           ('modified', 'Modified'), ('revalued', 'Revalued'), ('impaired', 'Impaired'),
           ('posted', 'Depreciation posted'), ('disposed', 'Disposed'), ('closed', 'Fully depreciated'),
-          ('reset', 'Reset to draft'), ('cancelled', 'Cancelled'), ('note', 'Note')]
+          ('reset', 'Reset to draft'), ('cancelled', 'Cancelled'), ('skipped', 'Depreciation skipped'),
+          ('note', 'Note')]
 
 _logger = logging.getLogger(__name__)
 
 
-def period_end(day, period):
+def period_end(day, period, company=None):
+    """The last day of the period `day` falls in. A year is the company's fiscal year
+    (April to March, say) - it was always the calendar year, so a yearly asset of a
+    company closing in March was depreciated, prorated and reset on the wrong dates."""
+    if period != 'month' and company:
+        return company.compute_fiscalyear_dates(day)['date_to']
     return date_utils.end_of(day, 'month' if period == 'month' else 'year')
 
 
-def period_start(day, period):
+def period_start(day, period, company=None):
+    if period != 'month' and company:
+        return company.compute_fiscalyear_dates(day)['date_from']
     return date_utils.start_of(day, 'month' if period == 'month' else 'year')
 
 
 def add_periods(day, period, n):
     return day + (relativedelta(months=n) if period == 'month' else relativedelta(years=n))
+
+
+def _check_three_accounts(record, label):
+    """The three accounts of a category or an asset must be three accounts. The old system
+    pointed accumulated depreciation at the asset account itself (the entries ate the cost
+    instead of building up depreciation) and at the expense account (entries that changed
+    nothing), in six categories of eleven."""
+    if record.asset_account_id == record.depreciation_account_id:
+        raise ValidationError(_(
+            "%s: the accumulated depreciation account must not be the asset account itself - the "
+            "entries would reduce the cost instead of building up the depreciation.", label))
+    if record.expense_account_id in (record.asset_account_id, record.depreciation_account_id):
+        raise ValidationError(_(
+            "%s: the depreciation expense account must differ from the asset and accumulated "
+            "depreciation accounts - an entry that debits and credits the same account changes nothing.", label))
 
 
 class AssetGroup(models.Model):
@@ -128,6 +152,11 @@ class AssetCategory(models.Model):
             if not (0 <= cat.salvage_pct < 100):
                 raise ValidationError(_("The salvage percentage must be between 0 and 100."))
 
+    @api.constrains('asset_account_id', 'depreciation_account_id', 'expense_account_id')
+    def _check_accounts(self):
+        for cat in self:
+            _check_three_accounts(cat, cat.name)
+
     def _compute_asset_count(self):
         # Odoo 20's read_group is the old _read_group: (groupby values, aggregates) tuples
         counts = {category.id: count for category, count in self.env['ebshel.asset']._read_group(
@@ -178,6 +207,8 @@ class Asset(models.Model):
     depreciated_value = fields.Monetary(compute='_compute_values', store=True, string='Depreciated to date')
     book_value = fields.Monetary(compute='_compute_values', store=True)
     remaining_value = fields.Monetary(compute='_compute_values', store=True, string='Still to depreciate')
+    progress = fields.Float(compute='_compute_values', store=True, string='Depreciated (%)', aggregator='avg',
+                            help="How much of what there is to depreciate has been posted.")
     method = fields.Selection(METHODS, required=True, default='linear', tracking=True)
     declining_rate = fields.Float(string='Declining rate (% a year)', default=30.0)
     period = fields.Selection(PERIODS, required=True, default='year')
@@ -230,6 +261,8 @@ class Asset(models.Model):
             asset.depreciated_value = asset.already_depreciated + posted
             asset.book_value = asset.purchase_value - asset.depreciated_value
             asset.remaining_value = max(asset.book_value - asset.salvage_value, 0.0)
+            base = asset.purchase_value - asset.salvage_value
+            asset.progress = min(100.0, round(asset.depreciated_value / base * 100.0, 1)) if base > 0 else 0.0
 
     @api.depends('line_ids', 'line_ids.state', 'move_ids', 'child_ids')
     def _compute_counts(self):
@@ -261,20 +294,34 @@ class Asset(models.Model):
                 asset.cover_state = 'ok'
 
     def _search_cover(self, operator, value):
+        """Odoo 20 hands a search method `in` / `not in` with a set of values (an `=`
+        becomes `in`): the value was compared with one state name, never matched, and
+        every search - the "Cover expiring" filter among them - fell to "covered".
+
+        The four states are exactly the ones the compute gives, and between them they
+        cover every asset, so `not in` is simply the other states."""
+        if operator not in ('in', 'not in'):
+            return NotImplemented
         today = fields.Date.context_today(self)
         soon = today + timedelta(days=60)
-        if value == 'none':
-            dom = [('warranty_end', '=', False), ('insurance_end', '=', False)]
-        elif value == 'expired':
-            dom = ['|', ('warranty_end', '<', today), ('insurance_end', '<', today)]
-        elif value == 'soon':
-            dom = ['|', '&', ('warranty_end', '>=', today), ('warranty_end', '<=', soon),
-                   '&', ('insurance_end', '>=', today), ('insurance_end', '<=', soon)]
-        else:
-            dom = ['|', ('warranty_end', '>', soon), ('insurance_end', '>', soon)]
-        if operator in ('!=', 'not in'):
-            return ['!'] + dom
-        return dom
+        w, i = 'warranty_end', 'insurance_end'
+        states = {
+            'none': Domain(w, '=', False) & Domain(i, '=', False),
+            # the earliest date has passed
+            'expired': Domain(w, '<', today) | Domain(i, '<', today),
+            # none has passed, and one runs out within the 60 days
+            'soon': (Domain(w, '=', False) | Domain(w, '>=', today))
+                    & (Domain(i, '=', False) | Domain(i, '>=', today))
+                    & (Domain(w, '<=', soon) | Domain(i, '<=', soon)),
+            # every date there is runs beyond the 60 days
+            'ok': (Domain(w, '!=', False) | Domain(i, '!=', False))
+                  & (Domain(w, '=', False) | Domain(w, '>', soon))
+                  & (Domain(i, '=', False) | Domain(i, '>', soon)),
+        }
+        wanted = {v for v in value if v in states}
+        if operator == 'not in':
+            wanted = set(states) - wanted
+        return Domain.OR(states[s] for s in wanted)
 
     @api.depends('event_ids', 'line_ids.state', 'line_ids.amount', 'line_ids.date', 'purchase_value')
     def _compute_lifecycle(self):
@@ -340,6 +387,10 @@ class Asset(models.Model):
                         vals[field] = value.id if hasattr(value, 'id') else value
                 if not vals.get('analytic_distribution') and cat.analytic_distribution:
                     vals['analytic_distribution'] = cat.analytic_distribution
+                # the category's salvage was only applied by the form's onchange: an asset
+                # created any other way (an import, a script, RPC) had none
+                if 'salvage_value' not in vals and cat.salvage_pct and vals.get('purchase_value'):
+                    vals['salvage_value'] = float_round(vals['purchase_value'] * cat.salvage_pct / 100.0, 2)
             if not vals.get('start_date'):
                 vals['start_date'] = vals.get('purchase_date') or fields.Date.context_today(self)
         assets = super().create(vals_list)
@@ -369,6 +420,12 @@ class Asset(models.Model):
             if asset.method != 'linear' and not (0 < asset.declining_rate <= 100):
                 raise ValidationError(_("The declining rate must be between 0 and 100."))
 
+    @api.constrains('asset_account_id', 'depreciation_account_id', 'expense_account_id')
+    def _check_asset_accounts(self):
+        for asset in self:
+            if asset.asset_account_id and asset.depreciation_account_id and asset.expense_account_id:
+                _check_three_accounts(asset, asset.name)
+
     # ------------------------------------------------------------------ the schedule
     def _schedule_amounts(self, total, start, periods, method, rate, period, prorata, first_date=None):
         """[(date, amount)] that depreciate `total` from `start` over `periods`.
@@ -380,22 +437,27 @@ class Asset(models.Model):
         if total <= 0 or periods < 1:
             return []
         rounding = self.currency_id.rounding or 0.01
-        first_end = period_end(start, period)
-        days_in_first = (first_end - period_start(start, period)).days + 1
+        company = self.company_id or self.env.company
+        first_end = period_end(start, period, company)
+        days_in_first = (first_end - period_start(start, period, company)).days + 1
         first_share = ((first_end - start).days + 1) / days_in_first if prorata == 'days' else 1.0
         per_rate = rate / 100.0 * (1.0 if period == 'year' else 1.0 / 12.0)
         out, left, day, n = [], total, first_end, 0
-        # what the declining rate is applied to: the book value at the start of each year.
-        # Monthly, it was applied to what was left each MONTH - compounding twelve times, so
-        # a 30% rate took 26.2% a year, not the 30% the rate says.
+        # what the declining rate is applied to: the book value at the start of each
+        # (fiscal) year. Monthly, it was applied to what was left each MONTH - compounding
+        # twelve times, so a 30% rate took 26.2% a year, not the 30% the rate says.
         base = total
         # With a prorated first period the schedule runs one period longer, the tail
         # carrying what the first one did not take.
         slots = periods + (1 if first_share < 1.0 and prorata == 'days' else 0)
         while n < slots and left > rounding / 2:
             remaining_slots = slots - n
-            if period == 'year' or day.month == 1:
+            if period == 'year':
                 base = left
+            else:
+                year_from = period_start(day, 'year', company)
+                if (year_from.year, year_from.month) == (day.year, day.month):
+                    base = left              # the first month of a fiscal year
             if method == 'linear':
                 amount = total / periods
             else:
@@ -411,7 +473,7 @@ class Asset(models.Model):
                 amount = float_round(left, precision_rounding=rounding)
             out.append((day, amount))
             left -= amount
-            day = period_end(add_periods(day, period, 1), period)
+            day = period_end(add_periods(day, period, 1), period, company)
             n += 1
         if left > rounding / 2 and out:
             d, a = out[-1]
@@ -454,11 +516,12 @@ class Asset(models.Model):
             if from_date:
                 start = from_date
             elif posted:
-                start = period_start(add_periods(max(posted.mapped('date')), asset.period, 1), asset.period)
+                start = period_start(add_periods(max(posted.mapped('date')), asset.period, 1), asset.period,
+                                     asset.company_id)
             else:
                 start = asset.start_date
             prorata = asset.prorata if not posted and not from_date else 'none'
-            if from_date and from_date != period_start(from_date, asset.period):
+            if from_date and from_date != period_start(from_date, asset.period, asset.company_id):
                 prorata = 'days'
             rows = asset._schedule_amounts(total, start, count, asset.method, asset.declining_rate,
                                            asset.period, prorata)
@@ -511,10 +574,17 @@ class Asset(models.Model):
             if asset.state != 'paused':
                 raise UserError(_("Only a paused asset can be resumed."))
             days = (today - asset.paused_on).days if asset.paused_on else 0
-            for line in asset.line_ids.filtered(lambda l: l.state == 'draft'):
-                line.date = period_end(line.date + timedelta(days=days), asset.period)
+            # The schedule moves on by the whole periods the pause lasted. It moved each line
+            # on by the days and then to its period's end: a one-day pause pushed a yearly
+            # schedule a whole year, and monthly lines landed two in one month.
+            gap = relativedelta(today, asset.paused_on) if asset.paused_on else relativedelta()
+            shift = gap.years * 12 + gap.months if asset.period == 'month' else gap.years
+            if shift > 0:
+                for line in asset.line_ids.filtered(lambda l: l.state == 'draft'):
+                    line.date = period_end(add_periods(line.date, asset.period, shift), asset.period, asset.company_id)
             asset.write({'state': 'running', 'paused_on': False, 'paused_days': asset.paused_days + days})
-            asset._log('resumed', note=_('Paused for %s days; the schedule moved on by as much.', days))
+            asset._log('resumed', note=_('Paused for %(days)s days; the schedule moved on by %(periods)s period(s).',
+                                         days=days, periods=max(shift, 0)))
         return True
 
     def action_cancel(self):
@@ -539,6 +609,21 @@ class Asset(models.Model):
         for asset in self.filtered(lambda a: a.state == 'running'):
             asset.line_ids.filtered(lambda l: l.state == 'draft' and l.date <= today).sorted('date').action_post()
         return True
+
+    def action_skip_due(self):
+        """Leave every period dated today or earlier unbooked, and spread what they carried
+        over the periods still to come: the way to clear a backlog nobody will post."""
+        today = fields.Date.context_today(self)
+        for asset in self.filtered(lambda a: a.state == 'running'):
+            due = asset.line_ids.filtered(lambda l: l.state == 'draft' and l.kind == 'depreciation' and l.date <= today)
+            if due:
+                due.action_skip()
+        return True
+
+    def action_open_bill(self):
+        self.ensure_one()
+        return {'type': 'ir.actions.act_window', 'res_model': 'account.move', 'res_id': self.bill_id.id,
+                'view_mode': 'form', 'target': 'current'}
 
     def action_open_change(self):
         self.ensure_one()
@@ -568,9 +653,11 @@ class Asset(models.Model):
     @api.model
     def _cron_post_due(self):
         today = fields.Date.context_today(self)
-        lines = self.env['ebshel.asset.line'].search([
+        # an archived asset is only hidden, not off the books: it keeps depreciating (the
+        # search on asset_id.state left archived assets out, so they silently stopped)
+        lines = self.env['ebshel.asset.line'].with_context(active_test=False).search([
             ('state', '=', 'draft'), ('date', '<=', today), ('asset_id.state', '=', 'running'),
-            ('asset_id.category_id.auto_post', '=', True)], order='date, id')
+            ('asset_id.category_id.auto_post', '=', True)], order='date, id').with_env(self.env)
         for line in lines:
             try:
                 with self.env.cr.savepoint():
@@ -650,9 +737,31 @@ class AssetLine(models.Model):
                 raise UserError(_("%s is not running.", line.asset_id.name))
             move = self.env['account.move'].create(line._move_vals())
             move.action_post()
-            line.write({'state': 'posted', 'move_id': move.id})
+            # posting moves a date in a locked period on to the first open one: the line
+            # follows its entry, or the schedule shows a date the ledger does not
+            line.write({'state': 'posted', 'move_id': move.id, 'date': move.date})
             line.asset_id._log('posted', note=_('%s, dated %s', line.name or _('Depreciation'), fields.Date.to_string(line.date)), amount=line.amount)
         for asset in self.mapped('asset_id'):
+            asset._check_closed()
+        return True
+
+    def action_skip(self):
+        """Leave a period unbooked. The line is skipped and its amount is spread over the
+        periods still to come - the life does not change, the book value catches up. For a
+        backlog the lab will never post (months the old system left unbooked), and for a
+        period that must not carry a charge."""
+        for asset in self.mapped('asset_id'):
+            lines = self.filtered(lambda l: l.asset_id == asset)
+            if lines.filtered(lambda l: l.state != 'draft' or l.kind != 'depreciation'):
+                raise UserError(_("Only a depreciation line still to post can be skipped."))
+            if asset.state not in ('running', 'paused'):
+                raise UserError(_("%s is not running.", asset.name))
+            lines.write({'state': 'skipped'})
+            last = max(lines.mapped('date'))
+            asset.build_schedule(from_date=period_start(add_periods(last, asset.period, 1), asset.period, asset.company_id))
+            asset._log('skipped', amount=sum(lines.mapped('amount')), note=_(
+                '%(count)s period(s) up to %(date)s left unbooked; the amount is spread over the periods still to come',
+                count=len(lines), date=fields.Date.to_string(last)))
             asset._check_closed()
         return True
 

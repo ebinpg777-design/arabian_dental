@@ -38,8 +38,14 @@ class AssetScheduleHandler(models.AbstractModel):
             before = asset.already_depreciated + sum(posted_or_due.filtered(lambda l: l.date < d_from).mapped('amount'))
             period = sum(posted_or_due.filtered(lambda l: d_from <= l.date <= d_to).mapped('amount'))
             todate = before + period
-            rows.append({'asset': asset, 'gross': asset.purchase_value, 'before': before, 'period': period,
-                         'todate': todate, 'book': asset.purchase_value - todate})
+            gross = asset.purchase_value
+            if asset.disposal_date and asset.disposal_date <= d_to:
+                # disposed of in the period: its cost and its accumulated depreciation left the
+                # books with the disposal entry - it still counted in the closing gross and book
+                # value. The depreciation before and in the period stays what it was.
+                gross = todate = 0.0
+            rows.append({'asset': asset, 'gross': gross, 'before': before, 'period': period,
+                         'todate': todate, 'book': gross - todate})
         return rows
 
     def lines(self, report, options, columns, for_export=False):
@@ -84,7 +90,9 @@ class AssetScheduleHandler(models.AbstractModel):
         # of each entry (both sides, and the disposal) added up to nothing, whatever the figure was
         domain = [('move_id.ebshel_asset_id', '=', asset.id), ('parent_state', '=', 'posted'),
                   ('account_id', '=', asset.depreciation_account_id.id)]
-        if asset.disposal_move_id:
+        if asset.disposal_move_id and column_key == 'period':
+            # the disposal's debit is not depreciation of the period; to date it is counted, so
+            # an asset disposed of by then adds up to the nothing the column shows
             domain.append(('move_id', '!=', asset.disposal_move_id.id))
         if column_key == 'period':
             domain += [('date', '>=', d_from), ('date', '<=', d_to)]

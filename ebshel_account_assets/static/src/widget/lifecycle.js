@@ -47,10 +47,10 @@ export class AssetLifecycle extends Component {
 
     icon(kind) {
         return {
-            created: "fa-plus", running: "fa-play", paused: "fa-pause", resumed: "fa-play", modified: "fa-pencil",
-            revalued: "fa-level-up", impaired: "fa-level-down", posted: "fa-check", disposed: "fa-sign-out",
-            closed: "fa-flag-checkered", reset: "fa-undo", cancelled: "fa-ban", note: "fa-comment",
-        }[kind] || "fa-circle";
+            created: "add", running: "play_arrow", paused: "pause", resumed: "play_arrow", modified: "edit",
+            revalued: "north_east", impaired: "south_east", posted: "check", disposed: "logout",
+            closed: "sports_score", reset: "undo", cancelled: "block", skipped: "fast_forward", note: "mode_comment",
+        }[kind] || "circle";
     }
 }
 

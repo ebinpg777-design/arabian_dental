@@ -12,7 +12,10 @@
                 <field name="purchase_value" sum="Gross"/>
                 <field name="depreciated_value" sum="Depreciated"/>
                 <field name="book_value" sum="Book value"/>
+                <field name="progress" widget="progressbar" optional="show"/>
                 <field name="next_line_date" optional="show"/>
+                <field name="partner_id" optional="hide"/>
+                <field name="bill_id" optional="hide"/>
                 <field name="custodian_id" optional="hide"/>
                 <field name="location" optional="hide"/>
                 <field name="cover_state" optional="hide" widget="badge" decoration-danger="cover_state == 'expired'" decoration-warning="cover_state == 'soon'" decoration-success="cover_state == 'ok'"/>
@@ -37,8 +40,10 @@
                                 <div class="fw-bold text-truncate"><field name="name"/></div>
                                 <div class="text-muted small"><field name="code"/> · <field name="category_id"/></div>
                                 <div class="small">Book value <b><field name="book_value" widget="monetary"/></b> of <field name="purchase_value" widget="monetary"/></div>
-                                <div class="small text-muted" invisible="not custodian_id"><i class="fa fa-user me-1"/><field name="custodian_id"/> <span invisible="not location">· <field name="location"/></span></div>
+                                <div class="small text-muted" invisible="not custodian_id"><i class="oi me-1" data-icon="person"/><field name="custodian_id"/> <span invisible="not location">· <field name="location"/></span></div>
                                 <div class="small" invisible="not next_line_date">Next <field name="next_line_date"/></div>
+                                <field name="progress" widget="progressbar" class="mt-1"/>
+                                <field name="state" widget="badge" class="mt-1" decoration-success="state == 'running'" decoration-warning="state == 'paused'" decoration-info="state == 'draft'" decoration-muted="state in ('closed', 'disposed', 'cancelled')"/>
                             </div>
                         </div>
                     </t>
@@ -61,15 +66,18 @@
                     <button name="action_open_dispose" type="object" string="Dispose" invisible="state not in ('running', 'paused', 'closed')"/>
                     <button name="action_reset_draft" type="object" string="Reset to draft" invisible="state not in ('running', 'cancelled')"/>
                     <button name="action_cancel" type="object" string="Cancel" invisible="state != 'draft'"/>
-                    <button name="action_print_label" type="object" string="QR label" icon="fa-qrcode"/>
+                    <button name="action_print_label" type="object" string="QR label" icon="qr_code"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,running,closed,disposed"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="fa-book" invisible="not entry_count">
+                        <button name="action_open_bill" type="object" class="oe_stat_button" icon="open_in_new" invisible="not bill_id">
+                            <div class="o_stat_info"><span class="o_stat_text">Vendor bill</span></div>
+                        </button>
+                        <button name="action_open_entries" type="object" class="oe_stat_button" icon="book" invisible="not entry_count">
                             <field name="entry_count" widget="statinfo" string="Entries"/>
                         </button>
-                        <button name="action_open_children" type="object" class="oe_stat_button" icon="fa-level-up" invisible="not child_count">
+                        <button name="action_open_children" type="object" class="oe_stat_button" icon="north_east" invisible="not child_count">
                             <field name="child_count" widget="statinfo" string="Increases"/>
                         </button>
                     </div>
@@ -80,6 +88,15 @@
                     <div class="oe_title">
                         <div class="text-muted"><field name="code" readonly="1"/></div>
                         <h1><field name="name" placeholder="e.g. Dental chair, surgery 2"/></h1>
+                    </div>
+                    <div class="o_eas_strip" invisible="state == 'draft'">
+                        <div class="o_eas_cell"><div class="o_eas_l">Cost</div><div class="o_eas_v"><field name="purchase_value" readonly="1" nolabel="1"/></div></div>
+                        <div class="o_eas_cell"><div class="o_eas_l">Depreciated to date</div><div class="o_eas_v"><field name="depreciated_value" readonly="1" nolabel="1"/></div></div>
+                        <div class="o_eas_cell o_eas_book"><div class="o_eas_l">Book value</div><div class="o_eas_v"><field name="book_value" readonly="1" nolabel="1"/></div></div>
+                        <div class="o_eas_cell o_eas_prog">
+                            <div class="o_eas_l"><field name="posted_count" readonly="1" nolabel="1" class="d-inline"/> of <field name="line_count" readonly="1" nolabel="1" class="d-inline"/> depreciation entries posted<span invisible="not next_line_date"> · next on <field name="next_line_date" readonly="1" nolabel="1" class="d-inline"/></span></div>
+                            <field name="progress" widget="progressbar" nolabel="1"/>
+                        </div>
                     </div>
                     <group>
                         <group string="What it is">
@@ -134,8 +151,9 @@
                                     <field name="remaining"/>
                                     <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state == 'draft'"/>
                                     <field name="move_id" optional="hide"/>
-                                    <button name="action_post" type="object" string="Post" icon="fa-check" invisible="state != 'draft'"/>
-                                    <button name="action_open_move" type="object" string="Entry" icon="fa-external-link" invisible="not move_id"/>
+                                    <button name="action_post" type="object" string="Post" icon="check" invisible="state != 'draft'"/>
+                                    <button name="action_skip" type="object" string="Skip" icon="fast_forward" invisible="state != 'draft' or kind != 'depreciation'" confirm="Leave this period unbooked? Its amount is spread over the periods still to come."/>
+                                    <button name="action_open_move" type="object" string="Entry" icon="open_in_new" invisible="not move_id"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
@@ -203,6 +221,8 @@
                 <filter name="closed" string="Fully depreciated" domain="[('state', '=', 'closed')]"/>
                 <filter name="disposed" string="Disposed" domain="[('state', '=', 'disposed')]"/>
                 <separator/>
+                <filter name="overdue" string="Depreciation overdue" domain="[('state', '=', 'running'), ('line_ids', 'any', [('state', '=', 'draft'), ('date', '&lt;=', context_today().strftime('%Y-%m-%d'))])]"/>
+                <filter name="this_year" string="Bought this year" domain="[('purchase_date', '&gt;=', context_today().strftime('%Y-01-01'))]"/>
                 <filter name="cover_soon" string="Cover expiring" domain="[('cover_state', 'in', ('soon', 'expired'))]"/>
                 <filter name="from_bills" string="From vendor bills" domain="[('bill_id', '!=', False)]"/>
                 <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
@@ -214,7 +234,7 @@
                     <filter name="group_year" string="Purchase year" context="{'group_by': 'purchase_date:year'}"/>
                 </group>
                 <searchpanel>
-                    <field name="category_id" string="Category" icon="fa-cubes" enable_counters="1"/>
+                    <field name="category_id" string="Category" icon="inventory_2" enable_counters="1"/>
                     <field name="state" string="Status" enable_counters="1"/>
                 </searchpanel>
             </search>

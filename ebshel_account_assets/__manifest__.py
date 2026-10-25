@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Assets and Depreciation',
-    'version': '20.0.1.0.0',
+    'version': '20.0.1.2.0',
     'category': 'Accounting/Accounting',
     'summary': 'Fixed assets from purchase to disposal: schedules, automatic depreciation, '
                'pauses, revaluations, gross increases, disposals with gain or loss, assets '
@@ -40,6 +40,7 @@ Assets and Depreciation
         'wizard/asset_change_views.xml',
         'wizard/asset_dispose_views.xml',
         'wizard/asset_simulate_views.xml',
+        'wizard/asset_from_bill_views.xml',
         'views/asset_category_views.xml',
         'views/asset_views.xml',
         'views/account_move_views.xml',
@@ -49,6 +50,7 @@ Assets and Depreciation
     ],
     'assets': {
         'web.assets_backend': [
+            'ebshel_account_assets/static/src/form/asset_form.scss',
             'ebshel_account_assets/static/src/widget/lifecycle.scss',
             'ebshel_account_assets/static/src/widget/lifecycle.js',
             'ebshel_account_assets/static/src/widget/lifecycle.xml',

@@ -15,7 +15,10 @@
                     <group>
                         <field name="book_value"/>
                         <field name="invoice_id" invisible="kind != 'sale'"/>
-                        <field name="proceeds" invisible="kind != 'sale'"/>
+                        <field name="proceeds" invisible="kind != 'sale'" readonly="invoice_id"/>
+                        <field name="company_id" invisible="1"/>
+                        <field name="proceeds_account_id" invisible="kind != 'sale' or invoice_id"
+                               required="kind == 'sale' and proceeds and not invoice_id"/>
                     </group>
                 </group>
                 <group>
@@ -23,8 +26,9 @@
                 </group>
                 <div class="text-muted small">
                     Depreciation is posted up to the date, the gross value and its accumulated depreciation
-                    leave the books, and the book value goes to the loss (or gain) account. A sale's
-                    proceeds come through the customer invoice.
+                    leave the books with its gross increases, and the proceeds less the book value go to the
+                    gain or loss account. A sale's proceeds come off the invoice's income lines, or off the
+                    proceeds account when there is no invoice.
                 </div>
                 <footer>
                     <button name="action_apply" type="object" string="Dispose" class="btn-primary"/>

@@ -5,9 +5,9 @@
             <div class="o_ead_head">
                 <h2>Assets</h2>
                 <span class="text-muted" t-if="this.state.data">fiscal year <t t-out="this.state.data.fy_label"/></span>
-                <button class="btn btn-sm btn-outline-secondary ms-auto" t-on-click="() => this.load()"><i class="fa fa-refresh"/></button>
+                <button class="btn btn-sm btn-outline-secondary ms-auto" t-on-click="() => this.load()"><i class="oi" data-icon="refresh"/></button>
             </div>
-            <div t-if="this.state.loading" class="p-4 text-muted"><i class="fa fa-circle-o-notch fa-spin me-2"/>Adding up…</div>
+            <div t-if="this.state.loading" class="p-4 text-muted"><i class="oi oi-spin me-2" data-icon="autorenew"/>Adding up…</div>
             <div t-elif="this.state.data.error" class="alert alert-warning m-3" t-out="this.state.data.error"/>
             <div t-else="" class="o_ead_body">
                 <div class="o_ead_kpis">
@@ -35,7 +35,7 @@
                         <div t-if="!this.state.data.forecast.length" class="text-muted small">Nothing scheduled.</div>
                         <div class="o_ead_cols" t-if="this.state.data.forecast.length">
                             <div t-foreach="this.state.data.forecast" t-as="f" t-key="f.year" class="o_ead_col" t-att-title="f.text">
-                                <div class="o_ead_colv" t-out="f.text"/>
+                                <div class="o_ead_colv" t-out="this.compact(f.value)"/>
                                 <div class="o_ead_colbar"><div class="o_ead_colfill" t-attf-style="height: {{ this.barPct(f.value, this.state.data.forecast, 'value') }}%"/></div>
                                 <div class="o_ead_coll" t-out="f.year"/>
                             </div>
@@ -67,10 +67,16 @@
                             <div class="o_ead_in" t-out="p.name"/><div class="o_ead_iv small text-muted">since <t t-out="p.since"/></div>
                         </div>
                     </div>
+                    <div class="o_ead_panel o_ead_notice" t-if="this.state.data.auto_off.length">
+                        <div class="o_ead_ph">Automatic posting is off</div>
+                        <div class="small text-muted mb-2">The nightly job will not post depreciation for: <b t-out="this.state.data.auto_off.join(', ')"/>. Post from the asset, or switch <i>Post automatically</i> on in the category once its backlog is settled.</div>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.openCategories()">Open categories</button>
+                    </div>
                     <div class="o_ead_panel" t-if="this.state.data.overdue_ids.length">
                         <div class="o_ead_ph">Depreciation overdue</div>
-                        <div class="small text-muted mb-2"><t t-out="this.state.data.overdue_ids.length"/> asset(s) have entries dated in the past still to post.</div>
-                        <button class="btn btn-sm btn-primary" t-on-click="() => this.postOverdue()" t-att-disabled="this.state.busy"><i class="fa fa-check me-1"/>Post them now</button>
+                        <div class="small text-muted mb-2"><t t-out="this.state.data.overdue_ids.length"/> asset(s) have entries dated in the past still to post, <b t-out="this.state.data.overdue_amount"/> in all. Post them as dated, or leave those periods unbooked and spread the amount over the months to come.</div>
+                        <button class="btn btn-sm btn-primary me-2" t-on-click="() => this.postOverdue()" t-att-disabled="this.state.busy"><i class="oi me-1" data-icon="check"/>Post them now</button>
+                        <button class="btn btn-sm btn-outline-secondary" t-on-click="() => this.skipOverdue()" t-att-disabled="this.state.busy"><i class="oi me-1" data-icon="fast_forward"/>Skip them</button>
                     </div>
                 </div>
             </div>

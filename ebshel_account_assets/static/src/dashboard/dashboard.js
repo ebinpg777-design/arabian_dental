@@ -4,6 +4,7 @@ import { Component, onWillStart, proxy, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
+import { _t } from "@web/core/l10n/translation";
 
 /** Assets at a glance: what they are worth, what they cost this year, what is
  *  due, what needs a decision. Every figure opens the list behind it. */
@@ -51,6 +52,25 @@ export class AssetDashboard extends Component {
         this.open(domain, name);
     }
 
+    async skipOverdue() {
+        if (!confirm(_t("Leave the overdue periods unbooked? Their amount is spread over the months still to come."))) {
+            return;
+        }
+        this.state.busy = true;
+        try {
+            await this.orm.call("ebshel.asset.dashboard", "skip_overdue", []);
+            await this.load();
+        } finally {
+            this.state.busy = false;
+        }
+    }
+    openCategories() {
+        this.action.doAction("ebshel_account_assets.action_asset_categories");
+    }
+    /** 63,559.32 reads as 63.6K on a narrow bar; the full figure stays in the title. */
+    compact(value) {
+        return new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 }).format(value || 0);
+    }
     async postOverdue() {
         this.state.busy = true;
         try {

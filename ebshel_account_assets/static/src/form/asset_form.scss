@@ -1,0 +1,9 @@
+// The asset form's value strip: cost, what is depreciated, the book value and how far along it is.
+.o_eas_strip {
+    display: flex; flex-wrap: wrap; gap: .75rem; margin: .25rem 0 1rem;
+    .o_eas_cell { flex: 1 1 140px; min-width: 0; border: 1px solid #e6eaf0; border-radius: .5rem; padding: .4rem .7rem; background: #fff; }
+    .o_eas_l { font-size: .66rem; text-transform: uppercase; letter-spacing: .4px; color: #6b7280; font-weight: 600; white-space: nowrap; }
+    .o_eas_v { font-size: 1.05rem; font-weight: 700; color: #1f3a5f; .o_field_widget { display: inline; } }
+    .o_eas_book .o_eas_v, .o_eas_book .o_field_widget { color: #067647; }
+    .o_eas_prog { flex: 2 1 260px; .o_eas_l { text-transform: none; letter-spacing: 0; white-space: normal; font-weight: 500; } }
+}

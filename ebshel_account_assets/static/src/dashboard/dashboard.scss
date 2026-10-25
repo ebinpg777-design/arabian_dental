@@ -15,7 +15,8 @@
     .o_ead_grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: .6rem; }
     .o_ead_panel { background: #fff; border: 1px solid var(--l); border-radius: .5rem; padding: .55rem .75rem; min-width: 0; }
     .o_ead_ph { font-size: .7rem; text-transform: uppercase; letter-spacing: .4px; color: var(--m); margin-bottom: .45rem; }
-    .o_ead_row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) auto; gap: .5rem; align-items: center; padding: .18rem 0; cursor: pointer;
+    .o_ead_notice { border-left: 4px solid #b45309; }
+    .o_ead_row { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) auto; gap: .5rem; align-items: center; padding: .18rem 0; cursor: pointer;
         font-size: .82rem; &:hover { background: #f6f8fa; } }
     .o_ead_rn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .o_ead_bar { position: relative; height: 10px; background: #f1f3f6; border-radius: 5px; overflow: hidden; }

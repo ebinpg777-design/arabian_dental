@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_from_bill_form" model="ir.ui.view">
+        <field name="name">ebshel.asset.from.bill.form</field>
+        <field name="model">ebshel.asset.from.bill</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="move_id" invisible="1"/>
+                <field name="company_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <div class="alert alert-info mb-3" role="alert">
+                    Each ticked line becomes an asset — or several, one per unit. The category sets the accounts
+                    and the depreciation rule; <b>Charge / month</b> is what each asset will cost under it.
+                    Change a name, pick a category, say where it lives and who holds it, then create.
+                </div>
+                <group>
+                    <group>
+                        <field name="start" widget="radio"/>
+                    </group>
+                    <group string="For every line">
+                        <field name="custodian_id"/>
+                        <field name="location"/>
+                    </group>
+                </group>
+                <field name="line_ids">
+                    <list editable="bottom" create="0" delete="0">
+                        <field name="include" widget="boolean_toggle"/>
+                        <field name="bill_line_id" column_invisible="1"/>
+                        <field name="name"/>
+                        <field name="account_id" optional="hide"/>
+                        <field name="category_id" options="{'no_create': True}"/>
+                        <field name="units"/>
+                        <field name="value" sum="Total"/>
+                        <field name="unit_value"/>
+                        <field name="salvage_value"/>
+                        <field name="charge"/>
+                        <field name="start_date"/>
+                        <field name="custodian_id" optional="show"/>
+                        <field name="location" optional="show"/>
+                        <field name="serial" optional="hide"/>
+                        <field name="warranty_end" optional="hide"/>
+                        <field name="insurance_end" optional="hide"/>
+                        <field name="currency_id" column_invisible="1"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_create" type="object" string="Create assets" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

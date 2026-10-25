@@ -42,7 +42,7 @@
             <form>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_open_assets" type="object" class="oe_stat_button" icon="fa-cubes">
+                        <button name="action_open_assets" type="object" class="oe_stat_button" icon="inventory_2">
                             <field name="asset_count" widget="statinfo" string="Assets"/>
                         </button>
                     </div>
@@ -61,6 +61,7 @@
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                         <group string="Accounts">
+                            <div class="text-muted small mb-1" colspan="2">Three different accounts: the asset account holds the cost; the accumulated depreciation account (a fixed-asset account) builds up what has been depreciated; the expense account is charged each period.</div>
                             <field name="asset_account_id"/>
                             <field name="depreciation_account_id"/>
                             <field name="expense_account_id"/>

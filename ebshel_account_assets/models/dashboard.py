@@ -72,9 +72,19 @@ class AssetDashboard(models.AbstractModel):
                        'insurance': fields.Date.to_string(a.insurance_end) if a.insurance_end else '', 'state': a.cover_state}
                       for a in cover[:8]],
             'overdue_ids': overdue.mapped('asset_id').ids,
+            'overdue_amount': fmt(sum(overdue.mapped('amount'))),
+            # categories whose depreciation the nightly job will not post
+            'auto_off': [c.name for c in self.env['ebshel.asset.category'].search(
+                [('company_id', '=', company.id), ('auto_post', '=', False)]) if c.asset_count],
             'paused': [{'id': a.id, 'name': a.name, 'since': fields.Date.to_string(a.paused_on) if a.paused_on else ''}
                        for a in live.filtered(lambda a: a.state == 'paused')[:8]],
         }
+
+    @api.model
+    def skip_overdue(self):
+        Asset = self.env['ebshel.asset']
+        Asset.search([('company_id', '=', self.env.company.id), ('state', '=', 'running')]).action_skip_due()
+        return True
 
     @api.model
     def post_overdue(self):

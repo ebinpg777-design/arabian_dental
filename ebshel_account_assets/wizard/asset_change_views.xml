@@ -23,13 +23,16 @@
                 </group>
                 <group invisible="kind == 'life'">
                     <field name="amount"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="account_id" invisible="kind != 'increase'" required="kind == 'increase'"/>
                 </group>
                 <group>
                     <field name="note" placeholder="Why - it goes on the timeline"/>
                 </group>
                 <div class="text-muted small">
                     A longer or shorter life rebuilds the remaining schedule from the period after the date.
-                    An increase becomes a linked asset depreciated over the remaining life.
+                    An increase is posted to the asset account against the counterpart account and becomes
+                    a linked asset depreciated over the remaining life; it is disposed of with its asset.
                     A write-down posts an impairment entry and rebuilds the schedule on the new book value.
                 </div>
                 <footer>
