@@ -115,30 +115,35 @@ EXCURSION_FIXES = 3        # a run of at most this many fixes...
 EXCURSION_M = 100.0        # ...at least this far from the fixes either side of it...
 EXCURSION_BACK_M = 60.0    # ...those two this close together: the phone was back...
 EXCURSION_KMH = 25.0       # ...one way of it faster than this...
-EXCURSION_SECONDS = 120    # ...in this little time, the phone reading under VEHICLE_KMH
+EXCURSION_SECONDS = 120    # ...in this little time
 
 
 def drop_excursions(points):
     """The trail without the fixes a phone put somewhere it never went.
 
-    Standing at a clinic, a phone now and then reports one fix - two or three at
-    most - hundreds of metres away at a confident "7 m", and is back where it was
-    seconds later (ASHIQ, 2026-10-26: four such runs in fifteen minutes, 250 m to
-    1.2 km out, drawn as a star of spikes round the clinic and counted as 5 km; a
-    week of the team's fixes held 21, one of them 8 km out). A run is dropped when
-    the fixes either side of it are within EXCURSION_BACK_M of each other, each of
-    its fixes is EXCURSION_M or more from both, one way of it - out or back, within
-    EXCURSION_SECONDS - was faster than EXCURSION_KMH, and the phone's own speed at
-    its fixes was under VEHICLE_KMH: an errand at that pace is a ride, and a riding
-    phone reads its speed and records the road in between. The fixes stay stored;
-    the map, the km and the halts read the trail without them.
+    Standing at a clinic, a phone now and then reports a fix - two or three at most -
+    hundreds of metres away at a confident "7 m", and is back where it was seconds
+    later: drawn, a star of spikes round the clinic; measured, km nobody drove
+    (ASHIQ, 2026-10-26: four such runs in fifteen minutes, 250 m to 1.2 km out;
+    Abdul Latheef the same morning: seven fixes in eight minutes while his phone's
+    own sensors said "still"; a week of the team's fixes held 31 in 14,274, one of
+    them 8 km out). A run is dropped when
+      * the fixes either side of it are within EXCURSION_BACK_M of each other, and
+        each of its fixes is EXCURSION_M or more from both;
+      * one way of it - out or back, within EXCURSION_SECONDS - was faster than
+        EXCURSION_KMH;
+      * the phone did not say it was riding there (_riding), and said it was
+        standing at one end of it (_standing).
+    A real errand at that pace is a ride: a riding phone reads its speed or its
+    sensors say so, and it is moving at both ends. The fixes stay stored; the map,
+    the km and the halts read the trail without them.
     """
     if len(points) < 3:
         return list(points)
     out, i, n = [points[0]], 1, len(points)
     while i < n:
         skip = next((k for k in range(1, EXCURSION_FIXES + 1)
-                     if i + k < n and _excursion(out[-1], points[i:i + k], points[i + k])), 0)
+                     if i + k < n and _excursion(out[-1], points[i - 1:i + k], points[i + k])), 0)
         if skip:
             i += skip
         else:
@@ -148,20 +153,40 @@ def drop_excursions(points):
 
 
 def _excursion(before, run, after):
-    """Whether `run` is fixes the phone never went to, between `before` and `after`."""
+    """Whether run[1:] - run[0] is the fix just before it, which a speed the server
+    derived was measured from - is fixes the phone never went to, between `before`
+    and `after`."""
+    prior, run = run[0], run[1:]
     if (metres_between(before[1], before[2], after[1], after[2]) or 0.0) > EXCURSION_BACK_M:
         return False
-    for point in run:
-        if (point[3] or 0.0) >= VEHICLE_KMH:
+    for prev, point in zip([prior] + run[:-1], run):
+        if _riding(point, prev):
             return False
         if any((metres_between(point[1], point[2], other[1], other[2]) or 0.0) < EXCURSION_M
                for other in (before, after)):
             return False
-    for a, b in ((before, run[0]), (run[-1], after)):
-        _metres, secs, kmh = _step(a, b)
-        if secs <= EXCURSION_SECONDS and kmh > EXCURSION_KMH:
-            return True
-    return False
+    if not (_standing(before) or _standing(after)):
+        return False
+    return any(secs <= EXCURSION_SECONDS and kmh > EXCURSION_KMH
+               for _metres, secs, kmh in (_step(before, run[0]), _step(run[-1], after)))
+
+
+def _riding(point, prev):
+    """Whether the phone said it was riding at `point`: by its own speed reading
+    where it gave one, else by its motion sensor. A speed the phone did not give is
+    the ground covered since the fix before, worked out on arrival (location_ping
+    record) - at a fix the phone never went to, that is the jump itself, 60 to 145
+    km/h - so a speed equal to that is no reading."""
+    speed = point[3] or 0.0
+    if abs(speed - round(_step(prev, point)[2], 1)) >= 0.11:
+        return speed >= VEHICLE_KMH
+    return _motion(point) == 'vehicle'
+
+
+def _standing(point):
+    """Whether the phone stood at `point`: its sensors said still, or it was barely
+    moving (a reading or the ground covered since the fix before, alike)."""
+    return _motion(point) == 'still' or (point[3] or 0.0) < MOVING_KMH
 
 
 def _stays(points):

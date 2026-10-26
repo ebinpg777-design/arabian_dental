@@ -344,6 +344,16 @@ class TestLiveLayer(LiveTrackCase):
         self.assertEqual(drop(shop), shop, "a walk to the shop and back")
         last = still + [at(t0, 330, 500, speed=2.0)]
         self.assertEqual(drop(last), last, "the latest fix is where the phone is: no way back to judge")
+        # a phone that gives no speed: the server's speed is the jump itself, no reading
+        stay = [at(t0, 0, 0, motion='still'), at(t0, 300, 2, motion='still')]
+        jump = at(t0, 330, 500, motion='still')
+        jump = jump[:3] + (round(location_live._step(stay[-1], jump)[2], 1),) + jump[4:]
+        back = at(t0, 350, 1, motion='still')
+        back = back[:3] + (round(location_live._step(jump, back)[2], 1),) + back[4:]
+        self.assertEqual(drop(stay + [jump, back]), stay + [back])
+        # the same shape while the sensors said "vehicle" is a ride
+        ridden = jump[:8] + ('vehicle',)
+        self.assertEqual(drop(stay + [ridden, back]), stay + [ridden, back])
 
     def test_the_map_and_the_km_leave_out_where_the_phone_never_went(self):
         user = self.exec_user
