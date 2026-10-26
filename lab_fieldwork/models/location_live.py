@@ -111,6 +111,59 @@ def _motion(point):
     return point[8] if len(point) > 8 else None
 
 
+EXCURSION_FIXES = 3        # a run of at most this many fixes...
+EXCURSION_M = 100.0        # ...at least this far from the fixes either side of it...
+EXCURSION_BACK_M = 60.0    # ...those two this close together: the phone was back...
+EXCURSION_KMH = 25.0       # ...one way of it faster than this...
+EXCURSION_SECONDS = 120    # ...in this little time, the phone reading under VEHICLE_KMH
+
+
+def drop_excursions(points):
+    """The trail without the fixes a phone put somewhere it never went.
+
+    Standing at a clinic, a phone now and then reports one fix - two or three at
+    most - hundreds of metres away at a confident "7 m", and is back where it was
+    seconds later (ASHIQ, 2026-10-26: four such runs in fifteen minutes, 250 m to
+    1.2 km out, drawn as a star of spikes round the clinic and counted as 5 km; a
+    week of the team's fixes held 21, one of them 8 km out). A run is dropped when
+    the fixes either side of it are within EXCURSION_BACK_M of each other, each of
+    its fixes is EXCURSION_M or more from both, one way of it - out or back, within
+    EXCURSION_SECONDS - was faster than EXCURSION_KMH, and the phone's own speed at
+    its fixes was under VEHICLE_KMH: an errand at that pace is a ride, and a riding
+    phone reads its speed and records the road in between. The fixes stay stored;
+    the map, the km and the halts read the trail without them.
+    """
+    if len(points) < 3:
+        return list(points)
+    out, i, n = [points[0]], 1, len(points)
+    while i < n:
+        skip = next((k for k in range(1, EXCURSION_FIXES + 1)
+                     if i + k < n and _excursion(out[-1], points[i:i + k], points[i + k])), 0)
+        if skip:
+            i += skip
+        else:
+            out.append(points[i])
+            i += 1
+    return out
+
+
+def _excursion(before, run, after):
+    """Whether `run` is fixes the phone never went to, between `before` and `after`."""
+    if (metres_between(before[1], before[2], after[1], after[2]) or 0.0) > EXCURSION_BACK_M:
+        return False
+    for point in run:
+        if (point[3] or 0.0) >= VEHICLE_KMH:
+            return False
+        if any((metres_between(point[1], point[2], other[1], other[2]) or 0.0) < EXCURSION_M
+               for other in (before, after)):
+            return False
+    for a, b in ((before, run[0]), (run[-1], after)):
+        _metres, secs, kmh = _step(a, b)
+        if secs <= EXCURSION_SECONDS and kmh > EXCURSION_KMH:
+            return True
+    return False
+
+
 def _stays(points):
     """For each point, the index of the first point of the stay it belongs to: a
     phone saying again and again, minutes apart, that it is where it was (the
@@ -432,11 +485,11 @@ class LabLocationPingLive(models.Model):
 
     @api.model
     def _trail_points(self, fixes):
-        """The fixes worth drawing and measuring: accurate enough to sit on a road."""
+        """The fixes worth drawing and measuring: accurate enough to sit on a road,
+        and only where the phone went (drop_excursions)."""
         limit = self._trail_accuracy()
-        if limit:
-            return [p for p in fixes if not p[6] or p[6] < limit]
-        return list(fixes)
+        points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
+        return drop_excursions(points)
 
     @api.model
     def _day_points(self, user, day):

@@ -322,6 +322,47 @@ class TestLiveLayer(LiveTrackCase):
                          "the latest fix is still where the phone is")
         self.assertLess(ex['km'], 0.1, "and the tower is no distance driven")
 
+    def test_a_fix_the_phone_never_went_to_is_not_the_trail(self):
+        """Standing at a clinic the phone puts a fix 500 m out at "7 m" and is back
+        seconds later (ASHIQ, 2026-10-26): a spike on the map and km never driven.
+        Such a run - one fix or a few - is dropped; a ride out and back is not."""
+        t0 = fields.Datetime.now() - timedelta(hours=1)
+        drop = location_live.drop_excursions
+        still = [at(t0, 0, 0), at(t0, 300, 2)]
+        # one fix 512 m out, back 24 s later; two fixes 1.2 km out, back 15 s later
+        trail = still + [at(t0, 547, 512, speed=3.2), at(t0, 571, 1),
+                         at(t0, 780, 1221, speed=3.7), at(t0, 793, 1076, speed=2.2),
+                         at(t0, 808, 12), at(t0, 1100, 3)]
+        self.assertEqual([round((p[1] - 10.0) * 111_320.0) for p in drop(trail)], [0, 2, 1, 12, 3])
+        # a ride: the phone reads its speed and records the road in between
+        ride = still + [at(t0, 300 + 20 * i, 150 * i, speed=27.0) for i in range(1, 5)] \
+            + [at(t0, 380 + 20 * i, 600 - 150 * i, speed=27.0) for i in range(1, 5)]
+        self.assertEqual(drop(ride), ride)
+        quick = still + [at(t0, 330, 400, speed=30.0), at(t0, 360, 0)]
+        self.assertEqual(drop(quick), quick, "one fix out, but the phone said it was riding")
+        shop = still + [at(t0, 600, 150, speed=4.0), at(t0, 900, 0)]
+        self.assertEqual(drop(shop), shop, "a walk to the shop and back")
+        last = still + [at(t0, 330, 500, speed=2.0)]
+        self.assertEqual(drop(last), last, "the latest fix is where the phone is: no way back to judge")
+
+    def test_the_map_and_the_km_leave_out_where_the_phone_never_went(self):
+        user = self.exec_user
+        start = fields.Datetime.now() - timedelta(minutes=15)
+        self._start_day(user, start - timedelta(minutes=30))
+        out = 10.0 + 500 / 111_320.0
+        fixes = [(10.0, 0, 0.0), (10.00002, 300, 0.0), (out, 330, 3.0),
+                 (10.00001, 350, 0.0), (10.00003, 600, 0.0)]
+        Ping = self.env['lab.location.ping']
+        Ping.with_user(user).record([
+            {'latitude': lat, 'longitude': 76.0, 'accuracy_m': 7, 'speed_kmh': speed,
+             'ts': fields.Datetime.to_string(start + timedelta(seconds=seconds))}
+            for lat, seconds, speed in fixes])
+        [ex] = Ping.with_user(user).get_live_map()['executives']
+        self.assertNotIn(round(out, 6), [round(p[0], 6) for leg in ex['legs'] for p in leg])
+        self.assertLess(ex['km'], 0.1, "500 m out and back in 20 s is no distance")
+        self.assertTrue(Ping.sudo().search_count([('user_id', '=', user.id), ('latitude', '>', 10.004)]),
+                        "the fix itself stays stored")
+
     def test_a_batch_writes_the_last_fix_forward_only(self):
         user = self.exec_user
         now = fields.Datetime.now() - timedelta(minutes=10)
