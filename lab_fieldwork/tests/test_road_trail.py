@@ -17,6 +17,7 @@ from ..models import location_live, location_road
 from ..models.lab_visit import metres_between
 
 ROUTING = 'https://routing.test/route/v1/driving/'
+MATCHING = 'https://routing.test/match/v1/driving/'
 NORTH = 1 / 111_320.0
 
 
@@ -53,6 +54,55 @@ def fake_osrm(detours=(), fail=False):
                         'routes': [{'legs': legs, 'distance': sum(l['distance'] for l in legs)}],
                         'waypoints': [{'location': list(c)} for c in coords]}
         return Response()
+    return fake_get, calls
+
+
+def fake_services(outliers=(), match_fails=False):
+    """A routing server of our own in a function: the route service as fake_osrm's,
+    and the match service, which finds every fix on a road but the `outliers` (by
+    index in the trace) and gives the leg from each matched fix to the next - the
+    straight line with a bend east, 1.1 times as long. `match_fails` answers the
+    match service with 400 TooBig, as the public demo server does."""
+    calls = []
+    route_get, _route_calls = fake_osrm()
+
+    class Response:
+        def __init__(self, status, body):
+            self.status_code, self._body, self.content = status, body, b'x'
+
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise OSError('HTTP %s' % self.status_code)
+
+        def json(self):
+            return self._body
+
+    def fake_get(url, params=None, timeout=None):
+        if '/match/' not in url:
+            calls.append((url, params))
+            return route_get(url, params=params, timeout=timeout)
+        calls.append((url, params))
+        if match_fails:
+            return Response(400, {'code': 'TooBig', 'message': 'Too many trace coordinates'})
+        coords = [tuple(float(x) for x in c.split(',')) for c in url.split('/driving/')[1].split(';')]
+        tracepoints, legs, waypoint = [], [], 0
+        last = None
+        for i, c in enumerate(coords):
+            if i in outliers:
+                tracepoints.append(None)
+                continue
+            if last is not None:
+                a, b = coords[last], c
+                straight = metres_between(a[1], a[0], b[1], b[0]) or 0.0
+                mid = [(a[0] + b[0]) / 2 + 0.0003, (a[1] + b[1]) / 2]
+                legs.append({'distance': straight * 1.1,
+                             'steps': [{'geometry': {'coordinates': [list(a), mid]}},
+                                       {'geometry': {'coordinates': [mid, list(b)]}}]})
+            tracepoints.append({'matchings_index': 0, 'waypoint_index': waypoint, 'location': list(c)})
+            waypoint += 1
+            last = i
+        return Response(200, {'code': 'Ok', 'matchings': [{'legs': legs, 'confidence': 0.9}],
+                              'tracepoints': tracepoints})
     return fake_get, calls
 
 
@@ -96,6 +146,7 @@ class TestRoadTrail(LiveTrackCase):
         self._freezer.start()
         self.addCleanup(self._freezer.stop)
         self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.routing_url', ROUTING)
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.matching_url', '')
         self.Ping = self.env['lab.location.ping'].with_user(self.ops_user) \
             .with_context(lab_test_routing=True)
         self.now = fields.Datetime.now() - timedelta(minutes=30)
@@ -214,6 +265,71 @@ class TestRoadTrail(LiveTrackCase):
         self.assertEqual(lons.count(76.0003), 5, "each of the five steps runs by its road's bend")
         self.assertEqual(len(segment), 12, "first fix, five steps of bend and fix, the fix back")
         self.assertEqual(track['trail_km'], round(5 * 200 * 1.1 / 1000, 1), "measured along the roads")
+
+    def _outlier_drive(self):
+        """Seven fixes north, the fourth 400 m east of the line - riding, so the trail's
+        own rules keep it: only a map-matcher can tell it sits on no road."""
+        self._drive(0, 3)
+        east = 400 / (111_320.0 * math.cos(math.radians(10.0)))
+        self.env['lab.location.ping'].with_user(self.exec_user).record([
+            {'latitude': 10.0 + 3 * 200 * NORTH, 'longitude': 76.0 + east, 'accuracy_m': 8,
+             'speed_kmh': 36.0, 'motion': 'vehicle',
+             'ts': fields.Datetime.to_string(self.now + timedelta(seconds=60))}])
+        self._drive(4, 3)
+
+    def test_a_matched_trail_leaves_a_fix_on_no_road_out(self):
+        """With a routing server of our own the whole stretch is map-matched: a fix the
+        matcher finds on no road - 400 m into a field, across the river - is stored as
+        an empty road, and the trail, the km and the day sheet pass it by (2026-10-26:
+        "triangles and straight lines and map crossing rivers")."""
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.matching_url', MATCHING)
+        self._outlier_drive()
+        user = self.exec_user
+        day = fields.Date.context_today(user)
+        self.assertEqual(len(self.Ping.sudo()._day_points(user, day)), 7, "the trail's own rules keep it")
+        fake, calls = fake_services(outliers=(3,))
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=user.id)
+        self.assertEqual([('/match/' in u) for u, _p in calls], [True], "matched as one trace, routed nowhere")
+        self.assertEqual((road['state'], road['complete']), ('ok', True))
+        [leg] = road['legs']
+        self.assertLess(max(v[1] for v in leg), 76.001, "the fix in the field is not drawn")
+        self.assertEqual(len(leg), 11, "first fix, then bend and fix for the five legs between matched fixes")
+        steps = self.Ping.sudo()._road_steps(user, day)
+        outlier = self.Ping.sudo()._day_points(user, day)[3]
+        self.assertEqual(steps[str(location_live.epoch(outlier[0]))], [], "known: off every road")
+        km = location_live.mode_km(self.Ping.sudo()._day_points(user, day), steps=steps)
+        # 1,200 m along the bent roads is 1,248 m; with the spike, 894 m more
+        self.assertTrue(1.2 < km['travel'] < 1.3, "the spike never counted: %s" % km)
+        Sheet = self.env['lab.daily.update'].sudo()
+        sheet = Sheet.search([('user_id', '=', user.id), ('date', '=', day)], limit=1) \
+            or Sheet.create({'user_id': user.id, 'date': day})
+        [segment] = sheet.get_day_track()['trail']
+        self.assertLess(max(v[1] for v in segment), 76.001, "nor on the day sheet")
+        self.assertEqual(len(segment), 11)
+
+    def test_a_matcher_that_fails_is_answered_by_the_router(self):
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.matching_url', MATCHING)
+        self._drive(0, 6)
+        fake, calls = fake_services(match_fails=True)
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual([('/match/' in u) for u, _p in calls], [True, False], "the matcher refused, the router answered")
+        [leg] = road['legs']
+        self.assertEqual((road['state'], len(leg)), ('ok', 11))
+
+    def test_the_match_service_follows_a_routing_server_of_our_own(self):
+        icp = self.env['ir.config_parameter'].sudo()
+        env = self.env(context=dict(self.env.context, lab_test_routing=True))
+        icp.search([('key', '=', 'lab_fieldwork.matching_url')]).unlink()
+        icp.set_str('lab_fieldwork.routing_url', location_road.DEFAULT_ROUTING_URL)
+        self.assertEqual(location_road.matching_url(env), '', "the public demo server matches ten points: not used")
+        icp.set_str('lab_fieldwork.routing_url', 'http://127.0.0.1:5000/route/v1/driving/')
+        self.assertEqual(location_road.matching_url(env), 'http://127.0.0.1:5000/match/v1/driving/')
+        icp.set_str('lab_fieldwork.matching_url', 'https://matcher.example/match/v1/driving/')
+        self.assertEqual(location_road.matching_url(env), 'https://matcher.example/match/v1/driving/')
+        icp.set_str('lab_fieldwork.matching_url', '')
+        self.assertEqual(location_road.matching_url(env), '', "set empty: off")
 
     def test_a_fix_snapped_to_the_wrong_road_is_drawn_straight(self):
         self._drive(0, 5)

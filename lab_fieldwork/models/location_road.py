@@ -58,6 +58,29 @@ def routing_url(env):
     return (url or '').strip()
 
 
+def matching_url(env):
+    """Where whole stretches are map-matched: `lab_fieldwork.matching_url`, else the
+    route URL's match service when the lab runs a routing server of its own (the
+    public demo server allows ten points a match), else ''. Under the test runner
+    as routing_url."""
+    if odoo.modules.module.current_test and not env.context.get('lab_test_routing'):
+        return ''
+    parameter = env['ir.config_parameter'].sudo().search(
+        [('key', '=', 'lab_fieldwork.matching_url')], limit=1)
+    if parameter:
+        return (parameter.value or '').strip()
+    route = routing_url(env)
+    if route and route != DEFAULT_ROUTING_URL and '/route/v1/' in route:
+        return route.replace('/route/v1/', '/match/v1/')
+    return ''
+
+
+MATCH_RADIUS_MIN_M = 10.0      # a fix is looked for on a road within its accuracy, at least this...
+MATCH_RADIUS_MAX_M = 50.0      # ...and at most this
+MATCH_DETOUR_FACTOR = 3.0      # a matched leg this much longer than its gap, plus...
+MATCH_DETOUR_SLACK_M = 300.0   # ...this, is drawn straight: a loop the matcher invented
+
+
 def _straight(a, b):
     return metres_between(a[1], a[2], b[1], b[2]) or 0.0
 
@@ -181,6 +204,7 @@ class LabLocationPingRoad(models.Model):
         url = routing_url(self.env) if self._road_trail_enabled() else ''
         if not url:
             return {'state': 'off', 'legs': None, 'complete': True}
+        match_url = matching_url(self.env)
         points = self._day_points(user, day)
         modes = classify_modes(points)
         mode_of = {id(p): m for p, m in zip(points, modes)}
@@ -238,7 +262,7 @@ class LabLocationPingRoad(models.Model):
                         break
                     asked += 1
                     try:
-                        cache.update(self._ask_roads(url, run[start:start + ROAD_WAYPOINTS]))
+                        cache.update(self._ask_roads(url, run[start:start + ROAD_WAYPOINTS], match_url))
                     except Exception as error:   # noqa: BLE001 - a map must never break the board
                         _logger.info("road trail %s %s: no roads (%s)", user.login, day, error)
                         state, complete = 'failed', False
@@ -259,10 +283,14 @@ class LabLocationPingRoad(models.Model):
         for wps in legs_wp:
             first = wps[0]
             out = [[first[1], first[2], epoch(first[0]), first[3], 'still']]
-            for a, b in zip(wps, wps[1:]):
+            last = first
+            for b in wps[1:]:
                 mode = mode_of.get(id(b), 'still')
                 when, speed = epoch(b[0]), b[3]
-                geometry = road_step(cache, a, b)
+                geometry = road_step(cache, last, b)
+                if geometry == []:
+                    continue        # the map-matcher put this fix off every road: not drawn
+                last = b
                 # A stretch the phone crossed with nothing recorded is drawn as the
                 # drive it was once its road is known, not as a dotted straight line
                 # (client, 2026-10-23: "why these dots ... the map should be realistic").
@@ -315,7 +343,83 @@ class LabLocationPingRoad(models.Model):
         _logger.info("road trail: %d day(s) of trail brought up to date", filled)
 
     @api.model
-    def _ask_roads(self, url, chunk):
+    def _ask_roads(self, url, chunk, match_url=None):
+        """{fix time: [[lat, lon], ...]} - the road from each fix of `chunk` to the
+        next: map-matched as one trace where the lab has a matcher (_ask_match),
+        else routed step by step (_ask_route). A matcher that fails - too big a
+        trace, down - is answered by the router."""
+        if match_url:
+            try:
+                return self._ask_match(match_url, chunk)
+            except Exception as error:   # noqa: BLE001 - the router still knows the roads
+                _logger.info("road trail: match of %d fixes failed (%s), routing instead", len(chunk), error)
+        return self._ask_route(url, chunk)
+
+    @api.model
+    def _ask_match(self, url, chunk):
+        """{fix time: [[lat, lon], ...]} by OSRM's match service, the whole chunk as
+        one trace with each fix's accuracy as its radius and its time: the matcher
+        picks the roads consistent with the trace, and a fix it finds on no road
+        - 500 m into a field, across the river - is an outlier, stored as [] so
+        the trail, the km and the day sheet pass it by (2026-10-26: "triangles and
+        straight lines and map crossing rivers"). The leg from one matched fix to
+        the next is keyed by the latter's time; a matched leg far longer than the
+        gap it bridges is a loop the matcher invented, drawn straight."""
+        coordinates = ';'.join('%s,%s' % (p[2], p[1]) for p in chunk)
+        radiuses = ';'.join(str(int(min(max(p[6] or MATCH_RADIUS_MIN_M, MATCH_RADIUS_MIN_M), MATCH_RADIUS_MAX_M)))
+                            for p in chunk)
+        timestamps = ';'.join(str(epoch(p[0])) for p in chunk)
+        response = requests.get(
+            url + coordinates,
+            params={'overview': 'false', 'geometries': 'geojson', 'steps': 'true', 'gaps': 'ignore',
+                    'tidy': 'false', 'radiuses': radiuses, 'timestamps': timestamps},
+            timeout=ROUTING_TIMEOUT)
+        payload = response.json() if response.content else {}
+        if payload.get('code') == 'NoMatch':
+            # nothing of the trace sits on a road the matcher knows: straight, all of it
+            return {str(epoch(b[0])): [_vertex(b[1], b[2])] for b in chunk[1:]}
+        response.raise_for_status()
+        if payload.get('code') != 'Ok':
+            raise ValueError(payload.get('message') or payload.get('code'))
+        tracepoints = payload.get('tracepoints') or []
+        matchings = payload.get('matchings') or []
+        found = {}
+        matched = None             # index of the last fix found on a road
+        for i, point in enumerate(tracepoints[:len(chunk)]):
+            key = str(epoch(chunk[i][0]))
+            if not point:
+                if i:
+                    found[key] = []            # off every road: not on the trail
+                continue
+            if matched is None:
+                if i:
+                    found[key] = [_vertex(chunk[i][1], chunk[i][2])]
+                matched = i
+                continue
+            before = tracepoints[matched]
+            same = point.get('matchings_index') == before.get('matchings_index') \
+                and point.get('waypoint_index') == (before.get('waypoint_index') or 0) + 1
+            leg = None
+            if same and point.get('matchings_index') is not None:
+                legs = (matchings[point['matchings_index']] or {}).get('legs') or []
+                index = before.get('waypoint_index') or 0
+                leg = legs[index] if index < len(legs) else None
+            vertices = []
+            if leg:
+                for step in leg.get('steps') or []:
+                    for lon, lat in (step.get('geometry') or {}).get('coordinates') or []:
+                        vertex = _vertex(lat, lon)
+                        if not vertices or vertices[-1] != vertex:
+                            vertices.append(vertex)
+                gap = _straight(chunk[matched], chunk[i])
+                if (leg.get('distance') or 0.0) > MATCH_DETOUR_FACTOR * gap + MATCH_DETOUR_SLACK_M:
+                    vertices = []
+            found[key] = vertices if len(vertices) > 1 else [_vertex(chunk[i][1], chunk[i][2])]
+            matched = i
+        return found
+
+    @api.model
+    def _ask_route(self, url, chunk):
         """{fix time: [[lat, lon], ...]} - the road from each fix of `chunk` to the
         next, as OSRM's route service gives it (steps carry the geometry per leg).
         A leg far longer by road than the gap it bridges is a fix snapped to the

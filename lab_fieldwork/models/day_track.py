@@ -357,13 +357,17 @@ class LabDailyUpdate(models.Model):
 
         segments, metres_total = [], 0.0
         current = [[points[0][1], points[0][2], stamp(points[0])]]
-        for previous, point in zip(points, points[1:]):
+        previous = points[0]
+        for point in points[1:]:
             if (point[0] - previous[0]).total_seconds() > TRAIL_GAP_SECONDS:
                 if len(current) > 1:
                     segments.append(current)
                 current = [[point[1], point[2], stamp(point)]]
+                previous = point
                 continue
             road = road_step(steps, previous, point)
+            if road == []:
+                continue            # the map-matcher put this fix off every road
             at = stamp(point)
             if road and len(road) > 1:
                 metres_total += road_metres(road)
@@ -374,6 +378,7 @@ class LabDailyUpdate(models.Model):
             else:
                 metres_total += metres_between(previous[1], previous[2], point[1], point[2]) or 0.0
                 current.append([point[1], point[2], at])
+            previous = point
         if len(current) > 1:
             segments.append(current)
         return segments, round(metres_total / 1000.0, 1)

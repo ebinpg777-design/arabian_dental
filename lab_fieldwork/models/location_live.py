@@ -422,13 +422,18 @@ def mode_km(points, modes=None, steps=None):
     modes = modes or classify_modes(points)
     out = {'vehicle': 0.0, 'foot': 0.0, 'blind': 0.0}
     by_road = 0.0
+    last = 0                    # the fix the step is measured from: the last one on the trail
     for i in range(1, len(points)):
         mode = modes[i]
+        road = road_step(steps, points[last], points[i]) if steps else None
+        if road == []:
+            continue            # a fix the map-matcher put off every road: no distance
         if mode not in out:
+            last = i
             continue
-        metres = _step(points[i - 1], points[i])[0]
+        metres = _step(points[last], points[i])[0]
+        last = i
         if mode in ('vehicle', 'blind') and steps:
-            road = road_step(steps, points[i - 1], points[i])
             if road and len(road) > 1:
                 along = road_metres(road)
                 # A drive's step is a few hundred metres at most: a road far longer
@@ -497,8 +502,10 @@ def road_step(steps, start, end):
     if not steps:
         return None
     road = steps.get(str(epoch(end[0])))
-    if not road:
+    if road is None:
         return None
+    if not road:
+        return []          # known: the map-matcher put this fix off every road (2026-10-26)
     if len(road) > 1 and \
             (metres_between(start[1], start[2], road[0][0], road[0][1]) or 0.0) > ROAD_STEP_TOLERANCE_M:
         return None
