@@ -9,7 +9,8 @@ labels come out blank on a server that cannot reach its own URL.
 import base64
 import os
 
-from odoo import _, api, models
+from odoo import _, api, fields, models
+from odoo.tools.misc import format_date
 
 MODES = [
     ('customer', 'One sticker per customer'),
@@ -27,7 +28,8 @@ class StickerEngine(models.AbstractModel):
     def default_options(self):
         return {'mode': 'customer', 'barcode_type': 'code128', 'copies': 1,
                 'show_route': True, 'show_phone': True, 'show_patient': True,
-                'show_lines': True, 'show_sender': False, 'max_lines': 4}
+                'show_lines': True, 'show_sender': False, 'max_lines': 4,
+                'show_date': True, 'show_salesperson': True}
 
     @api.model
     def barcode_data_uri(self, barcode_type, value, width, height):
@@ -115,6 +117,34 @@ class StickerEngine(models.AbstractModel):
         return rows[:limit], more
 
     @api.model
+    def _date_of(self, orders, opts):
+        """The date printed as "Date:" - the invoice's (client, 2026-10-26): the customer
+        invoice of these orders that the wizard was opened from, else the latest one
+        with a date; and the order's own date while there is no invoice yet, so a
+        sticker printed before billing still says when. In the lab's date format."""
+        if not opts.get('show_date') or not orders:
+            return ''
+        invoices = orders.invoice_ids.filtered(
+            lambda m: m.move_type == 'out_invoice' and m.state != 'cancel' and m.invoice_date)
+        chosen = invoices.filtered(lambda m: m.id in (opts.get('invoice_ids') or []))
+        invoices = chosen or invoices
+        if invoices:
+            day = max(invoices.mapped('invoice_date'))
+        else:
+            when = max(orders.mapped('date_order'))
+            day = fields.Datetime.context_timestamp(self, when).date() if when else None
+        return format_date(self.env, day) if day else ''
+
+    @api.model
+    def _salesperson_of(self, orders, opts):
+        """The salesperson of the order(s) - one name, or nothing when a customer
+        sticker gathers several people's orders. (client, 2026-10-26)"""
+        if not opts.get('show_salesperson'):
+            return ''
+        people = orders.mapped('user_id')
+        return (people.name or '') if len(people) == 1 else ''
+
+    @api.model
     def _route_order(self, team, name):
         """Sort key for a run: the Sales Route first, so each route's stickers come off
         the printer together and are bundled without sorting by hand (client,
@@ -150,6 +180,7 @@ class StickerEngine(models.AbstractModel):
                     'route': (porders[:1].team_id.name or '') if opts['show_route'] else '',
                     'refs': refs, 'count': len(porders), 'patient': patients if opts['show_patient'] else '',
                     'lines': [], 'more': 0, 'barcode': bc(refs), 'sender': sender, 'to_patient': False, 'clinic': '',
+                    'date': self._date_of(porders, opts), 'salesperson': self._salesperson_of(porders, opts),
                 })
         elif mode == 'route':
             for team in orders.mapped('team_id').sorted('name'):
@@ -162,13 +193,15 @@ class StickerEngine(models.AbstractModel):
                     'route': team.name if opts['show_route'] else '',
                     'refs': refs, 'count': len(torders), 'patient': '', 'lines': [], 'more': 0,
                     'barcode': bc(refs), 'sender': sender, 'to_patient': False, 'clinic': '',
+                    'date': '', 'salesperson': '',
                 })
             no_team = orders.filtered(lambda o: not o.team_id)
             if no_team:
                 refs = ', '.join(no_team.sorted('name').mapped('name'))
                 stickers.append({'kind': 'route', 'title': _('Sales Route'), 'name': _('(no route)'),
                                  'address': [], 'phone': '', 'route': '', 'refs': refs, 'count': len(no_team),
-                                 'patient': '', 'lines': [], 'more': 0, 'barcode': bc(refs), 'sender': sender, 'to_patient': False, 'clinic': ''})
+                                 'patient': '', 'lines': [], 'more': 0, 'barcode': bc(refs), 'sender': sender, 'to_patient': False, 'clinic': '',
+                                 'date': '', 'salesperson': ''})
         else:  # order
             for order in orders.sorted(key=lambda o: self._route_order(o.team_id, o.name)):
                 partner = order.partner_id
@@ -198,6 +231,8 @@ class StickerEngine(models.AbstractModel):
                     'lines': lines, 'more': more, 'barcode': bc(order.name), 'sender': sender,
                     'priority': dict(order._fields['priority']._description_selection(self.env)).get(order.priority, '')
                     if 'priority' in order._fields and order.priority not in (False, 'normal') else '',
+                    # the invoice's date and who sold it, on by default (client, 2026-10-26)
+                    'date': self._date_of(order, opts), 'salesperson': self._salesperson_of(order, opts),
                 })
         # each sticker carries the type sizes that fit ITS content in the label's bands,
         # and which kind of code it carries (a QR is square and is not rotated)
@@ -246,6 +281,7 @@ class StickerEngine(models.AbstractModel):
                     'route': (_route(partner).name or '') if opts['show_route'] else '',
                     'refs': '', 'count': 0, 'patient': '', 'lines': [], 'more': 0,
                     'barcode': False, 'sender': sender, 'to_patient': False, 'clinic': '',
+                    'date': '', 'salesperson': '',
                 })
         elif mode == 'route':
             by_team = {}
@@ -262,6 +298,7 @@ class StickerEngine(models.AbstractModel):
                     'route': team.name if opts['show_route'] else '',
                     'refs': '', 'count': 0, 'patient': '', 'lines': [], 'more': 0,
                     'barcode': False, 'sender': sender, 'to_patient': False, 'clinic': '',
+                    'date': '', 'salesperson': '',
                 })
             no_team = by_team.get(self.env['crm.team'])
             if no_team:
@@ -269,7 +306,7 @@ class StickerEngine(models.AbstractModel):
                     'kind': 'route', 'title': _('Sales Route'), 'name': _('(no route)'),
                     'address': [], 'phone': '', 'route': '', 'refs': '', 'count': 0,
                     'patient': '', 'lines': [], 'more': 0, 'barcode': False,
-                    'sender': sender, 'to_patient': False, 'clinic': '',
+                    'sender': sender, 'to_patient': False, 'clinic': '', 'date': '', 'salesperson': '',
                 })
         # mode == 'order' falls through with nothing built - the wizard never calls
         # this method for that mode, but an empty result is the honest answer if it did.
@@ -426,6 +463,13 @@ class StickerEngine(models.AbstractModel):
         if sticker.get('clinic'):
             meta_parts.append('From clinic %s' % sticker['clinic'])
         meta_texts = [' | '.join(meta_parts)] if meta_parts else []
+        stamp = []
+        if sticker.get('date'):
+            stamp.append('Date: %s' % sticker['date'])
+        if sticker.get('salesperson'):
+            stamp.append('Salesperson: %s' % sticker['salesperson'])
+        if stamp:
+            meta_texts.append(' | '.join(stamp))
         work = ' | '.join('%s%s%s%s' % (
             row['product'], ' [%s]' % row['ul'] if row['ul'] else '',
             ' %s' % row['colour'] if row['colour'] else '',

@@ -62,6 +62,12 @@
                                 <span t-if="sticker['patient'] and not sticker.get('to_patient')">Patient <b t-out="sticker['patient']"/></span>
                                 <span t-if="sticker.get('clinic')"><b>From clinic</b> <t t-out="sticker['clinic']"/></span>
                             </div>
+                            <!-- the invoice's date and the salesperson, on by default (client, 2026-10-26) -->
+                            <div t-if="sticker.get('date') or sticker.get('salesperson')">
+                                <span t-if="sticker.get('date')"><b>Date:</b> <t t-out="sticker['date']"/></span>
+                                <span t-if="sticker.get('date') and sticker.get('salesperson')"> | </span>
+                                <span t-if="sticker.get('salesperson')"><b>Salesperson:</b> <t t-out="sticker['salesperson']"/></span>
+                            </div>
                             <div t-if="sticker['lines']">
                                 <t t-foreach="sticker['lines']" t-as="l">
                                     <t t-if="not l_first"> | </t>

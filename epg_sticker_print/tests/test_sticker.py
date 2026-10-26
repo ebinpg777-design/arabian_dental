@@ -37,6 +37,45 @@ class TestStickerPrint(TransactionCase):
                         "barcode is inline, never a URL - and vector, so it survives the PDF")
         self.assertEqual(one['route'], 'KLM'); self.assertEqual(one['phone'], '111')
 
+    def test_the_invoice_date_and_the_salesperson_are_on_the_sticker(self):
+        """Client, 2026-10-26: "add the option to print invoice date and salesperson's
+        name, by default; the invoice date prints as Date:"."""
+        from datetime import date
+        from odoo import fields
+        from odoo.tools.misc import format_date
+        order = self.o1
+        order.user_id = self.env.ref('base.user_admin')
+        st = self.Engine.build(order, {'mode': 'order'})[0]
+        self.assertEqual(st['salesperson'], order.user_id.name)
+        ordered = fields.Datetime.context_timestamp(self.env.user, order.date_order).date()
+        self.assertEqual(st['date'], format_date(self.env, ordered), "no invoice yet: the order's own date")
+        order.action_confirm()
+        invoice = order._create_invoices()
+        invoice.invoice_date = date(2026, 10, 24)
+        st = self.Engine.build(order, {'mode': 'order'})[0]
+        self.assertEqual(st['date'], format_date(self.env, date(2026, 10, 24)))
+        off = self.Engine.build(order, {'mode': 'order', 'show_date': False, 'show_salesperson': False})[0]
+        self.assertEqual((off['date'], off['salesperson']), ('', ''))
+        # a customer sticker gathering two orders: the latest invoice's date, and the
+        # salesperson only when it is one person
+        other = self.o2
+        other.user_id = self.env.ref('base.user_root')
+        other.action_confirm()
+        later = other._create_invoices()
+        later.invoice_date = date(2026, 10, 25)
+        [customer] = self.Engine.build(order | other, {'mode': 'customer'})
+        self.assertEqual(customer['date'], format_date(self.env, date(2026, 10, 25)))
+        self.assertEqual(customer['salesperson'], '')
+        # opened from the first invoice: ITS date, not the later one's
+        [customer] = self.Engine.build(order | other, {'mode': 'customer', 'invoice_ids': invoice.ids})
+        self.assertEqual(customer['date'], format_date(self.env, date(2026, 10, 24)))
+        wiz = self.env['epg.sticker.print.wizard'].with_context(
+            active_model='account.move', active_ids=invoice.ids).create({'mode': 'customer'})
+        self.assertEqual(wiz._options()['invoice_ids'], invoice.ids)
+        self.assertIn('Date:', str(wiz.preview_html))
+        self.assertIn('Salesperson:', str(self.env['epg.sticker.print.wizard'].with_context(
+            active_model='sale.order', active_ids=order.ids).create({}).preview_html))
+
     def test_order_mode_lines_and_toggles(self):
         st = self.Engine.build(self.o1, {'mode': 'order', 'barcode_type': 'qr', 'show_phone': False})
         self.assertEqual(len(st), 1)
@@ -74,8 +113,9 @@ class TestStickerPrint(TransactionCase):
         # one sticker per order, with the patient and the work lines (client, 2026-10-20)
         self.assertEqual(wiz.mode, 'order')
         self.assertEqual(
-            (wiz.show_patient, wiz.show_lines, wiz.show_phone, wiz.show_route, wiz.show_sender),
-            (True, True, False, False, False))
+            (wiz.show_patient, wiz.show_lines, wiz.show_phone, wiz.show_route, wiz.show_sender,
+             wiz.show_date, wiz.show_salesperson),
+            (True, True, False, False, False, True, True))
         self.assertEqual(wiz.sticker_count, 2)
         # the order button opens one-per-order whatever the selection size
         self.assertEqual((self.o1 | self.o3).action_print_sticker()['context']['default_mode'], 'order')

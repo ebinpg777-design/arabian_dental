@@ -16,7 +16,8 @@ class ReportSticker(models.AbstractModel):
         orders = self.env['sale.order'].browse(docids).exists()
         Engine = self.env['epg.sticker.engine']
         options = {k: data.get(k) for k in ('mode', 'barcode_type', 'copies', 'show_route', 'show_phone',
-                                            'show_patient', 'show_lines', 'show_sender') if k in data}
+                                            'show_patient', 'show_lines', 'show_sender', 'show_date',
+                                            'show_salesperson', 'invoice_ids') if k in data}
         fmt = self.env['epg.sticker.format'].browse(data.get('format_id')).exists() if data.get('format_id') \
             else self.env['epg.sticker.format'].get_default()
         if orders:

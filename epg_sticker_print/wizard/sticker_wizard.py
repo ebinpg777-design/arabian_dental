@@ -59,6 +59,10 @@ class StickerPrintWizard(models.TransientModel):
     show_patient = fields.Boolean(string='Patient', default=True)
     show_lines = fields.Boolean(string='Work lines (order stickers)', default=True)
     show_sender = fields.Boolean(string='Sender (company)', default=False)
+    # The invoice's date, printed as "Date:", and the salesperson - both on by
+    # default (client, 2026-10-26). An order not yet billed prints its own date.
+    show_date = fields.Boolean(string='Invoice date', default=True)
+    show_salesperson = fields.Boolean(string="Salesperson's name", default=True)
     sticker_count = fields.Integer(compute='_compute_preview')
     preview_html = fields.Html(compute='_compute_preview', sanitize=False)
     format_hint = fields.Char(compute='_compute_preview')
@@ -193,6 +197,10 @@ class StickerPrintWizard(models.TransientModel):
             'mode': self.mode, 'barcode_type': self.barcode_type, 'copies': self.copies,
             'show_route': self.show_route, 'show_phone': self.show_phone, 'show_patient': self.show_patient,
             'show_lines': self.show_lines, 'show_sender': self.show_sender,
+            'show_date': self.show_date, 'show_salesperson': self.show_salesperson,
+            # opened from invoices: THEIR dates go on the stickers, not a later invoice's
+            'invoice_ids': self._invoices_from_context().ids
+            if self.env.context.get('active_model') == 'account.move' else [],
         }
 
     def _can_print_from_partners(self):
@@ -222,7 +230,8 @@ class StickerPrintWizard(models.TransientModel):
         return []
 
     @api.depends('order_ids', 'partner_ids', 'mode', 'format_id', 'copies', 'barcode_type',
-                 'show_route', 'show_phone', 'show_patient', 'show_lines', 'show_sender')
+                 'show_route', 'show_phone', 'show_patient', 'show_lines', 'show_sender',
+                 'show_date', 'show_salesperson')
     def _compute_preview(self):
         for wiz in self:
             fmt = wiz.format_id
