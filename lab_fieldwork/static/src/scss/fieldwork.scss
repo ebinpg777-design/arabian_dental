@@ -444,6 +444,24 @@ $fw-teal:        #0d7c8a;
     .o_fw_chip_open { background-color: rgba($warning, .2); color: darken($warning, 22%); }
     .o_fw_chip_done { background-color: rgba($success, .18); color: darken($success, 10%); }
 
+    // The chip and the Remove button, kept together at the card's top right.
+    .o_fw_card_tags { display: inline-flex; align-items: center; flex: 0 0 auto; }
+
+    // Remove a visit added by mistake: quiet until touched, but a real thumb
+    // target (the dialog behind it is what keeps it from being an accident).
+    .o_fw_remove {
+        width: 2.25rem;
+        height: 2.25rem;
+        margin: -.5rem -.5rem -.5rem .125rem;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: $o-gray-500;
+
+        &:hover:not(:disabled), &:focus-visible { color: $danger; background-color: rgba($danger, .08); }
+        &:disabled { opacity: .4; }
+    }
+
     // The action column: a full-height target on the thumb side of the card.
     .o_fw_action {
         flex: 0 0 auto;

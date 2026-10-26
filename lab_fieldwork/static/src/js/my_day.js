@@ -2,6 +2,7 @@
 
 import { Component, onMounted, onPatched, onWillStart, onWillUnmount, proxy, signal, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
+import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
@@ -46,6 +47,7 @@ export class LabMyDay extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        this.dialog = useService("dialog");
         this.notification = usePlugin(NotificationPlugin);
         // Lives in the web client, not in this component: the watch has to
         // survive the executive walking off this screen into a visit form.
@@ -221,6 +223,41 @@ export class LabMyDay extends Component {
             clearPositionWarning();
         }
         return found;
+    }
+
+    /**
+     * Take a visit added by mistake off the day - asked first, because a wrong tap
+     * here is the very thing being undone. The server decides between deleting and
+     * cancelling, and refuses a visit with work on it, saying what is on it.
+     * (client, 2026-10-26)
+     */
+    removeVisit(v) {
+        if (this.state.busy) {
+            return;
+        }
+        this.dialog.add(ConfirmationDialog, {
+            title: _t("Remove this visit?"),
+            body: v.state === "open"
+                ? _t("You checked in at %s. The visit will be cancelled and taken off your day. The office still sees the check-in.", v.clinic)
+                : _t("%s will be taken off your day. Use this only for a visit added by mistake.", v.clinic),
+            confirmLabel: String(_t("Remove")),
+            confirmClass: "btn-danger",
+            cancelLabel: String(_t("Keep")),
+            confirm: async () => {
+                this.state.busy = v.id;
+                try {
+                    const how = await this.orm.call("lab.visit", "action_remove_mistake", [[v.id]]);
+                    this.notification.add(how === "deleted"
+                        ? _t("%s removed from your day.", v.clinic)
+                        : _t("%s cancelled and removed from your day.", v.clinic),
+                        { type: "success" });
+                } finally {
+                    this.state.busy = 0;
+                }
+                await this.load();
+            },
+            cancel: () => {},
+        });
     }
 
     openVisit(v) {

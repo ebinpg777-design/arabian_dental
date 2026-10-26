@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.misc import format_datetime, formatLang
 
 EARTH_M = 6371000.0
 COORD_EPSILON = 1e-6
@@ -672,6 +673,96 @@ class LabVisit(models.Model):
 
     def action_cancel(self):
         self.write({'state': 'cancel'})
+
+    # ------------------------------------------------------------------ remove
+    # A visit added by mistake - the wrong clinic tapped in the list, a second stop
+    # for a clinic already on the day - used to stay on the executive's screen for
+    # good: Cancel sat inside the visit form, where nobody looked for it, and
+    # deleting was a manager's right. (client, 2026-10-26: "Provide an option to
+    # technicians to remove the visits from their window if it created wrongly")
+    def _remove_blockers(self):
+        """What happened at this visit, in words - each a reason it cannot just go.
+
+        Removing is for a visit that holds nothing. Cases, orders, money and
+        deliveries are work done at a clinic, and a visit carrying them that
+        disappeared would leave that work unexplained.
+        """
+        self.ensure_one()
+        reasons = []
+        slips = self.case_ids.filtered(lambda c: c.state in ('draft', 'submitted'))
+        if slips:
+            reasons.append(_("%(n)s case slip(s) - delete them first", n=len(slips)))
+        orders = self.sudo().order_ids.filtered(lambda o: o.state != 'cancel')
+        if orders:
+            reasons.append(_("%(n)s order(s): %(refs)s",
+                             n=len(orders), refs=', '.join(orders.mapped('name'))))
+        if self.collected or self.env['lab.cash.movement'].sudo().search_count(
+                [('visit_id', '=', self.id)], limit=1):
+            reasons.append(_("a payment of %(amount)s",
+                             amount=formatLang(self.env, self.collected,
+                                               currency_obj=self.currency_id)))
+        # lab_delivery adds the deliveries; this module does not depend on it.
+        if 'delivery_ids' in self._fields and self.sudo().delivery_ids:
+            reasons.append(_("%(n)s delivery(ies) handed over on it",
+                             n=len(self.sudo().delivery_ids)))
+        return reasons
+
+    def action_remove_mistake(self):
+        """Take a visit added by mistake off the executive's day.
+
+        Never visited and added by the executive themselves: deleted, as if the tap
+        had not happened. Checked in, or planned by somebody else: CANCELLED instead,
+        with a note - the check-in's time and position, or the office's plan, are
+        facts the office keeps. Either way it leaves My Day, which shows no
+        cancelled visit, and every count, which reads completed visits only.
+
+        The visit's own executive, within the days My Day lets them open; a manager
+        for anybody, any day. A completed visit, or one with work recorded on it,
+        is refused, saying what is on it. Returns 'deleted' or 'cancelled'.
+        """
+        visit = self.exists()
+        if not visit:
+            return 'deleted'   # a second tap: the first one already removed it
+        visit.ensure_one()
+        manager = self.env.user.has_group('lab_fieldwork.group_fieldwork_manager')
+        if visit.user_id != self.env.user and not manager:
+            raise UserError(_("Only %(who)s or a manager can remove %(visit)s.",
+                              who=visit.user_id.name, visit=visit.name))
+        if visit.state == 'cancel':
+            return 'cancelled'
+        clinic = visit.partner_id.sudo().display_name
+        if visit.state == 'done':
+            raise UserError(_(
+                "The visit to %(clinic)s is completed, so it stays on the day. If it "
+                "should not have been recorded, ask your manager.", clinic=clinic))
+        limit = self.env['lab.my.day'].backdate_limit()
+        if limit is not None and visit.date < (
+                fields.Date.context_today(self) - timedelta(days=limit)):
+            raise UserError(_(
+                "The visit to %(clinic)s is older than the %(n)s day(s) you can change. "
+                "Ask your manager to remove it.", clinic=clinic, n=limit))
+        reasons = visit._remove_blockers()
+        if reasons:
+            raise UserError(_(
+                "The visit to %(clinic)s cannot be removed. It has:\n%(what)s\n\n"
+                "Open the visit to undo these, or ask your manager.",
+                clinic=clinic, what='\n'.join('• ' + r for r in reasons)))
+        if visit.state == 'planned' and not visit.check_in \
+                and visit.create_uid == visit.user_id:
+            # sudo for the delete only: an executive has no delete right on visits,
+            # and everything that could make a delete wrong was refused above.
+            visit.sudo().unlink()
+            return 'deleted'
+        if visit.check_in:
+            note = _("Removed from My Day by %(who)s: added by mistake. The check-in "
+                     "at %(when)s is kept.", who=self.env.user.name,
+                     when=format_datetime(self.env, visit.check_in, dt_format='HH:mm'))
+        else:
+            note = _("Removed from My Day by %(who)s: added by mistake.",
+                     who=self.env.user.name)
+        visit.write({'state': 'cancel'})
+        visit.message_post(body=note)
+        return 'cancelled'
 
     def action_reset(self):
         # Both fixes and both close markers: a reset visit that kept its finish

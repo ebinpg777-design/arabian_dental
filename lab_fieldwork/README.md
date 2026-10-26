@@ -35,6 +35,14 @@ the button does depends on where the visit is — *I'm Here*, then *Finish* — 
 never a choice to make. One RPC fills the screen, because it is opened on a phone at a
 clinic door on a poor connection.
 
+A card not yet completed also carries a small **Remove** (the bin beside its status), for
+a visit added by mistake. It asks first. A stop the executive added and never checked in
+is deleted. One they checked in at, or that somebody else planned, is cancelled with a
+note, so the office keeps the check-in. A visit with case slips, orders, money or
+deliveries on it is refused, and the message names them. A completed one stays. An
+executive may only remove their own visits, and only within the days My Day opens.
+A manager may remove anyone's, on any day.
+
 ## Roles
 
 Each role is a different application, not the same one with items greyed out.

@@ -186,6 +186,10 @@ class LabMyDay(models.AbstractModel):
                 'pinned': clinic.is_geolocated,
                 'unbanked': bool(v.state == 'done' and v.pay_mode == 'cash'
                                  and v.collected and not v.cash_banked),
+                # Offered on every visit not yet completed; one with work on it is
+                # refused by the server, which says what is on it - a button that
+                # simply vanished would not. (client, 2026-10-26)
+                'removable': v.state in ('planned', 'open'),
                 # Getting there and reaching the doctor are phone jobs, not form jobs,
                 # so they belong on the card rather than two taps inside the record.
                 'map_url': v.map_url or '',

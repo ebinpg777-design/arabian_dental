@@ -712,9 +712,20 @@
                 <div class="o_fw_card_body" t-on-click="() => this.openVisit(v)">
                     <div class="d-flex justify-content-between align-items-start">
                         <strong class="o_fw_clinic"><t t-out="v.clinic"/></strong>
-                        <span class="o_fw_chip" t-att-class="'o_fw_chip_' + v.state">
-                            <t t-out="v.state === 'planned' ? 'To do'
-                                     : v.state === 'open' ? 'At clinic' : 'Done'"/>
+                        <span class="o_fw_card_tags">
+                            <span class="o_fw_chip" t-att-class="'o_fw_chip_' + v.state">
+                                <t t-out="v.state === 'planned' ? 'To do'
+                                         : v.state === 'open' ? 'At clinic' : 'Done'"/>
+                            </span>
+                            <!-- Away from the card's one big button, small, and always
+                                 asked about first: for a visit added by mistake.
+                                 (client, 2026-10-26) -->
+                            <button t-if="v.removable" type="button" class="o_fw_remove"
+                                    title="Remove this visit" aria-label="Remove this visit"
+                                    t-att-disabled="this.state.busy === v.id"
+                                    t-on-click.stop="() => this.removeVisit(v)">
+                                <i class="fa fa-trash-o"/>
+                            </button>
                         </span>
                     </div>
                     <div class="o_fw_meta">

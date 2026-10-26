@@ -22,3 +22,4 @@ from . import test_gps_app
 from . import test_field_app
 from . import test_field_live
 from . import test_desk_access
+from . import test_visit_remove
