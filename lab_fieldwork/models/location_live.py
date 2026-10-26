@@ -37,6 +37,7 @@ from odoo.exceptions import AccessError, UserError
 
 from .lab_visit import has_fix, metres_between
 from .local_day import local_midnight_utc, tz_name
+from .location_ping import JUMP_KMH
 
 _logger = logging.getLogger(__name__)
 
@@ -111,9 +112,12 @@ def _motion(point):
     return point[8] if len(point) > 8 else None
 
 
-IMPOSSIBLE_KMH = 25.0      # faster than this from the last fix kept, while the phone said it was
-                           # still or on foot, is a fix the phone never took...
-JUMP_KMH = 100.0           # ...and faster than this whatever it said: a two-wheeler never does
+SLOW_KMH = 8.0             # a phone still or on foot by its sensors AND its own reading may come this
+                           # fast from the last fix kept (a brisk walk)...
+STILL_DRIFT_M = 150.0      # ...and one still by both may sit at most this far from it, however slowly
+                           # it got there (470 m in four minutes is a drift, not a walk)...
+IMPOSSIBLE_KMH = 25.0      # ...one that said only the one, or only that it is slow, this...
+                           # ...and any phone JUMP_KMH (location_ping): a two-wheeler never does
 
 
 def drop_impossible(points):
@@ -135,28 +139,61 @@ def drop_impossible(points):
     minutes it takes for the implied speed to fall under the limit.
     """
     out = []
-    for prev, point in zip([None] + points[:-1], points):
+    for i, point in enumerate(points):
         if out:
-            _metres, _secs, kmh = _step(out[-1], point)
-            if kmh > JUMP_KMH or (kmh > IMPOSSIBLE_KMH and _not_riding(point, prev)):
-                continue
+            prev = points[i - 1]
+            limit = _pace_limit(point, prev)
+            metres, _secs, kmh = _step(out[-1], point)
+            if kmh > limit or (metres > STILL_DRIFT_M and _still_by_both(point, prev)):
+                # Too far, too fast for what the phone said of itself - unless the
+                # NEXT fix sits where this one is: a phone really standing somewhere
+                # new (it got there with the sensors lagging) says so twice, while
+                # the scatter is somewhere else every time. Never for a jump.
+                nxt = points[i + 1] if i + 1 < len(points) else None
+                settled = nxt is not None and (metres_between(point[1], point[2], nxt[1], nxt[2]) or 0.0) < STAY_M
+                if not (settled and limit < JUMP_KMH):
+                    continue
         out.append(point)
     return out
 
 
-def _not_riding(point, prev):
-    """Whether the phone said it was NOT riding at `point`: its sensors still or
-    on foot; else its own speed reading - never one the server worked out from
-    the ground covered since `prev` (_riding) - under VEHICLE_KMH. False when it
-    said it was riding, or said nothing either way."""
+def _pace_limit(point, prev):
+    """How fast the phone may have come to `point` from the last fix kept, by what
+    it said of itself there. Its own speed reading - never one the server worked
+    out from the ground covered since `prev` (_riding) - is believed over its
+    motion sensor: a phone riding smoothly reads 'still' to the sensor and 60
+    km/h to the GPS. A reading of VEHICLE_KMH or more, a sensor saying 'vehicle'
+    with no reading, or nothing said either way: JUMP_KMH. Else the sensor's word
+    with a slow reading beside it, SLOW_KMH - and IMPOSSIBLE_KMH for the one
+    without the other (standing at a signal, say). (Abdul Latheef by the Chaliyar,
+    2026-10-26 15:13-15:17: 'still', 0 km/h, and 470 m of drift in 146 s - 11.6
+    km/h, under the one bar there used to be.)"""
+    speed = point[3] or 0.0
+    reading = prev is not None and abs(speed - round(_step(prev, point)[2], 1)) >= 0.11
+    if reading and speed >= VEHICLE_KMH:
+        return JUMP_KMH
     motion = _motion(point)
     if motion in ('still', 'foot'):
-        return True
-    if motion == 'vehicle' or prev is None:
-        return False
+        # the sensor's word alone is IMPOSSIBLE_KMH: on 2026-10-23 a phone read
+        # 'still' through a whole ride and gave no speed, and a lower bar there
+        # would have thrown the ride away; sensor and reading agreeing is certain
+        return SLOW_KMH if reading else IMPOSSIBLE_KMH
+    if reading:
+        return IMPOSSIBLE_KMH
+    return JUMP_KMH
+
+
+def _still_by_both(point, prev):
+    """Whether the phone's sensors AND its own speed reading say it stood still at
+    `point`: then it is where the last fix kept is, give or take STILL_DRIFT_M."""
     speed = point[3] or 0.0
-    reading = abs(speed - round(_step(prev, point)[2], 1)) >= 0.11
-    return reading and speed < VEHICLE_KMH
+    reading = prev is not None and abs(speed - round(_step(prev, point)[2], 1)) >= 0.11
+    return _motion(point) == 'still' and reading and speed < VEHICLE_KMH
+
+
+def _not_riding(point, prev):
+    """Whether the phone said it was NOT riding at `point` (see _pace_limit)."""
+    return _pace_limit(point, prev) < JUMP_KMH
 
 
 EXCURSION_FIXES = 3        # a run of at most this many fixes...

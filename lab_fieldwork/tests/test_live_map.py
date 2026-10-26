@@ -348,10 +348,16 @@ class TestLiveLayer(LiveTrackCase):
         mute = [at(t0, 0, 0), at(t0, 20, 300)]
         mute[1] = mute[1][:3] + (round(location_live._step(mute[0], mute[1])[2], 1),) + mute[1][4:]
         self.assertEqual(drop(mute), mute, "54 km/h with nothing said either way is kept")
-        # a wrong first fix: the true ones are "fast" from it only until time makes them slow
+        # a wrong first fix: the true ones are "fast" from it, but a phone really
+        # standing somewhere says so twice - believed at once
         wrong = [at(t0, 0, 1000, motion='still'), at(t0, 30, 0, speed=0.0, motion='still'),
                  at(t0, 200, 1, speed=0.0, motion='still'), at(t0, 400, 2, speed=0.0, motion='still')]
-        self.assertEqual(drop(wrong), [wrong[0], wrong[2], wrong[3]])
+        self.assertEqual(drop(wrong), wrong)
+        # ...while scatter is somewhere else every time: a still phone drifting 470 m
+        # in 146 s (11.6 km/h, under the old one bar) and 370 m on from there
+        drift = still + [at(t0, 446, 470, speed=0.0, motion='still'), at(t0, 462, 840, speed=0.0, motion='still'),
+                         at(t0, 600, 3, speed=0.0, motion='still')]
+        self.assertEqual(drop(drift), still + [drift[-1]])
 
     def test_a_fix_the_phone_never_went_to_is_not_the_trail(self):
         """Standing at a clinic the phone puts a fix 500 m out at "7 m" and is back
@@ -435,10 +441,18 @@ class TestLiveLayer(LiveTrackCase):
         self.assertTrue(second.overspeed, "the second in a row is")
         self.assertEqual(self.env['lab.location.ping'].sudo()._day_summary(
             user, second.date)['overspeed_count'], 1)
-        # a speed the phone itself read over the limit counts at once
-        self._pings(user, now + timedelta(seconds=180), [(10.0 + 2100 / 111_320.0, 76.0, 0, 55.0)])
-        self.assertTrue(self.env['lab.location.ping'].sudo().search(
-            [('user_id', '=', user.id)], order='ts desc', limit=1).overspeed)
+        # a speed the phone itself read over the limit counts at once - when the
+        # ground covered bears it out, and never past what a two-wheeler can do
+        Ping = self.env['lab.location.ping']
+        self._pings(user, now + timedelta(seconds=180), [(10.0 + 3000 / 111_320.0, 76.0, 0, 55.0)])
+        self.assertTrue(Ping.sudo().search([('user_id', '=', user.id)], order='ts desc', limit=1).overspeed,
+                        "55 km/h read, 60 km/h covered")
+        self._pings(user, now + timedelta(seconds=240), [(10.0 + 3100 / 111_320.0, 76.0, 0, 70.0)])
+        self.assertFalse(Ping.sudo().search([('user_id', '=', user.id)], order='ts desc', limit=1).overspeed,
+                         "70 km/h read over 100 m in a minute: the GPS velocity glitched")
+        self._pings(user, now + timedelta(seconds=300), [(10.0 + 4100 / 111_320.0, 76.0, 0, 131.0)])
+        self.assertFalse(Ping.sudo().search([('user_id', '=', user.id)], order='ts desc', limit=1).overspeed,
+                         "131 km/h is no two-wheeler, whatever the GPS says")
 
     def test_the_trail_notices_arrival_and_leaving(self):
         user = self.exec_user

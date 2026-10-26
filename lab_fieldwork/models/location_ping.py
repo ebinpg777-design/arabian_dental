@@ -42,6 +42,7 @@ MIN_MOVE_METRES = 50
 HEARTBEAT_SECONDS = 300
 # A fix this vague is a cell tower, not a person; it can land in the wrong town.
 WORST_ACCURACY_M = 250
+JUMP_KMH = 100.0              # faster than this between two fixes is a GPS jump: a two-wheeler never does
 # What one person's phone may write in a day, however often it asks. 4000 since
 # 2026-10-23: the app samples every 10 s from 1.0.3, and 2000 was five and a half
 # hours of driving - the evening was dropped.
@@ -252,19 +253,26 @@ class LabLocationPing(models.Model):
                         continue
                 speed = extra.get('speed_kmh')
                 derived = speed is None
-                if derived and prev_good_point and when > prev_good_point[0]:
-                    # the ground covered, when the phone gave none
-                    speed = (metres_between(prev_good_point[1], prev_good_point[2], latitude, longitude) or 0.0) \
+                covered = None                # the ground covered since the last fix on a road
+                if prev_good_point and when > prev_good_point[0]:
+                    covered = (metres_between(prev_good_point[1], prev_good_point[2], latitude, longitude) or 0.0) \
                         / (when - prev_good_point[0]).total_seconds() * 3.6
+                if derived:
+                    speed = covered           # the ground covered, when the phone gave none
                 speed = round(max(speed or 0.0, 0.0), 1)
-                # A speed the phone read over the limit is over the limit. One worked
-                # out from the ground covered is a GPS error as often as a hurry - a
-                # fix 200 m off the road reads as 70 km/h - so it counts only when the
-                # step before was over the limit too (2026-10-26: "18 times over
-                # 60 km/h" on a morning with nine jumps the phone never made).
-                over = bool(limit) and limit < speed < 150
+                # Over the limit only when the phone could have been: never past
+                # JUMP_KMH (a two-wheeler does not; a reading of 131 km/h is the GPS
+                # velocity glitching, 2026-10-26); a reading only if the ground covered
+                # since the last fix bears it out at half the limit; one worked out
+                # from the ground covered - a GPS error as often as a hurry, a fix
+                # 200 m off the road reads as 70 km/h - only when the step before was
+                # over the limit too ("18 times over 60 km/h" on a morning with nine
+                # jumps the phone never made).
+                over = bool(limit) and limit < speed < JUMP_KMH
                 if over and derived:
                     over = prev_speed > limit
+                elif over and covered is not None:
+                    over = covered >= limit / 2.0
                 values.append({
                     'user_id': user.id, 'date': day, 'ts': when,
                     'latitude': latitude, 'longitude': longitude,
