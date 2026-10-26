@@ -221,6 +221,12 @@ class LabLocationPingRoad(models.Model):
         # Ask for the roads not known yet - a bounded number of requests a call.
         now = fields.Datetime.now()
         state, complete, asked = 'ok', True, 0
+        if runs and budget and not self._hold_road(road):
+            # Somebody else - the overview, the person's own focus look, the job - is
+            # asking for this trail this very moment: let them, and draw what is known.
+            # Two writers used to collide ("could not serialize access", 2026-10-26)
+            # and Odoo retried the whole request a second and a half later.
+            budget, complete = 0, False
         if road.state == 'failed' and road.failed_at and \
                 now - road.failed_at < timedelta(seconds=FAILED_RETRY_SECONDS):
             state, complete = 'failed', bool(not runs)
@@ -268,6 +274,16 @@ class LabLocationPingRoad(models.Model):
                     out.append([lat, lon, when, speed, mode])
             legs_out.append(out)
         return {'state': state, 'legs': legs_out, 'complete': complete}
+
+    @api.model
+    def _hold_road(self, road):
+        """Take the row for this transaction, or say that another one holds it."""
+        try:
+            with self.env.cr.savepoint():
+                self.env.cr.execute("SELECT id FROM lab_location_road WHERE id = %s FOR UPDATE NOWAIT", [road.id])
+            return True
+        except psycopg2.errors.LockNotAvailable:
+            return False
 
     @api.model
     def _cron_fill_roads(self):
