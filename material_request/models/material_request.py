@@ -219,9 +219,10 @@ class MaterialRequest(models.Model):
     def action_approve(self):
         """Approve what can go and raise the internal transfer for it.
 
-        A line whose approved quantity is left at zero is approved for what was asked;
-        a storekeeper who wants to give less types the smaller figure first. A line
-        explicitly set to zero after that is left out of the transfer.
+        A line's approved quantity starts as what was asked; a storekeeper who wants
+        to give less types the smaller figure first, and a line set to zero is left
+        out of the transfer. A line nobody changed is approved for what was asked,
+        here too, for lines made before the approved figure started from the request.
         """
         self._check_lines()
         for request in self:
@@ -340,7 +341,7 @@ class MaterialRequest(models.Model):
         self.ensure_one()
         new = self.copy({'date_request': fields.Date.context_today(self), 'date_needed': False,
                          'reason': self.reason})
-        new.line_ids.write({'qty_approved': 0.0, 'qty_approved_set': False})
+        # Neither approved field is copied, so the new lines start at what is asked.
         return {
             'type': 'ir.actions.act_window', 'res_model': 'material.request',
             'res_id': new.id, 'view_mode': 'form', 'target': 'current',
@@ -374,8 +375,16 @@ class MaterialRequestLine(models.Model):
     product_uom_id = fields.Many2one(related='product_id.uom_id')
     quantity = fields.Float(string='Requested', required=True, default=1.0,
                             digits='Product Unit of Measure')
-    qty_approved = fields.Float(string='Approved', digits='Product Unit of Measure', copy=False)
-    # Zero can mean "not decided yet" or "refused": the flag tells them apart.
+    # The requested quantity until somebody approves a different one (client,
+    # 2026-10-26: "approved qty will be same as requested by default on creation.
+    # User can change after that"). It used to start at zero, so the store typed
+    # every line's figure in again before approving.
+    qty_approved = fields.Float(
+        string='Approved', digits='Product Unit of Measure', copy=False,
+        compute='_compute_qty_approved', store=True, readonly=False, precompute=True)
+    # True once the approved figure was set to something other than what was asked:
+    # from then on it no longer follows the requested quantity, and a zero means
+    # the line was refused.
     qty_approved_set = fields.Boolean(copy=False)
     qty_delivered = fields.Float(
         string='Delivered', compute='_compute_qty_delivered', store=True,
@@ -419,10 +428,43 @@ class MaterialRequestLine(models.Model):
             else:
                 line.availability = 'ok'
 
-    @api.onchange('qty_approved')
-    def _onchange_qty_approved(self):
+    @api.depends('quantity')
+    def _compute_qty_approved(self):
+        # A line with its own approved figure keeps it: not assigned here on purpose.
         for line in self:
-            line.qty_approved_set = True
+            if not line.qty_approved_set:
+                line.qty_approved = line.quantity
+
+    def _approved_differs(self):
+        self.ensure_one()
+        return float_compare(self.qty_approved, self.quantity, precision_digits=3) != 0
+
+    def _mark_approved_set(self):
+        """Remember whether the approved figure is somebody's own.
+
+        Decided from the values, after the write, and not from an onchange on the
+        field: the form re-sends the approved figure whenever it followed the
+        requested one, and an onchange also fires on a brand-new line, which marked
+        every line "set" at zero before anybody had looked at it.
+        """
+        for line in self:
+            differs = line._approved_differs()
+            if line.qty_approved_set != differs:
+                super(MaterialRequestLine, line).write({'qty_approved_set': differs})
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        self.browse([line.id for line, vals in zip(lines, vals_list)
+                     if 'qty_approved' in vals and 'qty_approved_set' not in vals
+                     ])._mark_approved_set()
+        return lines
+
+    def write(self, vals):
+        result = super().write(vals)
+        if ('qty_approved' in vals or 'quantity' in vals) and 'qty_approved_set' not in vals:
+            self._mark_approved_set()
+        return result
 
     @api.constrains('quantity')
     def _check_quantity(self):

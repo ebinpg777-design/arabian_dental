@@ -7,7 +7,7 @@ transfer; validating the transfer closes the request.
 **Board** (kanban by stage) with priority, needed-by countdown, delivery progress and a
 "short" badge · **list** with the same at a glance and a search panel by stage and
 department · **form** that shows, on every line, what the source store has on hand and
-lets the store approve less than asked · **reject with a reason** the requester reads on
+starts each line's approved quantity at what was asked, which the store can lower · **reject with a reason** the requester reads on
 the request · **request again** copies a past request into a new draft · **calendar** on
 needed-by dates · **consumption analysis** (pivot/graph of delivered quantities by
 product, department and month) · **requisition slip** PDF.

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import Form, TransactionCase, tagged
 from odoo.tests.common import new_test_user
 
 
@@ -81,6 +81,53 @@ class TestMaterialRequest(TransactionCase):
         request.with_user(self.store_keeper).action_approve()
         self.assertEqual(request.sudo().picking_ids.move_ids.product_id, self.mask)
 
+    # ---------------------------------------------- the approved figure starts as asked
+    # Client, 2026-10-26: "approved qty will be same as requested by default on
+    # creation. User can change after that". Through the form, because the form is
+    # where the old flag went wrong: its onchange marked a brand-new line "set" at 0.
+
+    def test_the_approved_quantity_starts_as_what_was_asked(self):
+        with Form(self.env['material.request'].with_user(self.store_keeper)) as form:
+            form.location_id = self.dept
+            with form.line_ids.new() as line:
+                line.product_id = self.mask
+                line.quantity = 7
+                self.assertEqual(line.qty_approved, 7, "shown as soon as it is typed")
+        request = form.record
+        line = request.line_ids
+        self.assertEqual(line.qty_approved, 7)
+        self.assertFalse(line.qty_approved_set)
+        line.with_user(self.store_keeper).write({'quantity': 9})
+        self.assertEqual(line.qty_approved, 9, "it follows the request until somebody changes it")
+        by_rpc = self._request(lines=[(self.wax, 4)]).line_ids
+        self.assertEqual(by_rpc.qty_approved, 4, "a line made without the form too")
+
+    def test_an_approved_figure_somebody_changed_is_kept(self):
+        request = self._request()
+        request.action_confirm()
+        with Form(request.with_user(self.store_keeper)) as form:
+            with form.line_ids.edit(1) as line:
+                self.assertEqual(line.qty_approved, 5)
+                line.qty_approved = 2
+        mask, wax = request.line_ids.sorted('id')
+        self.assertTrue(wax.qty_approved_set)
+        self.assertFalse(mask.qty_approved_set, "the line nobody touched")
+        wax.with_user(self.requester).write({'quantity': 6})
+        self.assertEqual(wax.qty_approved, 2, "the store's figure stands")
+        request.with_user(self.store_keeper).action_approve()
+        moves = {m.product_id: m.product_uom_qty for m in request.sudo().picking_ids.move_ids}
+        self.assertEqual(moves, {self.mask: 20.0, self.wax: 2.0})
+
+    def test_a_reorder_starts_at_what_is_asked_again(self):
+        request = self._request()
+        request.action_confirm()
+        request.line_ids.sorted('id')[1].write({'qty_approved': 1})
+        request.with_user(self.store_keeper).action_approve()
+        again = self.env['material.request'].browse(request.action_reorder()['res_id'])
+        self.assertEqual([(l.quantity, l.qty_approved, l.qty_approved_set)
+                          for l in again.line_ids.sorted('id')],
+                         [(20, 20, False), (5, 5, False)])
+
     def test_validating_the_transfer_delivers_the_request(self):
         request = self._request(lines=[(self.mask, 10)])
         request.action_confirm()
@@ -126,7 +173,9 @@ class TestMaterialRequest(TransactionCase):
         self.assertEqual(new.state, 'draft')
         self.assertEqual(sorted(new.line_ids.mapped('product_id').ids),
                          sorted(request.line_ids.mapped('product_id').ids))
-        self.assertFalse(any(new.line_ids.mapped('qty_approved')))
+        # the new lines start at what is asked, not at what the old request was given
+        self.assertEqual(new.line_ids.mapped('qty_approved'), new.line_ids.mapped('quantity'))
+        self.assertFalse(any(new.line_ids.mapped('qty_approved_set')))
 
     def test_a_requester_sees_only_their_own_and_the_store_sees_all(self):
         mine = self._request()
