@@ -338,6 +338,11 @@ class TestLiveLayer(LiveTrackCase):
         # the same ground with the sensors saying vehicle and a speed read: a ride
         ride = still + [at(t0, 300 + 20 * i, 150 * i, speed=27.0, motion='vehicle') for i in range(1, 5)]
         self.assertEqual(drop(ride), ride)
+        # ...and with the sensors saying vehicle and the speed read 0.0: Android's "no
+        # speed estimate", which Abdul Latheef's phone sent at 40 km/h for most of a ride
+        # (2026-10-26 16:15-16:42) - a ride all the same
+        mute_ride = still + [at(t0, 300 + 20 * i, 150 * i, speed=0.0, motion='vehicle') for i in range(1, 5)]
+        self.assertEqual(drop(mute_ride), mute_ride)
         # 1.5 km in 42 s is a jump whatever the sensors say
         jump = still + [at(t0, 342, 1500, speed=135.0, motion='vehicle'), at(t0, 400, 10, speed=0.0, motion='still')]
         self.assertEqual(drop(jump), still + [jump[-1]])

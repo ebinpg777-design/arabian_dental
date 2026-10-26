@@ -169,7 +169,7 @@ def _pace_limit(point, prev):
     2026-10-26 15:13-15:17: 'still', 0 km/h, and 470 m of drift in 146 s - 11.6
     km/h, under the one bar there used to be.)"""
     speed = point[3] or 0.0
-    reading = prev is not None and abs(speed - round(_step(prev, point)[2], 1)) >= 0.11
+    reading = _reading(point, prev) is not None
     if reading and speed >= VEHICLE_KMH:
         return JUMP_KMH
     motion = _motion(point)
@@ -183,12 +183,26 @@ def _pace_limit(point, prev):
     return JUMP_KMH
 
 
+def _reading(point, prev):
+    """The phone's own speed reading at `point`, or None where there is none: a
+    stored speed equal to the ground covered since `prev` is one the server worked
+    out (location_ping record), and a riding phone's 0.0 is Android's "no speed
+    estimate", not a standstill - Abdul Latheef's phone, 2026-10-26 16:15-16:42,
+    sent 0.0 at 40 km/h with its sensors saying 'vehicle' for most of a ride, and
+    a rule that read it as standing threw the ride away."""
+    speed = point[3] or 0.0
+    if prev is None or abs(speed - round(_step(prev, point)[2], 1)) < 0.11:
+        return None
+    if not speed and _motion(point) == 'vehicle':
+        return None
+    return speed
+
+
 def _still_by_both(point, prev):
     """Whether the phone's sensors AND its own speed reading say it stood still at
     `point`: then it is where the last fix kept is, give or take STILL_DRIFT_M."""
-    speed = point[3] or 0.0
-    reading = prev is not None and abs(speed - round(_step(prev, point)[2], 1)) >= 0.11
-    return _motion(point) == 'still' and reading and speed < VEHICLE_KMH
+    reading = _reading(point, prev)
+    return _motion(point) == 'still' and reading is not None and reading < VEHICLE_KMH
 
 
 def _not_riding(point, prev):
@@ -262,9 +276,9 @@ def _riding(point, prev):
     the ground covered since the fix before, worked out on arrival (location_ping
     record) - at a fix the phone never went to, that is the jump itself, 60 to 145
     km/h - so a speed equal to that is no reading."""
-    speed = point[3] or 0.0
-    if abs(speed - round(_step(prev, point)[2], 1)) >= 0.11:
-        return speed >= VEHICLE_KMH
+    reading = _reading(point, prev)
+    if reading is not None:
+        return reading >= VEHICLE_KMH
     return _motion(point) == 'vehicle'
 
 
