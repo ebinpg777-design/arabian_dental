@@ -246,7 +246,9 @@ class LabLocationPingRoad(models.Model):
         # Ask for the roads not known yet - a bounded number of requests a call.
         now = fields.Datetime.now()
         state, complete, asked = 'ok', True, 0
-        if runs and budget and not self._hold_road(road):
+        if runs and budget and not (road and self._hold_road(road)):
+            # (no row at all: somebody is creating it this very moment - _for lost the
+            # race to a transaction not committed yet; the next look finds it)
             # Somebody else - the overview, the person's own focus look, the job - is
             # asking for this trail this very moment: let them, and draw what is known.
             # Two writers used to collide ("could not serialize access", 2026-10-26)
@@ -270,7 +272,7 @@ class LabLocationPingRoad(models.Model):
                         break
                 if state == 'failed' or not complete:
                     break
-            if asked or state == 'failed':
+            if (asked or state == 'failed') and road:
                 road.write({
                     'steps': json.dumps(cache, separators=(',', ':')), 'accuracy_key': limit,
                     'state': state, 'failed_at': now if state == 'failed' else False,
