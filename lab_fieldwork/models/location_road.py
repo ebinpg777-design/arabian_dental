@@ -75,8 +75,9 @@ def matching_url(env):
     return ''
 
 
-MATCH_RADIUS_MIN_M = 10.0      # a fix is looked for on a road within its accuracy, at least this...
-MATCH_RADIUS_MAX_M = 50.0      # ...and at most this
+MATCH_RADIUS_M = 100.0         # a fix is looked for on a road within this - NOT within the accuracy the
+                               # phone claims: at "6-15 m" the matcher threw half of a real ride away
+                               # (43 of 85 fixes, 2026-10-26); at 100 m it kept all but the two off the roads
 MATCH_DETOUR_FACTOR = 3.0      # a matched leg this much longer than its gap, plus...
 MATCH_DETOUR_SLACK_M = 300.0   # ...this, is drawn straight: a loop the matcher invented
 
@@ -358,7 +359,7 @@ class LabLocationPingRoad(models.Model):
     @api.model
     def _ask_match(self, url, chunk):
         """{fix time: [[lat, lon], ...]} by OSRM's match service, the whole chunk as
-        one trace with each fix's accuracy as its radius and its time: the matcher
+        one trace with MATCH_RADIUS_M round each fix and its time: the matcher
         picks the roads consistent with the trace, and a fix it finds on no road
         - 500 m into a field, across the river - is an outlier, stored as [] so
         the trail, the km and the day sheet pass it by (2026-10-26: "triangles and
@@ -366,8 +367,7 @@ class LabLocationPingRoad(models.Model):
         the next is keyed by the latter's time; a matched leg far longer than the
         gap it bridges is a loop the matcher invented, drawn straight."""
         coordinates = ';'.join('%s,%s' % (p[2], p[1]) for p in chunk)
-        radiuses = ';'.join(str(int(min(max(p[6] or MATCH_RADIUS_MIN_M, MATCH_RADIUS_MIN_M), MATCH_RADIUS_MAX_M)))
-                            for p in chunk)
+        radiuses = ';'.join(str(int(MATCH_RADIUS_M)) for _p in chunk)
         timestamps = ';'.join(str(epoch(p[0])) for p in chunk)
         response = requests.get(
             url + coordinates,
