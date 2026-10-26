@@ -322,6 +322,37 @@ class TestLiveLayer(LiveTrackCase):
                          "the latest fix is still where the phone is")
         self.assertLess(ex['km'], 0.1, "and the tower is no distance driven")
 
+    def test_a_fix_the_phones_sensors_contradict_is_not_the_trail(self):
+        """Indoors a phone lands fixes 500 m to 1.5 km away, each somewhere else,
+        while its sensors say still or on foot (Abdul Latheef at Kavanoor,
+        2026-10-26 13:03-13:23): nobody still covers 800 m in 20 s. A riding phone
+        is believed up to 100 km/h; a phone that says nothing is judged by that alone."""
+        t0 = fields.Datetime.now() - timedelta(hours=1)
+        drop = location_live.drop_impossible
+        still = [at(t0, 0, 0, motion='still'), at(t0, 300, 2, motion='still')]
+        # 800 m in 20 s with the sensors saying still, then 900 m elsewhere on foot: gone
+        scatter = still + [at(t0, 320, 800, speed=0.0, motion='still'),
+                           at(t0, 350, -700, speed=1.5, motion='foot'),
+                           at(t0, 380, 5, speed=0.0, motion='still')]
+        self.assertEqual(drop(scatter), still + [scatter[-1]])
+        # the same ground with the sensors saying vehicle and a speed read: a ride
+        ride = still + [at(t0, 300 + 20 * i, 150 * i, speed=27.0, motion='vehicle') for i in range(1, 5)]
+        self.assertEqual(drop(ride), ride)
+        # 1.5 km in 42 s is a jump whatever the sensors say
+        jump = still + [at(t0, 342, 1500, speed=135.0, motion='vehicle'), at(t0, 400, 10, speed=0.0, motion='still')]
+        self.assertEqual(drop(jump), still + [jump[-1]])
+        # a walk is a walk
+        walk = still + [at(t0, 300 + 30 * i, 2 + 40 * i, speed=4.8, motion='foot') for i in range(1, 5)]
+        self.assertEqual(drop(walk), walk)
+        # a phone that gives neither sensors nor a speed reading: only the jump rule judges it
+        mute = [at(t0, 0, 0), at(t0, 20, 300)]
+        mute[1] = mute[1][:3] + (round(location_live._step(mute[0], mute[1])[2], 1),) + mute[1][4:]
+        self.assertEqual(drop(mute), mute, "54 km/h with nothing said either way is kept")
+        # a wrong first fix: the true ones are "fast" from it only until time makes them slow
+        wrong = [at(t0, 0, 1000, motion='still'), at(t0, 30, 0, speed=0.0, motion='still'),
+                 at(t0, 200, 1, speed=0.0, motion='still'), at(t0, 400, 2, speed=0.0, motion='still')]
+        self.assertEqual(drop(wrong), [wrong[0], wrong[2], wrong[3]])
+
     def test_a_fix_the_phone_never_went_to_is_not_the_trail(self):
         """Standing at a clinic the phone puts a fix 500 m out at "7 m" and is back
         seconds later (ASHIQ, 2026-10-26): a spike on the map and km never driven.
@@ -537,8 +568,9 @@ class TestLiveLayer(LiveTrackCase):
         # ...and the cron, with nothing new, changes nothing (idempotent)
         self.env['lab.location.ping']._cron_close_halts()
         self.assertEqual(self.env['lab.location.halt'].sudo().search_count([('user_id', '=', user.id)]), 1)
-        # the phone moves on; the read of the map no longer detects anything, the cron does
-        self._pings(user, now + timedelta(minutes=20), [(10.3, 76.3, 0, 30.0)])
+        # the phone moves on (2 km in the five minutes since: a ride, not a jump the
+        # trail would refuse); the read of the map no longer detects anything, the cron does
+        self._pings(user, now + timedelta(minutes=20), [(10.018, 76.0, 0, 30.0)])
         self.env['lab.location.ping']._cron_close_halts()
         halts = self.env['lab.location.halt'].sudo().search([('user_id', '=', user.id)])
         self.assertEqual(len(halts), 1)

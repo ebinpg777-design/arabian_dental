@@ -111,6 +111,54 @@ def _motion(point):
     return point[8] if len(point) > 8 else None
 
 
+IMPOSSIBLE_KMH = 25.0      # faster than this from the last fix kept, while the phone said it was
+                           # still or on foot, is a fix the phone never took...
+JUMP_KMH = 100.0           # ...and faster than this whatever it said: a two-wheeler never does
+
+
+def drop_impossible(points):
+    """The trail without the fixes the phone's own sensors contradict.
+
+    Indoors a phone lands fixes 500 m to 1.5 km away at a claimed "15 m", a few a
+    minute, each somewhere else (Abdul Latheef at a clinic, 2026-10-26 13:03-13:23:
+    twenty of them, a star of lines over Kavanoor), while its sensors say it is
+    still or on foot and its own speed reads under 5 km/h. Nobody still or walking
+    covers that ground: a fix the phone could only have reached at more than
+    IMPOSSIBLE_KMH from the last fix kept, while it said it was not riding, is
+    dropped, and the last fix kept stays where the phone is. A riding phone (its
+    sensors say 'vehicle', or its own speed reads VEHICLE_KMH or more) is believed
+    up to JUMP_KMH: the same scatter has the sensors say 'vehicle' now and then,
+    and 1.5 km in 42 s is a jump whatever they say. A phone that gives neither
+    sensors nor a speed reading is judged by JUMP_KMH alone (drop_excursions
+    still catches its out-and-back jumps). After a wrong fix kept - the first of
+    the day, say - the true ones are far and "fast" from it, but only for the
+    minutes it takes for the implied speed to fall under the limit.
+    """
+    out = []
+    for prev, point in zip([None] + points[:-1], points):
+        if out:
+            _metres, _secs, kmh = _step(out[-1], point)
+            if kmh > JUMP_KMH or (kmh > IMPOSSIBLE_KMH and _not_riding(point, prev)):
+                continue
+        out.append(point)
+    return out
+
+
+def _not_riding(point, prev):
+    """Whether the phone said it was NOT riding at `point`: its sensors still or
+    on foot; else its own speed reading - never one the server worked out from
+    the ground covered since `prev` (_riding) - under VEHICLE_KMH. False when it
+    said it was riding, or said nothing either way."""
+    motion = _motion(point)
+    if motion in ('still', 'foot'):
+        return True
+    if motion == 'vehicle' or prev is None:
+        return False
+    speed = point[3] or 0.0
+    reading = abs(speed - round(_step(prev, point)[2], 1)) >= 0.11
+    return reading and speed < VEHICLE_KMH
+
+
 EXCURSION_FIXES = 3        # a run of at most this many fixes...
 EXCURSION_M = 100.0        # ...at least this far from the fixes either side of it...
 EXCURSION_BACK_M = 60.0    # ...those two this close together: the phone was back...
@@ -514,7 +562,7 @@ class LabLocationPingLive(models.Model):
         and only where the phone went (drop_excursions)."""
         limit = self._trail_accuracy()
         points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
-        return drop_excursions(points)
+        return drop_excursions(drop_impossible(points))
 
     @api.model
     def _day_points(self, user, day):
