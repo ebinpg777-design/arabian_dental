@@ -338,28 +338,42 @@ class LabDailyUpdate(models.Model):
 
         Distance is the sum WITHIN segments only: what crossed a gap is unknown, and
         adding a straight line across it would put a number on a guess.
+
+        Read as Field Live reads it (2026-10-26): a fix the phone put nowhere near - a
+        tower's position, a jump it came straight back from - is left out, and each
+        step runs along its road where lab.location.road knows it (the job fills the
+        roads every five minutes), straight where it does not.
         """
-        pings = self.env['lab.location.ping'].sudo().search(
-            [('user_id', '=', self.user_id.id), ('date', '=', self.date)], order='ts')
-        if not pings:
+        from .location_live import road_metres, road_step
+        Ping = self.env['lab.location.ping'].sudo()
+        points = Ping._day_points(self.user_id, self.date)
+        if not points:
             return [], 0.0
-        segments, current = [], []
-        metres_total, previous = 0.0, None
-        for ping in pings:
-            local = fields.Datetime.context_timestamp(
-                self.with_context(tz=self.user_id.tz or 'UTC'), ping.ts)
-            if previous is not None:
-                waited = (ping.ts - previous.ts).total_seconds()
-                if waited > TRAIL_GAP_SECONDS:
-                    if len(current) > 1:
-                        segments.append(current)
-                    current = []
-                else:
-                    step = metres_between(previous.latitude, previous.longitude,
-                                          ping.latitude, ping.longitude)
-                    metres_total += step or 0.0
-            current.append([ping.latitude, ping.longitude, local.strftime('%H:%M')])
-            previous = ping
+        steps = Ping._road_steps(self.user_id, self.date)
+        local = self.with_context(tz=self.user_id.tz or 'UTC')
+
+        def stamp(point):
+            return fields.Datetime.context_timestamp(local, point[0]).strftime('%H:%M')
+
+        segments, metres_total = [], 0.0
+        current = [[points[0][1], points[0][2], stamp(points[0])]]
+        for previous, point in zip(points, points[1:]):
+            if (point[0] - previous[0]).total_seconds() > TRAIL_GAP_SECONDS:
+                if len(current) > 1:
+                    segments.append(current)
+                current = [[point[1], point[2], stamp(point)]]
+                continue
+            road = road_step(steps, previous, point)
+            at = stamp(point)
+            if road and len(road) > 1:
+                metres_total += road_metres(road)
+                for lat, lon in road:
+                    if abs(current[-1][0] - lat) < 1e-6 and abs(current[-1][1] - lon) < 1e-6:
+                        continue
+                    current.append([lat, lon, at])
+            else:
+                metres_total += metres_between(previous[1], previous[2], point[1], point[2]) or 0.0
+                current.append([point[1], point[2], at])
         if len(current) > 1:
             segments.append(current)
         return segments, round(metres_total / 1000.0, 1)

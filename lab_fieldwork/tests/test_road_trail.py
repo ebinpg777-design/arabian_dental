@@ -136,6 +136,85 @@ class TestRoadTrail(LiveTrackCase):
         record = self.env['lab.location.road'].sudo().search([('user_id', '=', self.exec_user.id)])
         self.assertEqual((len(record), record.state, record.request_count), (1, 'ok', 1))
 
+    def _age_road(self, seconds):
+        """The person's road record written `seconds` ago (the clock is frozen).
+        Flushed first: a pending write would set write_date again on its way out."""
+        self.env.flush_all()
+        self.env.cr.execute("UPDATE lab_location_road SET write_date = write_date - %s * interval '1 second'"
+                            " WHERE user_id = %s", [seconds, self.exec_user.id])
+        self.env['lab.location.road'].invalidate_model()
+
+    def test_the_overview_reads_everyone_whole_and_then_only_what_is_new(self):
+        """The overview asks for the whole team in one call, holding each person's
+        trail through a time: only the vertices after it travel (2026-10-26)."""
+        uid = str(self.exec_user.id)
+        self._drive(0, 6)
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            answer = self.Ping.get_road_trails(since={uid: None})[uid]
+        self.assertEqual((answer['state'], answer['complete'], len(calls)), ('ok', True, 1))
+        [leg] = answer['legs']
+        self.assertEqual((len(leg), answer['vertices'], answer['through']), (11, 11, leg[-1][2]))
+        self._drive(6, 2)
+        self._age_road(120)
+        with self._patched(fake):
+            fresh = self.Ping.get_road_trails(since={uid: answer['through']})[uid]
+        self.assertEqual(len(calls), 2, "asked for the new stretch alone")
+        [new] = fresh['legs']
+        self.assertEqual(len(new), 4, "two steps: the bend and the fix of each")
+        self.assertTrue(all(v[2] > answer['through'] for v in new))
+        self.assertEqual((fresh['vertices'], fresh['through']), (15, new[-1][2]))
+        with self._patched(fake):
+            same = self.Ping.get_road_trails(since={uid: fresh['through']})[uid]
+        self.assertEqual((same['legs'], same['vertices'], len(calls)), ([], 15, 2), "nothing new: nothing travels")
+        with self.assertRaises(AccessError):
+            self.Ping.with_user(self.exec_user).get_road_trails(since={uid: None})
+
+    def test_the_overview_asks_for_a_persons_new_stretch_once_a_minute_at_most(self):
+        uid = str(self.exec_user.id)
+        self._drive(0, 6)
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            answer = self.Ping.get_road_trails(since={uid: None})[uid]
+        self._drive(6, 2)
+        with self._patched(fake):
+            soon = self.Ping.get_road_trails(since={uid: answer['through']})[uid]
+        self.assertEqual(len(calls), 1, "just asked for this person: not again within the minute")
+        self.assertEqual((soon['complete'], len(soon['legs'][0])), (False, 2), "the new steps straight for now")
+        self._age_road(61)
+        with self._patched(fake):
+            later = self.Ping.get_road_trails(since={uid: answer['through']})[uid]
+        self.assertEqual((len(calls), later['complete'], len(later['legs'][0])), (2, True, 4))
+
+    def test_the_day_sheet_map_follows_the_roads_and_leaves_out_a_jump(self):
+        """The day sheet's map read the raw fixes joined straight; it now reads the
+        trail Field Live reads - along the roads, without a jump the phone came
+        straight back from (2026-10-26)."""
+        self._drive(0, 6)
+        far = 10.0 + 5 * 200 * NORTH            # where fix 5 is
+        self.env['lab.location.ping'].with_user(self.exec_user).record([
+            {'latitude': far, 'longitude': 76.0045, 'accuracy_m': 7, 'speed_kmh': 3.0,
+             'ts': fields.Datetime.to_string(self.now + timedelta(seconds=110))},
+            {'latitude': far + NORTH, 'longitude': 76.0, 'accuracy_m': 7, 'speed_kmh': 0.0,
+             'ts': fields.Datetime.to_string(self.now + timedelta(seconds=130))}])
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            self.Ping.get_road_trail(user_id=self.exec_user.id)
+        day = fields.Date.context_today(self.exec_user)
+        Sheet = self.env['lab.daily.update'].sudo()
+        sheet = Sheet.search([('user_id', '=', self.exec_user.id), ('date', '=', day)], limit=1) \
+            or Sheet.create({'user_id': self.exec_user.id, 'date': day})
+        track = sheet.get_day_track()
+        back = self.env['lab.location.ping'].sudo().search(
+            [('user_id', '=', self.exec_user.id)], order='ts desc', limit=1)
+        self.assertEqual(back.speed_kmh, 0.0, "the phone said 0 km/h: that is its speed, not the jump's")
+        [segment] = track['trail']
+        lons = [round(v[1], 4) for v in segment]
+        self.assertLess(max(lons), 76.001, "the jump 500 m east is not on the day sheet")
+        self.assertEqual(lons.count(76.0003), 5, "each of the five steps runs by its road's bend")
+        self.assertEqual(len(segment), 12, "first fix, five steps of bend and fix, the fix back")
+        self.assertEqual(track['trail_km'], round(5 * 200 * 1.1 / 1000, 1), "measured along the roads")
+
     def test_a_fix_snapped_to_the_wrong_road_is_drawn_straight(self):
         self._drive(0, 5)
         fake, calls = fake_osrm(detours={2})

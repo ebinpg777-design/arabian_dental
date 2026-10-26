@@ -393,13 +393,21 @@ class TestLiveLayer(LiveTrackCase):
         now = fields.Datetime.now() - timedelta(minutes=5)
         self._start_day(user, now - timedelta(minutes=30))
         self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.speed_limit', '40')
-        # 1 km in 60 s = 60 km/h, no speed sent
-        self._pings(user, now, [(10.0, 76.0, 0, None), (10.0 + 1000 / 111_320.0, 76.0, 60, None)])
-        last = self.env['lab.location.ping'].sudo().search([('user_id', '=', user.id)], order='ts desc', limit=1)
-        self.assertAlmostEqual(last.speed_kmh, 60.0, delta=1.0)
-        self.assertTrue(last.overspeed)
+        # 1 km in 60 s = 60 km/h, no speed sent - twice: one such step is a GPS
+        # error as often as a hurry, the second in a row is a verdict (2026-10-26)
+        self._pings(user, now, [(10.0, 76.0, 0, None), (10.0 + 1000 / 111_320.0, 76.0, 60, None),
+                                (10.0 + 2000 / 111_320.0, 76.0, 120, None)])
+        first, second = self.env['lab.location.ping'].sudo().search(
+            [('user_id', '=', user.id)], order='ts desc', limit=2).sorted('ts')
+        self.assertAlmostEqual(first.speed_kmh, 60.0, delta=1.0)
+        self.assertFalse(first.overspeed, "one derived step over the limit is not a verdict")
+        self.assertTrue(second.overspeed, "the second in a row is")
         self.assertEqual(self.env['lab.location.ping'].sudo()._day_summary(
-            user, last.date)['overspeed_count'], 1)
+            user, second.date)['overspeed_count'], 1)
+        # a speed the phone itself read over the limit counts at once
+        self._pings(user, now + timedelta(seconds=180), [(10.0 + 2100 / 111_320.0, 76.0, 0, 55.0)])
+        self.assertTrue(self.env['lab.location.ping'].sudo().search(
+            [('user_id', '=', user.id)], order='ts desc', limit=1).overspeed)
 
     def test_the_trail_notices_arrival_and_leaving(self):
         user = self.exec_user

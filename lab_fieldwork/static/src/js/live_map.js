@@ -173,7 +173,9 @@ export class LiveMap extends Component {
                 day: this.state.day || null,
                 user_ids: null,
             });
+            const before = (this.state.data && this.state.data.executives) || [];
             this.state.data = data;
+            this.keepRoads(before);
             this.state.day = data.day;
             this.state.isToday = Boolean(data.is_today);
             this.state.lost = false;
@@ -199,6 +201,102 @@ export class LiveMap extends Component {
         } finally {
             this.state.loading = false;
         }
+        this.loadRoads();
+    }
+
+    // --------------------------------------------------------------- the roads
+    /**
+     * The trail along the roads for everyone on the map, not only the person in
+     * focus (client, 2026-10-26: "tracking is not in road" - the overview joined
+     * the fixes straight, and on winding roads that cuts every corner). Held
+     * across reloads and grown by what is new: one call for the whole team asks
+     * each person's vertices after the time already held.
+     */
+    keepRoads(before) {
+        for (const cur of (this.state.data && this.state.data.executives) || []) {
+            const prev = before.find((e) => e.user_id === cur.user_id);
+            if (prev && prev.road_legs) {
+                Object.assign(cur, {
+                    road_legs: prev.road_legs, road_through: prev.road_through,
+                    road_count: prev.road_count, road_complete: prev.road_complete,
+                });
+            }
+        }
+    }
+
+    async loadRoads() {
+        const data = this.state.data;
+        if (!data || this.state.view === "trends") {
+            return;
+        }
+        const want = {};
+        for (const ex of data.executives || []) {
+            if (!(ex.legs || []).some((leg) => leg.length > 1)) {
+                continue;
+            }
+            const last = ex.last ? ex.last.epoch : null;
+            if (ex.road_through && (!last || last <= ex.road_through)) {
+                continue;                           // nothing new since the last look
+            }
+            want[ex.user_id] = ex.road_through || null;
+        }
+        if (!Object.keys(want).length) {
+            return;
+        }
+        const again = await this.fetchRoads(want);
+        if (Object.keys(again).length) {
+            // the day changed behind the browser (fixes that arrived late): whole again
+            await this.fetchRoads(again);
+        }
+        this.redraw();
+    }
+
+    /** One call for `want` ({user id: time held through, or null}); what must be read whole. */
+    async fetchRoads(want) {
+        const again = {};
+        let roads;
+        try {
+            roads = await this.orm.call("lab.location.ping", "get_road_trails", [], {
+                day: this.state.day || null, since: want,
+            });
+        } catch (error) {
+            console.warn("live map: roads not loaded", error?.message || error);
+            return again;
+        }
+        for (const [uid, road] of Object.entries(roads || {})) {
+            const ex = ((this.state.data && this.state.data.executives) || [])
+                .find((e) => String(e.user_id) === uid);
+            if (ex && road && road.legs && !this.mergeRoad(ex, road, want[uid])) {
+                again[uid] = null;
+            }
+        }
+        return again;
+    }
+
+    /**
+     * The road vertices into the trail held: appended after `since`, the whole
+     * trail when there was none. False when the day changed behind the browser
+     * (the counts no longer add up) and must be read whole.
+     */
+    mergeRoad(ex, road, since) {
+        if (since) {
+            const held = ex.road_legs && ex.road_legs.length === 1 ? ex.road_legs[0] : null;
+            if (!held || road.legs.length > 1) {
+                return false;
+            }
+            const kept = held.filter((v) => v[2] <= since);   // the stubs pushed meanwhile go
+            const fresh = road.legs.length ? road.legs[0] : [];
+            if (kept.length + fresh.length !== road.vertices) {
+                return false;
+            }
+            ex.road_legs = [kept.concat(fresh)];
+        } else {
+            ex.road_legs = road.legs.length ? road.legs : null;
+        }
+        ex.road_through = road.through || ex.road_through || null;
+        ex.road_count = road.vertices || 0;
+        ex.road_complete = Boolean(road.complete);
+        return true;
     }
 
     /** The day's recorded span, for the replay slider. */

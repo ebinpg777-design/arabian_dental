@@ -160,7 +160,11 @@ class LabLocationPing(models.Model):
             for key in ('speed_kmh', 'heading', 'battery'):
                 try:
                     value = ping.get(key)
-                    extra[key] = float(value) if value not in (None, '', False) else None
+                    # `0.0 in (None, '', False)` is True in Python: a phone standing
+                    # still, reporting 0 km/h, had its speed thrown away and a speed
+                    # worked out from the ground covered instead - after a GPS jump,
+                    # 88 km/h on a phone that had not moved (2026-10-26).
+                    extra[key] = None if value is None or value is False or value == '' else float(value)
                 except (TypeError, ValueError):
                     extra[key] = None
             motion = ping.get('motion')
@@ -194,6 +198,7 @@ class LabLocationPing(models.Model):
                                       order='ts desc', limit=1)
             last_ts = last.ts
             last_point = (last.latitude, last.longitude) if last else None
+            last_speed = (last.speed_kmh or 0.0) if last else 0.0
             limit = self._speed_limit()
             # A speed the phone did not give is the ground covered since the last
             # fix that sits on a road - never since a tower position: 2 km "covered"
@@ -224,7 +229,7 @@ class LabLocationPing(models.Model):
                     if held is None:
                         held = self.sudo().search_read(
                             [('user_id', '=', user.id), ('date', '=', day)],
-                            ['ts', 'latitude', 'longitude', 'accuracy_m'], order='ts')
+                            ['ts', 'latitude', 'longitude', 'accuracy_m', 'speed_kmh'], order='ts')
                     before = [h for h in held if h['ts'] <= when]
                     if before and (when - before[-1]['ts']).total_seconds() < 1.0:
                         continue                  # held already: a retry
@@ -234,8 +239,10 @@ class LabLocationPing(models.Model):
                     prev_good = prev_point and (not trail_limit or not prev['accuracy_m']
                                                 or prev['accuracy_m'] < trail_limit)
                     prev_good_point = (prev_ts,) + prev_point if prev_good else None
+                    prev_speed = (prev or {}).get('speed_kmh') or 0.0
                 else:
                     prev_ts, prev_point, prev_good_point = last_ts, last_point, good_point
+                    prev_speed = last_speed
                 moved = waited = 0.0
                 if prev_point:
                     moved = metres_between(prev_point[0], prev_point[1],
@@ -244,11 +251,20 @@ class LabLocationPing(models.Model):
                     if moved < MIN_MOVE_METRES and waited < HEARTBEAT_SECONDS:
                         continue
                 speed = extra.get('speed_kmh')
-                if speed is None and prev_good_point and when > prev_good_point[0]:
+                derived = speed is None
+                if derived and prev_good_point and when > prev_good_point[0]:
                     # the ground covered, when the phone gave none
                     speed = (metres_between(prev_good_point[1], prev_good_point[2], latitude, longitude) or 0.0) \
                         / (when - prev_good_point[0]).total_seconds() * 3.6
                 speed = round(max(speed or 0.0, 0.0), 1)
+                # A speed the phone read over the limit is over the limit. One worked
+                # out from the ground covered is a GPS error as often as a hurry - a
+                # fix 200 m off the road reads as 70 km/h - so it counts only when the
+                # step before was over the limit too (2026-10-26: "18 times over
+                # 60 km/h" on a morning with nine jumps the phone never made).
+                over = bool(limit) and limit < speed < 150
+                if over and derived:
+                    over = prev_speed > limit
                 values.append({
                     'user_id': user.id, 'date': day, 'ts': when,
                     'latitude': latitude, 'longitude': longitude,
@@ -258,7 +274,7 @@ class LabLocationPing(models.Model):
                     'battery': extra.get('battery') or 0.0,
                     'motion': extra.get('motion') or False,
                     # a GPS jump reads as 300 km/h; a real motorbike never does
-                    'overspeed': bool(limit) and limit < speed < 150,
+                    'overspeed': over,
                     # set only by the app endpoint: the browser cannot claim to be the app
                     'source': 'app' if self.env.context.get('fw_ping_source') == 'app' else 'browser',
                 })
@@ -268,7 +284,7 @@ class LabLocationPing(models.Model):
                                  'accuracy_m': accuracy})
                     held.sort(key=lambda h: h['ts'])
                 else:
-                    last_ts, last_point = when, (latitude, longitude)
+                    last_ts, last_point, last_speed = when, (latitude, longitude), speed
                     if not trail_limit or not accuracy or accuracy < trail_limit:
                         good_point = (when, latitude, longitude)
                 if existing + len(values) >= MAX_PINGS_PER_DAY:

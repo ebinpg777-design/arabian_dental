@@ -124,6 +124,7 @@ export class FieldLive extends LiveMap {
             const before = (this.state.data && this.state.data.executives) || [];
             this.state.data = data;
             this.keepFullTrail(before);
+            this.keepRoads(before);
             this.state.day = data.day;
             this.state.isToday = Boolean(data.is_today);
             this.state.lost = false;
@@ -150,6 +151,7 @@ export class FieldLive extends LiveMap {
         } finally {
             this.state.loading = false;
         }
+        this.loadRoads();
     }
 
     // --------------------------------------------------------------- the push
@@ -302,7 +304,10 @@ export class FieldLive extends LiveMap {
             if (!current || !road || !road.legs) {
                 return;
             }
-            current.road_legs = road.legs;
+            current.road_legs = road.legs.length ? road.legs : null;
+            current.road_through = road.through || null;
+            current.road_count = road.vertices || 0;
+            current.road_complete = Boolean(road.complete);
             this.redraw();
             if (!road.complete && road.state === "ok" && attempt < 12) {
                 setTimeout(() => this.loadRoad(current, attempt + 1), 400);

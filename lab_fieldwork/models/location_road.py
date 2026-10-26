@@ -42,6 +42,7 @@ ROAD_REQUESTS_PER_CALL = 6    # a first look at a long day; the rest on the next
 DETOUR_FACTOR = 1.5           # by road this much longer than the straight gap...
 DETOUR_SLACK_M = 150.0        # ...plus this: a fix snapped to the wrong road
 FAILED_RETRY_SECONDS = 600
+ROAD_TEAM_ASK_SECONDS = 60    # the overview asks for a person's newest stretch this often at most
 
 
 def routing_url(env):
@@ -114,19 +115,69 @@ class LabLocationPingRoad(models.Model):
             'lab_fieldwork.road_trail', 'True') in ('True', 'true', '1')
 
     @api.model
-    def get_road_trail(self, user_id=None, day=None):
-        """One person's day along the roads, for the map in focus (field_live.js
-        loadRoad): {'state': ok|failed|off, 'legs': as get_live_map's or None when
-        roads are off, 'complete': whether every step has its road yet}."""
+    def get_road_trail(self, user_id=None, day=None, since=None):
+        """One person's day along the roads, for the map (field_live.js loadRoad):
+        {'state': ok|failed|off, 'legs': as get_live_map's or None when roads are
+        off, 'complete': whether every step has its road yet, 'through': the time
+        of the last vertex, 'vertices': how many the whole day has}. With `since` -
+        the time the browser already holds the trail through - only the vertices
+        after it travel (see _road_answer)."""
         me = self.env.user
         user = self.env['res.users'].browse(int(user_id)) if user_id else me
         if user != me and not self._is_manager():
             raise AccessError(_("Only field managers can see where others are."))
         day = fields.Date.to_date(day) if day else self._today_for(me)
-        return self._road_legs(user, day)
+        return self._road_answer(user, day, since)
 
     @api.model
-    def _road_legs(self, user, day):
+    def get_road_trails(self, day=None, since=None):
+        """Everybody's day along the roads in one call, for the overview (live_map.js
+        loadRoads): {user id: get_road_trail's answer} for each id in `since`, which
+        maps it to the time the browser holds that person's trail through, or null.
+        The overview drew the fixes joined straight and only the person in focus
+        followed the roads; on winding roads the straight lines cut every corner and
+        read as a fault (client, 2026-10-26: "tracking is not in road")."""
+        if not self._is_manager():
+            raise AccessError(_("Only field managers can see where others are."))
+        day = fields.Date.to_date(day) if day else self._today_for(self.env.user)
+        Users = self.env['res.users'].with_context(active_test=False)
+        out = {}
+        for user_id, held in (since or {}).items():
+            user = Users.browse(int(user_id))
+            if user.exists():
+                out[str(user.id)] = self._road_answer(user, day, held)
+        return out
+
+    @api.model
+    def _road_answer(self, user, day, since=None):
+        """get_road_trail's answer. A first look (no `since`) asks the service for
+        up to ROAD_REQUESTS_PER_CALL stretches, as the person in focus always did; a
+        look that only wants what is new asks for one stretch at most, and none
+        within ROAD_TEAM_ASK_SECONDS of the last - the job fills the rest every
+        five minutes - so an overview of ten people re-read after every batch of
+        positions keeps the routing service's load bounded."""
+        budget = ROAD_REQUESTS_PER_CALL
+        if since is not None:
+            road = self.env['lab.location.road'].sudo().search(
+                [('user_id', '=', user.id), ('date', '=', day)], limit=1)
+            # write_date is the database's clock (cr.now()), so it is read against that
+            recent = road.write_date and \
+                (self.env.cr.now() - road.write_date).total_seconds() < ROAD_TEAM_ASK_SECONDS
+            budget = 0 if recent else 1
+        answer = self._road_legs(user, day, budget=budget)
+        legs = answer['legs']
+        if legs is None:
+            answer.update({'through': None, 'vertices': 0})
+            return answer
+        answer['vertices'] = sum(len(leg) for leg in legs)
+        answer['through'] = max((leg[-1][2] for leg in legs if leg), default=None)
+        if since is not None:
+            cut = [[v for v in leg if v[2] > since] for leg in legs]
+            answer['legs'] = [leg for leg in cut if leg]
+        return answer
+
+    @api.model
+    def _road_legs(self, user, day, budget=ROAD_REQUESTS_PER_CALL):
         url = routing_url(self.env) if self._road_trail_enabled() else ''
         if not url:
             return {'state': 'off', 'legs': None, 'complete': True}
@@ -176,7 +227,7 @@ class LabLocationPingRoad(models.Model):
         else:
             for run in runs:
                 for start in range(0, len(run) - 1, ROAD_WAYPOINTS - 1):
-                    if asked >= ROAD_REQUESTS_PER_CALL:
+                    if asked >= budget:
                         complete = False
                         break
                     asked += 1
