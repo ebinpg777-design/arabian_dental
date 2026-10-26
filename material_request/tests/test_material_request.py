@@ -156,3 +156,16 @@ class TestMaterialRequest(TransactionCase):
         self.assertIn(request.id, self.env['material.request'].search([('is_late', '=', True)]).ids)
         request.action_cancel()
         self.assertFalse(request.is_late)
+
+    def test_without_the_setting_the_warehouse_internal_transfer_type_is_used(self):
+        self.env.company.material_request_type_id = False
+        request = self._request()
+        self.assertEqual(request.picking_type_id, self.warehouse.int_type_id)
+        self.assertEqual(request.source_location_id, self.store)
+        request.action_confirm()
+        request.with_user(self.store_keeper).action_approve()
+        self.assertEqual(request.state, 'approved')
+        picking = request.sudo().picking_ids
+        self.assertEqual(picking.picking_type_id, self.warehouse.int_type_id)
+        self.assertEqual(picking.location_id, self.store)
+        self.assertEqual(picking.location_dest_id, self.dept)

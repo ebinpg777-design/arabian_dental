@@ -88,9 +88,26 @@ class MaterialRequest(models.Model):
     @api.depends('company_id')
     def _compute_source_location(self):
         for request in self:
-            ptype = request.company_id.material_request_type_id
+            ptype = request.company_id.material_request_type_id or request._default_picking_type()
             request.picking_type_id = ptype
             request.source_location_id = ptype.default_location_src_id
+
+    def _default_picking_type(self):
+        """The company warehouse's own internal transfer type, when Inventory settings
+        name none - a fresh or a migrated database (live, 2026-10-26: every approval
+        stopped on "set the operation type first"). The store is then WH/Stock."""
+        warehouse = self.env['stock.warehouse'].search(
+            [('company_id', '=', self.company_id.id)], limit=1)
+        ptype = warehouse.int_type_id
+        if not ptype.active:
+            # The warehouse's own type is archived: without multi-locations Odoo keeps it
+            # so, and a migrated database numbers its transfers with another one. The
+            # company's live internal type then; the archived one still works when there
+            # is none.
+            ptype = self.env['stock.picking.type'].search(
+                [('code', '=', 'internal'), ('company_id', '=', self.company_id.id)],
+                limit=1) or ptype
+        return ptype
 
     @api.depends('picking_ids')
     def _compute_transfer_count(self):
