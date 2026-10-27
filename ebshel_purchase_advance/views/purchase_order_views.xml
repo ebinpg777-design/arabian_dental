@@ -11,12 +11,21 @@
         <!-- ── Header button (before Cancel) ────────────────────────────── -->
         <xpath expr="//header/button[@name='button_cancel']"
                position="before">
+            <!-- Odoo 20 dropped "Create Bill" from the order: a bill came only from an
+                 uploaded file. Bills arrive on paper (ADL, 2026-10-27): the draft bill
+                 from what was received, to type the vendor's number and date into. -->
+            <button name="action_create_invoice"
+                    type="object"
+                    string="Create Bill"
+                    groups="account.group_account_invoice"
+                    invisible="state not in ('purchase', 'done') or invoice_status != 'to invoice'"
+                    class="btn-primary"
+                    data-hotkey="w"/>
             <button name="action_create_advance_bill"
                     type="object"
                     string="Create Advance Bill"
                     groups="account.group_account_invoice"
                     invisible="state not in ('purchase', 'done')"
-                    class="btn-primary"
                     icon="fa-file-text-o"
                     data-hotkey="shift+a"/>
         </xpath>

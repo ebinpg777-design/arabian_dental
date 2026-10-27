@@ -3,7 +3,7 @@
 # License OPL-1.
 {
     'name': 'Purchase Advance Bills',
-    'version': '20.0.5.0.0',
+    'version': '20.0.5.1.0',
     'category': 'Inventory/Purchase',
     'summary': 'Create advance vendor bills from a Purchase Order; each posted '
                'advance bill is deducted as its own line when the main bill is generated.',
