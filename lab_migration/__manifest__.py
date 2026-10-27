@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Migration (Odoo 17 → 19 data sync)',
-    'version': '20.0.2.6.1',
+    'version': '20.0.2.6.2',
     'category': 'Technical',
     'summary': 'Sync master data + opening balances from an Odoo 17 database into Odoo 20',
     'description': """

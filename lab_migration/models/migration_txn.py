@@ -1932,10 +1932,17 @@ class MigrationBackend(models.Model):
         it happened there.
 
         Every invoice and payment is already in, with the same amounts, so
-        matching the same pairs in the same order reproduces the same partials —
-        and with them the invoices' paid / partial / in-payment states and every
-        clinic's open balance. Nothing is invented: a pair the source never
-        matched is never matched here, however obvious it looks.
+        matching the same pairs in the same order FOR THE SAME AMOUNTS reproduces
+        the same partials — and with them the invoices' paid / partial / in-payment
+        states and every clinic's open balance. Nothing is invented: a pair the
+        source never matched is never matched here, however obvious it looks.
+
+        The amount is the source partial's, never more: Odoo reconciles two items
+        for the smaller of their open amounts, so a payment the source spread over
+        several invoices was poured into the first one here, and the next pairs
+        found their room gone. Uncapped, the first migration reproduced 5,078
+        partials the source never had and missed 6,062 for 143 clinics; payments
+        then showed invoices open that were paid (client, 2026-10-27).
         """
         d = self._txn_dates()
         cur.execute("""
@@ -1976,7 +1983,17 @@ class MigrationBackend(models.Model):
                     if lines[0].account_id != lines[1].account_id or not lines[0].account_id.reconcile:
                         counts['unmapped'] += 1
                         continue
-                    lines.with_context(skip_account_move_synchronization=True).reconcile()
+                    debit = lines.filtered(lambda l: l.id == dl)
+                    credit = lines - debit
+                    amount = min(float(r['amount'] or 0.0), debit.amount_residual, -credit.amount_residual)
+                    if amount <= 0.004:
+                        counts['already'] += 1
+                        continue
+                    debit = debit.with_context(skip_account_move_synchronization=True)
+                    if hasattr(debit, '_reconcile_up_to'):
+                        debit._reconcile_up_to(credit, round(amount, 2))      # ebshel_payment_allocation
+                    else:
+                        (debit + credit).with_context(reconcile_cap=(debit.id, credit.id, round(amount, 2))).reconcile()
                     counts['matched'] += 1
             except Exception as e:
                 counts['failed'] += 1
