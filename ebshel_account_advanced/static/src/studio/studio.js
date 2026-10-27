@@ -6,6 +6,7 @@ import { registry } from "@web/core/registry";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money } from "../common/utils";
+import { finDate } from "@ebshel_account_reports/fin_date";
 
 /**
  * Journal entries typed like a spreadsheet. Tab across, Enter for a new line,
@@ -16,6 +17,11 @@ import { money } from "../common/utils";
 export class EntryStudio extends Component {
     static template = "ebshel_account_advanced.EntryStudio";
     props = useProps(standardActionServiceProps);
+
+    /** A date the company's way (Settings > Accounting > Dynamic Reports > Date format). */
+    fmtDate(value) {
+        return finDate(value);
+    }
 
     setup() {
         this.orm = useService("orm");

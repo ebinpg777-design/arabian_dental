@@ -16,6 +16,7 @@ from markupsafe import Markup
 
 from odoo import api, fields, models, _
 from odoo.tools import SQL, date_utils
+from odoo.tools.misc import format_date
 
 from .engine import LIQUIDITY_TYPES
 from .report import evaluate_formula
@@ -1670,7 +1671,7 @@ class DayBookHandler(models.AbstractModel):
             td, tc, tn = td + d, tc + c, tn + n
             lid = 'dt:%s' % fields.Date.to_string(day)
             unfolded = self._is_open(options, lid)
-            rows.append(self._line(lid, day.strftime('%A %d %B %Y'), 0,
+            rows.append(self._line(lid, self._day_heading(day), 0,
                                    [self._cell(d, currency, drill=True), self._cell(c, currency, drill=True),
                                     self._cell(float(n), currency, 'count')],
                                    unfoldable=True, unfolded=unfolded, kind='day', day=fields.Date.to_string(day)))
@@ -1688,6 +1689,12 @@ class DayBookHandler(models.AbstractModel):
                                                         self._cell(float(tn), currency, 'count')], bold=True, kind='total'))
         return rows
 
+    def _day_heading(self, day):
+        """'Monday, 31/12/2026': the weekday in the reader's language, the date the
+        company's way."""
+        weekday = format_date(self.env, day, date_format='EEEE')
+        return '%s, %s' % (weekday, self.engine.fmt_date(day))
+
     def expand(self, report, options, columns, line_id, offset=0):
         if not line_id.startswith('dt:'):
             return {'lines': [], 'has_more': False}
@@ -1701,7 +1708,7 @@ class DayBookHandler(models.AbstractModel):
     def drill(self, report, options, columns, line_id, column_key):
         if line_id.startswith('dt:'):
             day = fields.Date.to_date(line_id[3:])
-            return self.engine.domain(options, 'flow', day, day, None), day.strftime('%d %B %Y')
+            return self.engine.domain(options, 'flow', day, day, None), self.engine.fmt_date(day)
         if line_id == 'total':
             d_from, d_to = self._period(options)
             return self.engine.domain(options, 'flow', d_from, d_to, None), _('All journal items')

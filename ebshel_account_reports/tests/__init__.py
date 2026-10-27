@@ -5,3 +5,4 @@ from . import test_exports
 from . import test_speed
 from . import test_general_ledger
 from . import test_regressions
+from . import test_date_format

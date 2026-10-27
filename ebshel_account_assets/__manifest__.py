@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Assets and Depreciation',
-    'version': '20.0.1.2.0',
+    'version': '20.0.1.3.0',
     'category': 'Accounting/Accounting',
     'summary': 'Fixed assets from purchase to disposal: schedules, automatic depreciation, '
                'pauses, revaluations, gross increases, disposals with gain or loss, assets '

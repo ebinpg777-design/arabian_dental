@@ -6,11 +6,17 @@ import { registry } from "@web/core/registry";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, today, addDays } from "../common/utils";
+import { finDate } from "@ebshel_account_reports/fin_date";
 
 /** Every customer who owes money, what to do next, and the buttons that do it. */
 export class FollowupDesk extends Component {
     static template = "ebshel_account_advanced.FollowupDesk";
     props = useProps(standardActionServiceProps);
+
+    /** A date the company's way (Settings > Accounting > Dynamic Reports > Date format). */
+    fmtDate(value) {
+        return finDate(value);
+    }
 
     setup() {
         this.orm = useService("orm");

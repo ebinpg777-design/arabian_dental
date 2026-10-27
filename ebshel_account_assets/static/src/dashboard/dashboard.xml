@@ -47,7 +47,7 @@
                         <div t-if="!this.state.data.drafts.length" class="text-muted small">Nothing waiting.</div>
                         <div t-foreach="this.state.data.drafts" t-as="d" t-key="d.id" class="o_ead_item" t-on-click="() => this.openOne(d.id)">
                             <div class="o_ead_in"><t t-out="d.name"/><span class="text-muted small" t-if="d.bill"> · <t t-out="d.bill"/></span></div>
-                            <div class="o_ead_iv"><t t-out="d.value"/> <span class="text-muted small" t-out="d.date"/></div>
+                            <div class="o_ead_iv"><t t-out="d.value"/> <span class="text-muted small" t-out="this.fmtDate(d.date)"/></div>
                         </div>
                     </div>
                     <div class="o_ead_panel">

@@ -37,6 +37,7 @@ class FinReportAnnotation(models.Model):
             out.setdefault(note.line_key, []).append({
                 'id': note.id, 'text': note.text, 'column_key': note.column_key or '',
                 'user': note.user_id.name, 'date': fields.Date.to_string(note.date),
+                'date_text': self.env['ebshel.fin.engine'].fmt_date(note.date, note.company_id),
                 'line_name': note.line_name or '',
                 'mine': note.user_id == self.env.user,
             })

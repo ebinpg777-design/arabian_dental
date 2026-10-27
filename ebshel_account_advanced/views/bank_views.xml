@@ -105,7 +105,7 @@
                 <t t-set="cur" t-value="company.currency_id"/>
                 <div class="page" style="font-size:12px">
                     <h4>Bank reconciliation statement</h4>
-                    <div class="mb-3"><b t-out="brs['journal']['name']"/> · <t t-out="brs['journal']['account']"/> · as at <b t-out="brs['date']"/></div>
+                    <div class="mb-3"><b t-out="brs['journal']['name']"/> · <t t-out="brs['journal']['account']"/> · as at <b t-out="company.ebshel_fin_format_date(brs['date'])"/></div>
                     <table class="table table-sm" style="max-width:520px">
                         <tr><td>Balance per books</td><td class="text-end" t-out="n['book']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
                         <tr><td>Less: deposits not yet credited by the bank</td><td class="text-end" t-out="-n['deposits']" t-options="{'widget': 'monetary', 'display_currency': cur}"/></tr>
@@ -120,7 +120,7 @@
                             <thead><tr><th>Date</th><th>Entry</th><th>Label</th><th>Partner</th><th class="text-end">Days</th><th class="text-end">Amount</th></tr></thead>
                             <tbody>
                                 <tr t-foreach="block[1]" t-as="i">
-                                    <td t-out="i['date']"/><td t-out="i['name']"/><td t-out="i['label']"/><td t-out="i['partner']"/>
+                                    <td t-out="company.ebshel_fin_format_date(i['date'])"/><td t-out="i['name']"/><td t-out="i['label']"/><td t-out="i['partner']"/>
                                     <td class="text-end" t-out="i['age']"/>
                                     <td class="text-end" t-out="abs(i['amount'])" t-options="{'widget': 'monetary', 'display_currency': cur}"/>
                                 </tr>

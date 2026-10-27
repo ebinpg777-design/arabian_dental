@@ -6,11 +6,17 @@ import { registry } from "@web/core/registry";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { money, compact, today } from "../common/utils";
+import { finDate } from "@ebshel_account_reports/fin_date";
 
 /** Thirteen weeks of cash, with sliders for how customers will really behave. */
 export class CashForecast extends Component {
     static template = "ebshel_account_advanced.CashForecast";
     props = useProps(standardActionServiceProps);
+
+    /** A date the company's way (Settings > Accounting > Dynamic Reports > Date format). */
+    fmtDate(value) {
+        return finDate(value);
+    }
 
     setup() {
         this.orm = useService("orm");

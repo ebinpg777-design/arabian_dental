@@ -6,3 +6,4 @@ from . import export
 from . import handlers
 from . import extras
 from . import pdf
+from . import ir_http

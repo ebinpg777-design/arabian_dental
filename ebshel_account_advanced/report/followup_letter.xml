@@ -35,7 +35,7 @@
                                 <div t-field="partner.commercial_partner_id" t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True}'/>
                             </div>
                             <div class="col-5 text-end">
-                                <div><span t-out="today" t-options='{"widget": "date"}'/></div>
+                                <div><span t-out="res_company.ebshel_fin_format_date(today)"/></div>
                                 <div class="text-muted" t-if="level"><t t-out="level.name"/></div>
                             </div>
                         </div>
@@ -50,8 +50,8 @@
                                     <tr>
                                         <td t-out="line.move_id.name"/>
                                         <td t-out="line.move_id.ref or ''"/>
-                                        <td t-out="line.date" t-options='{"widget": "date"}'/>
-                                        <td t-out="line.date_maturity or line.date" t-options='{"widget": "date"}'/>
+                                        <td t-out="line.company_id.ebshel_fin_format_date(line.date)"/>
+                                        <td t-out="line.company_id.ebshel_fin_format_date(line.date_maturity or line.date)"/>
                                         <td class="text-end" t-out="max((today - (line.date_maturity or line.date)).days, 0)"/>
                                         <td class="text-end" t-out="line.amount_residual" t-options='{"widget": "monetary", "display_currency": line.company_currency_id}'/>
                                     </tr>

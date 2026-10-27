@@ -112,6 +112,12 @@ class TestAdvanced(TransactionCase):
             'ebshel_account_advanced.action_report_followup_letter', res_ids=[self.customer.id])
         self.assertEqual(kind, 'pdf')
         self.assertTrue(pdf.startswith(b'%PDF'))
+        # the letter's dates are the company's way (client, 2026-10-27)
+        self.env.company.ebshel_fin_date_format = '%d-%b-%Y'
+        html = self.env['ir.actions.report']._render_qweb_html(
+            'ebshel_account_advanced.action_report_followup_letter', [self.customer.id])[0].decode()
+        for day in (self.today, self.today - timedelta(days=90), self.today - timedelta(days=60)):
+            self.assertIn(self.env.company.ebshel_fin_format_date(day), html)
 
     def test_the_nightly_job_sends_only_automatic_levels(self):
         other = self.env['res.partner'].create({'name': 'Auto Clinic', 'email': 'auto@example.com', 'is_company': True})

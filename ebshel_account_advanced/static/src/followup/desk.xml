@@ -65,12 +65,12 @@
                                 <td class="num" t-out="r.days || ''"/>
                                 <td><span t-att-class="'o_eaa_badge ' + this.stateClass(r.state)" t-out="r.state_label"/></td>
                                 <td class="small"><t t-out="r.level || '–'"/><t t-if="r.suggested and r.suggested.name !== r.level"> → <b t-out="r.suggested.name"/></t></td>
-                                <td class="small"><t t-if="r.promise_date"><i class="oi text-info" data-icon="handshake"/> <t t-out="r.promise_date"/></t><t t-elif="r.next_date" t-out="r.next_date"/></td>
+                                <td class="small"><t t-if="r.promise_date"><i class="oi text-info" data-icon="handshake"/> <t t-out="this.fmtDate(r.promise_date)"/></t><t t-elif="r.next_date" t-out="this.fmtDate(r.next_date)"/></td>
                                 <td><select class="form-select form-select-sm" style="font-size:.72rem;padding:.05rem 1.2rem .05rem .3rem" t-on-change="(ev) => this.setResponsible(r, ev)" t-att-disabled="!this.state.data.can_write">
                                     <option value="">–</option>
                                     <option t-foreach="this.state.data.users" t-as="u" t-key="u.id" t-att-value="u.id" t-att-selected="r.responsible_id === u.id" t-out="u.name"/>
                                 </select></td>
-                                <td class="small text-muted"><t t-if="r.last_action"><t t-out="r.last_action.label"/> · <t t-out="r.last_action.date"/></t></td>
+                                <td class="small text-muted"><t t-if="r.last_action"><t t-out="r.last_action.label"/> · <t t-out="this.fmtDate(r.last_action.date)"/></t></td>
                                 <td class="text-nowrap" t-if="this.state.data.can_write">
                                     <button class="btn btn-sm btn-outline-primary o_eaa_btn" t-on-click="() => this.open('send', r)" title="Send the reminder"><i class="oi" data-icon="mail"/></button>
                                     <button class="btn btn-sm btn-outline-secondary o_eaa_btn" t-on-click="() => this.open('call', r)" title="Log a call"><i class="oi" data-icon="phone"/></button>
@@ -104,7 +104,7 @@
                         <tbody>
                             <tr t-foreach="this.state.detail.items" t-as="it" t-key="it.id" class="clickable" t-on-click="() => this.openMove(it.move_id)">
                                 <td><t t-out="it.name"/><span t-if="it.kind === 'credit'" class="o_eaa_badge info ms-1">credit</span></td>
-                                <td t-out="it.due"/>
+                                <td t-out="this.fmtDate(it.due)"/>
                                 <td t-att-class="'num ' + (it.days > 0 and it.kind === 'invoice' ? 'text-danger' : '')" t-out="it.kind === 'invoice' ? it.days : ''"/>
                                 <td class="num" t-out="this.money(it.residual)"/>
                             </tr>
@@ -117,9 +117,9 @@
                     <div class="o_eaa_timeline">
                         <div t-if="!this.state.detail.actions.length" class="o_eaa_empty">Nothing yet.</div>
                         <div t-foreach="this.state.detail.actions" t-as="a" t-key="a.id" class="ev">
-                            <b t-out="a.label"/><t t-if="a.level"> · <t t-out="a.level"/></t> <span class="text-muted" t-out="a.date"/><span class="text-muted" t-if="a.user"> · <t t-out="a.user"/></span>
+                            <b t-out="a.label"/><t t-if="a.level"> · <t t-out="a.level"/></t> <span class="text-muted" t-out="this.fmtDate(a.date)"/><span class="text-muted" t-if="a.user"> · <t t-out="a.user"/></span>
                             <div t-if="a.note" class="text-muted" t-out="a.note"/>
-                            <div t-if="a.promise_date" class="text-info">for <t t-out="a.promise_date"/>, <t t-out="this.money(a.amount)"/></div>
+                            <div t-if="a.promise_date" class="text-info">for <t t-out="this.fmtDate(a.promise_date)"/>, <t t-out="this.money(a.amount)"/></div>
                         </div>
                     </div>
                 </div>

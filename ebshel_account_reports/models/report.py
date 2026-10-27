@@ -12,7 +12,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import SQL
 
-from .engine import BALANCE_MODES, COMPARISON_MODES, PRESETS, Memo
+from .engine import BALANCE_MODES, COMPARISON_MODES, PRESETS, Memo, luxon_date_format
 
 DISPLAYS = [('amount', 'Amount'), ('percent', 'Percentage'), ('ratio', 'Ratio'),
             ('days', 'Days'), ('count', 'Count'), ('check', 'Balance check')]
@@ -157,7 +157,8 @@ class FinReport(models.Model):
         company = self.env['ebshel.fin.engine'].lead_company(options).sudo()
         # one memo for this reading: the accounts, the sums and the writer of numbers are
         # worked out once and shared by everything the reading asks for
-        carried = dict(fin_unit=options['unit'], fin_negative=company.ebshel_fin_negative or 'minus', fin_memo=Memo())
+        carried = dict(fin_unit=options['unit'], fin_negative=company.ebshel_fin_negative or 'minus', fin_memo=Memo(),
+                       fin_date_format=engine.date_pattern(company))
         handler = self._handler().with_context(**carried)
         options = handler.adjust_options(self, options)
         return engine.with_context(**carried), handler, options, handler.columns(self, options)
@@ -224,6 +225,8 @@ class FinReport(models.Model):
                 'first_column': self._first_column(),
                 'totals_last': bool(company.ebshel_fin_totals_last),
                 'negative': company.ebshel_fin_negative or 'minus',
+                # the company's date format, for the date pickers on the screen
+                'date_format': luxon_date_format(engine.date_pattern(company)),
             },
             'unit_label': engine.unit_label(options),
             # the period the reader chose, in words - a ledger's first column is "Debit", not a period

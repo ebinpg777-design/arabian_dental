@@ -211,8 +211,10 @@ export class FinReportViewer extends Component {
         return this.state.report && this.state.report.date_mode === "single";
     }
 
+    // The company's date format (Settings > Accounting > Dynamic Reports), sent with the
+    // report; the pickers used to be fixed at dd/MM/yyyy whatever the company wrote.
     get dateFormat() {
-        return "dd/MM/yyyy";
+        return (this.state.report && this.state.report.date_format) || "dd/MM/yyyy";
     }
 
     deserialize(iso) {

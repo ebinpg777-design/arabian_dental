@@ -325,13 +325,13 @@ class TestFinReportExports(TransactionCase):
         self.assertIn('Entry', head)
         self.assertTrue(any(r[head.index('Entry')] == self.invoice.name for r in lines['rows']))
 
-    def test_a_date_in_the_workbook_reads_the_readers_way(self):
-        lang = self.env['res.lang']._activate_lang('en_US')
+    def test_a_date_in_the_workbook_reads_the_companys_way(self):
+        """The company's date format, whatever the reader's language writes (client,
+        2026-10-27: "the date format should be based on the company's date format")."""
+        self.env['res.lang']._activate_lang('en_US').date_format = '%m/%d/%Y'
         for pattern, excel in (('%m/%d/%Y', 'mm/dd/yyyy'), ('%d/%m/%Y', 'dd/mm/yyyy'), ('%d %b %Y', 'dd mmm yyyy')):
             with self.subTest(pattern=pattern):
-                lang.date_format = pattern
-                self.env['res.lang'].invalidate_model()
-                self.env.transaction.invalidate_ormcache()
+                self.env.company.ebshel_fin_date_format = pattern
                 self.assertEqual(self.Report.with_context(lang='en_US')._excel_date_format(), excel)
         options = dict(self.year, accounts_query=self.income.code)
         book, sheet = self._sheet(self.ledger.with_context(lang='en_US').export_xlsx(options, {'scope': 'full'}))

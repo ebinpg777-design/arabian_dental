@@ -67,7 +67,7 @@
                                 <tbody>
                                     <tr t-foreach="this.weekDetail" t-as="d" t-key="d_index" class="clickable" t-on-click="() => this.openDetail(d)">
                                         <td><span t-att-class="'o_eaa_badge ' + (d.key.startsWith('in') ? 'good' : 'bad')" t-out="this.keyLabel(d.key)"/></td>
-                                        <td t-out="d.name"/><td class="text-muted" t-out="d.partner"/><td t-out="d.date"/><td class="num" t-out="this.money(d.amount)"/>
+                                        <td t-out="d.name"/><td class="text-muted" t-out="d.partner"/><td t-out="this.fmtDate(d.date)"/><td class="num" t-out="this.money(d.amount)"/>
                                     </tr>
                                 </tbody>
                             </table>
@@ -94,7 +94,7 @@
                                 <tbody>
                                     <tr t-foreach="this.state.data.items" t-as="it" t-key="it.id">
                                         <td><span t-att-class="'o_eaa_badge ' + (it.kind === 'in' ? 'good' : 'bad')" t-out="it.kind"/></td>
-                                        <td><t t-out="it.name"/><div class="small text-muted"><t t-out="it.frequency"/> from <t t-out="it.date"/></div></td>
+                                        <td><t t-out="it.name"/><div class="small text-muted"><t t-out="it.frequency"/> from <t t-out="this.fmtDate(it.date)"/></div></td>
                                         <td class="num" t-out="this.money(it.amount)"/>
                                         <td><button class="btn btn-sm btn-link text-danger o_eaa_btn" t-if="this.state.data.can_write" t-on-click="() => this.deleteItem(it)"><i class="oi" data-icon="delete"/></button></td>
                                     </tr>

@@ -816,7 +816,7 @@
                 <div t-if="this.notesFor(this.state.modal.line).length" class="o_efr_modal_notes">
                     <div t-foreach="this.notesFor(this.state.modal.line)" t-as="n" t-key="n.id" class="o_efr_modal_note">
                         <div><t t-out="n.text"/></div>
-                        <div class="small text-muted"><t t-out="n.user"/> · <t t-out="n.date"/>
+                        <div class="small text-muted"><t t-out="n.user"/> · <t t-out="n.date_text || n.date"/>
                             <a href="#" t-if="n.mine" class="ms-2" t-on-click.prevent="(ev) => this.deleteNote(n, ev)">remove</a></div>
                     </div>
                 </div>

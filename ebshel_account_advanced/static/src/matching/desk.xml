@@ -62,10 +62,10 @@
                             <table class="o_eaa_table">
                                 <tbody>
                                     <tr class="clickable" t-on-click="() => this.openMove(p.credit.move_id)">
-                                        <td><span class="o_eaa_badge info">payment</span></td><td t-out="p.credit.name"/><td class="small text-muted" t-out="p.credit.ref"/><td t-out="p.credit.date"/><td class="num" t-out="this.money(-p.credit.residual)"/>
+                                        <td><span class="o_eaa_badge info">payment</span></td><td t-out="p.credit.name"/><td class="small text-muted" t-out="p.credit.ref"/><td t-out="this.fmtDate(p.credit.date)"/><td class="num" t-out="this.money(-p.credit.residual)"/>
                                     </tr>
                                     <tr t-foreach="p.debits" t-as="d" t-key="d.id" class="clickable" t-on-click="() => this.openMove(d.move_id)">
-                                        <td><span class="o_eaa_badge muted"><t t-out="this.state.kind === 'receivable' ? 'invoice' : 'bill'"/></span></td><td t-out="d.name"/><td class="small text-muted" t-out="d.ref"/><td t-out="d.due"/><td class="num" t-out="this.money(d.residual)"/>
+                                        <td><span class="o_eaa_badge muted"><t t-out="this.state.kind === 'receivable' ? 'invoice' : 'bill'"/></span></td><td t-out="d.name"/><td class="small text-muted" t-out="d.ref"/><td t-out="this.fmtDate(d.due)"/><td class="num" t-out="this.money(d.residual)"/>
                                     </tr>
                                 </tbody>
                             </table>
@@ -85,7 +85,7 @@
                     <div t-foreach="this.state.data.rows" t-as="r" t-key="r.id" class="border rounded p-2 mb-2">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span t-att-class="'o_eaa_badge ' + (r.amount > 0 ? 'good' : 'bad')" t-out="this.money(r.amount)"/>
-                            <b t-out="r.date"/> <span t-out="r.ref"/> <span class="text-muted small" t-out="r.partner"/> <span class="text-muted small">· <t t-out="r.journal"/></span>
+                            <b t-out="this.fmtDate(r.date)"/> <span t-out="r.ref"/> <span class="text-muted small" t-out="r.partner"/> <span class="text-muted small">· <t t-out="r.journal"/></span>
                             <span class="ms-auto"/>
                             <t t-if="r.best"><span t-att-class="'o_eaa_badge ' + this.confClass(r.best.confidence)"><t t-out="r.best.confidence"/>%</span><span class="small text-muted" t-out="r.best.reason"/></t>
                             <span t-else="" class="o_eaa_badge muted">no candidate</span>
@@ -97,7 +97,7 @@
                             <tbody>
                                 <tr t-foreach="r.candidates" t-as="c" t-key="c.id">
                                     <td><input type="checkbox" t-att-checked="(this.state.picks[r.id] || {})[c.id] || (!this.state.picks[r.id] and r.best and c.id === r.best.id)" t-on-change="(ev) => this.togglePick(r.id, c.id, ev)"/></td>
-                                    <td><a href="#" t-on-click.prevent="() => this.openMove(c.move_id)" t-out="c.name"/></td><td t-out="c.partner"/><td t-out="c.due"/><td class="num" t-out="this.money(c.residual)"/>
+                                    <td><a href="#" t-on-click.prevent="() => this.openMove(c.move_id)" t-out="c.name"/></td><td t-out="c.partner"/><td t-out="this.fmtDate(c.due)"/><td class="num" t-out="this.money(c.residual)"/>
                                     <td><span t-att-class="'o_eaa_badge ' + this.confClass(c.confidence)"><t t-out="c.confidence"/>%</span> <span class="small text-muted" t-out="c.reason"/></td>
                                 </tr>
                             </tbody>

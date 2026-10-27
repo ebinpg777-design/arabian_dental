@@ -15,6 +15,10 @@
                              help="How an amount below zero is written in the reports.">
                         <field name="ebshel_fin_negative" class="w-50"/>
                     </setting>
+                    <setting id="ebshel_fin_date_format_setting" company_dependent="1"
+                             help="How a date is written in the reports, whatever language each reader uses.">
+                        <field name="ebshel_fin_date_format" class="w-50"/>
+                    </setting>
                 </block>
             </block>
         </field>

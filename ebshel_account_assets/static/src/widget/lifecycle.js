@@ -3,6 +3,7 @@
 import { Component, useProps } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
+import { finDate } from "@ebshel_account_reports/fin_date";
 
 /**
  * The life of an asset on one line, and its value on one curve.
@@ -14,6 +15,11 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
 export class AssetLifecycle extends Component {
     static template = "ebshel_account_assets.Lifecycle";
     props = useProps(standardFieldProps);
+
+    /** A date the company's way (Settings > Accounting > Dynamic Reports > Date format). */
+    fmtDate(value) {
+        return finDate(value);
+    }
 
     get data() {
         return this.props.record.data[this.props.name] || { events: [], curve: [] };

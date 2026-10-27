@@ -16,7 +16,9 @@ import math
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import split_every
-from odoo.tools.misc import format_datetime
+from odoo.tools.misc import format_time
+
+from .engine import excel_date_format
 
 SCOPES = ('screen', 'summary', 'full')
 ORIENTATIONS = ('auto', 'portrait', 'landscape')
@@ -159,18 +161,16 @@ class FinReportExport(models.Model):
         return out
 
     @api.model
-    def _excel_date_format(self):
-        """The reader's date format, written the way a spreadsheet writes it."""
-        lang = self.env['res.lang']._get_data(code=self.env.lang or self.env.user.lang or 'en_US')
-        pattern = (lang and lang.date_format) or '%m/%d/%Y'
-        for strf, excel in (('%d', 'dd'), ('%m', 'mm'), ('%Y', 'yyyy'), ('%y', 'yy'), ('%b', 'mmm'), ('%B', 'mmmm'),
-                            ('%a', 'ddd'), ('%A', 'dddd'), ('%e', 'd'), ('%-d', 'd'), ('%-m', 'm')):
-            pattern = pattern.replace(strf, excel)
-        return pattern if '%' not in pattern else 'yyyy-mm-dd'
+    def _excel_date_format(self, company=None):
+        """The company's date format, written the way a spreadsheet writes it. The cells
+        stay real dates; only how they are shown follows the company."""
+        return excel_date_format(self.env['ebshel.fin.engine'].date_pattern(company))
 
-    def _export_stamp(self):
-        return _('%(when)s by %(who)s', when=format_datetime(self.env, fields.Datetime.now(), dt_format='short'),
-                 who=self.env.user.name)
+    def _export_stamp(self, company=None):
+        now = fields.Datetime.context_timestamp(self, fields.Datetime.now())
+        when = '%s %s' % (self.env['ebshel.fin.engine'].fmt_date(now.date(), company),
+                          format_time(self.env, now.time(), time_format='short'))
+        return _('%(when)s by %(who)s', when=when, who=self.env.user.name)
 
     # ------------------------------------------------------------------ rows, for a CSV or the clipboard
     def _detail_keys(self, lines):
@@ -241,7 +241,7 @@ class FinReportExport(models.Model):
                                     fmt(font_color=INK, font_size=9), str(value) or ' ',
                                     fmt(font_size=9, text_wrap=False))
             row += 1
-        sheet.write(row, 0, _('Exported %s', self._export_stamp()), fmt(italic=True, font_color=MUTED, font_size=8))
+        sheet.write(row, 0, _('Exported %s', self._export_stamp(company)), fmt(italic=True, font_color=MUTED, font_size=8))
         self._sheet_logo(sheet, company, last_col)
         return row + 2
 
@@ -276,7 +276,7 @@ class FinReportExport(models.Model):
         first_value = 1 + len(keys)
         last_col = first_value + len(columns) - 1
         names = {l['id']: l['name'] for l in lines}
-        day_format = self._excel_date_format()
+        day_format = self._excel_date_format(company)
         money = MONEY.get(company.sudo().ebshel_fin_negative) or MONEY['minus']
         book.set_properties({'title': self.name, 'author': self.env.user.name, 'company': company.name or '',
                              'comments': self._options_summary(options)})
@@ -446,7 +446,7 @@ class FinReportExport(models.Model):
         cell = {'bottom': 1, 'bottom_color': RULE, 'font_color': INK, 'font_size': 9}
         figures = MONEY.get(company.sudo().ebshel_fin_negative) or MONEY['minus']
         text, money = fmt(align='left', **cell), fmt(align='right', num_format=figures, **cell)
-        day = fmt(align='left', num_format=self._excel_date_format(), **cell)
+        day = fmt(align='left', num_format=self._excel_date_format(company), **cell)
         draft = fmt(align='left', italic=True, **dict(cell, font_color='#9A3412'))
         names = {}
         sums = [0.0, 0.0, 0.0]

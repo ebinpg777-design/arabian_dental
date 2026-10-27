@@ -314,6 +314,10 @@ class TestAssets(TransactionCase):
             pdf, kind = self.env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf(ref, res_ids=[asset.id])
             self.assertEqual(kind, 'pdf')
             self.assertTrue(pdf.startswith(b'%PDF'))
+            # the purchase date the company's way (client, 2026-10-27)
+            asset.company_id.ebshel_fin_date_format = '%d-%b-%Y'
+            html = self.env['ir.actions.report']._render_qweb_html(ref, [asset.id])[0].decode()
+            self.assertIn(asset.company_id.ebshel_fin_format_date(asset.purchase_date), html)
 
     # ------------------------------------------------------------ defects found and fixed
     def test_monthly_declining_takes_the_yearly_rate_of_the_years_opening_value(self):

@@ -152,6 +152,16 @@ class TestBankCockpit(TransactionCase):
         self.assertEqual(kind, 'pdf')
         self.assertTrue(pdf.startswith(b'%PDF'))
 
+    def test_the_statement_writes_dates_the_companys_way(self):
+        """Settings > Dynamic Reports > Date format (client, 2026-10-27)."""
+        self.env.company.ebshel_fin_date_format = '%d-%b-%Y'
+        self._receipt(300.0, date=self.today, label='dated')
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            'ebshel_account_advanced.action_report_brs', [self.bank.id],
+            data={'date': fields.Date.to_string(self.today), 'journal_id': self.bank.id})
+        written = self.env.company.ebshel_fin_format_date(self.today)
+        self.assertGreaterEqual(html.decode().count(written), 2, "as at, and the item's own date")
+
     def test_a_baseline_marks_history_as_seen(self):
         old = self._receipt(700.0, date=self.today - timedelta(days=40), label='old 1')
         new = self._receipt(80.0, date=self.today, label='new')

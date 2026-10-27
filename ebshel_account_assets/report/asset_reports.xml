@@ -37,7 +37,7 @@
                                 <div t-if="a.serial">S/N <t t-out="a.serial"/></div>
                                 <div t-if="a.location"><t t-out="a.location"/></div>
                                 <div t-if="a.custodian_id">Held by <t t-out="a.custodian_id.name"/></div>
-                                <div style="color:#666;"><t t-out="a.company_id.name"/> · <t t-out="a.purchase_date"/></div>
+                                <div style="color:#666;"><t t-out="a.company_id.name"/> · <t t-out="a.company_id.ebshel_fin_format_date(a.purchase_date)"/></div>
                             </div>
                         </div>
                     </t>
@@ -73,7 +73,7 @@
                             </tr></thead>
                             <tbody>
                                 <tr t-foreach="by_cat[cat]" t-as="a">
-                                    <td t-out="a.code"/><td t-out="a.name"/><td t-out="a.purchase_date"/>
+                                    <td t-out="a.code"/><td t-out="a.name"/><td t-out="a.company_id.ebshel_fin_format_date(a.purchase_date)"/>
                                     <td t-out="a.custodian_id.name or ''"/><td t-out="a.location or ''"/>
                                     <td style="text-align:right" t-out="a.purchase_value" t-options="{'widget': 'monetary', 'display_currency': a.currency_id}"/>
                                     <td style="text-align:right" t-out="a.depreciated_value" t-options="{'widget': 'monetary', 'display_currency': a.currency_id}"/>

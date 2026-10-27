@@ -22,7 +22,7 @@
                                 <input type="date" class="form-control" t-model.proxy="this.state.date"/>
                                 <label class="small text-muted">Reference</label>
                                 <input class="form-control" style="min-width: 220px" placeholder="What this entry is" t-model.proxy="this.state.ref"/>
-                                <span t-if="s.lock_date" class="small text-muted ms-auto">books locked up to <b t-out="s.lock_date"/></span>
+                                <span t-if="s.lock_date" class="small text-muted ms-auto">books locked up to <b t-out="this.fmtDate(s.lock_date)"/></span>
                             </div>
                             <div class="o_eaa_toolbar" t-if="s.templates.length">
                                 <label class="small text-muted"><i class="oi me-1" data-icon="wand_stars"/>Template</label>
@@ -101,7 +101,7 @@
                             <div t-if="!s.recent.length" class="o_eaa_empty">None yet.</div>
                             <div t-foreach="s.recent" t-as="r" t-key="r.id" class="o_eaa_todo" t-on-click="() => this.openMove(r.id)">
                                 <span t-att-class="'o_eaa_badge ' + (r.state === 'posted' ? 'good' : 'muted')" t-out="r.state"/>
-                                <div class="flex-grow-1" style="min-width:0"><b t-out="r.name"/><div class="small text-muted o_eaa_trunc"><t t-out="r.date"/> · <t t-out="r.ref"/></div></div>
+                                <div class="flex-grow-1" style="min-width:0"><b t-out="r.name"/><div class="small text-muted o_eaa_trunc"><t t-out="this.fmtDate(r.date)"/> · <t t-out="r.ref"/></div></div>
                                 <span class="num small" t-out="this.money(r.amount)"/>
                             </div>
                         </div>

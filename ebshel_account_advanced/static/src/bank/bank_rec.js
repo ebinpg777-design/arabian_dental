@@ -7,6 +7,7 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_plugin
 import { useService } from "@web/core/utils/hooks";
 import { money, today } from "../common/utils";
 import { splitRows, guessMapping, buildRows } from "./parse";
+import { finDate } from "@ebshel_account_reports/fin_date";
 
 /**
  * Bank reconciliation in three tabs:
@@ -19,6 +20,11 @@ import { splitRows, guessMapping, buildRows } from "./parse";
 export class BankRec extends Component {
     static template = "ebshel_account_advanced.BankRec";
     props = useProps(standardActionServiceProps);
+
+    /** A date the company's way (Settings > Accounting > Dynamic Reports > Date format). */
+    fmtDate(value) {
+        return finDate(value);
+    }
 
     setup() {
         this.orm = useService("orm");

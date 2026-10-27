@@ -5,12 +5,18 @@ import { registry } from "@web/core/registry";
 import { standardActionServiceProps } from "@web/webclient/actions/action_plugin";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
+import { finDate } from "@ebshel_account_reports/fin_date";
 
 /** Assets at a glance: what they are worth, what they cost this year, what is
  *  due, what needs a decision. Every figure opens the list behind it. */
 export class AssetDashboard extends Component {
     static template = "ebshel_account_assets.Dashboard";
     props = useProps(standardActionServiceProps);
+
+    /** A date the company's way (Settings > Accounting > Dynamic Reports > Date format). */
+    fmtDate(value) {
+        return finDate(value);
+    }
 
     setup() {
         this.orm = useService("orm");

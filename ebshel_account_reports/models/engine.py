@@ -24,7 +24,7 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
 from odoo.tools import SQL, date_utils
-from odoo.tools.misc import format_date, formatLang, get_lang
+from odoo.tools.misc import babel_locale_parse, format_date, formatLang, get_lang, posix_to_ldml
 
 PRESETS = [
     ('this_month', 'This month'),
@@ -56,6 +56,40 @@ FILTER_KEYS = ('companies', 'posted_only', 'journals', 'partners', 'partners_exc
                'partner_categories', 'salespeople', 'teams', 'teams_exclude', 'product_categories', 'unreconciled',
                'label', 'amount_min', 'amount_max')
 NEGATIVE_STYLES = [('minus', '-100'), ('brackets', '(100)'), ('trailing', '100-')]
+
+# How a company writes a date in its reports, as a strftime pattern (client, 2026-10-27:
+# "the date format should be based on the company's date format"). The 31st of December
+# in each label, so day and month cannot be mistaken for each other.
+DATE_FORMATS = [
+    ('%d/%m/%Y', 'DD/MM/YYYY - 31/12/2026'),
+    ('%d-%m-%Y', 'DD-MM-YYYY - 31-12-2026'),
+    ('%d.%m.%Y', 'DD.MM.YYYY - 31.12.2026'),
+    ('%m/%d/%Y', 'MM/DD/YYYY - 12/31/2026'),
+    ('%Y-%m-%d', 'YYYY-MM-DD - 2026-12-31'),
+    ('%d %b %Y', 'DD Mon YYYY - 31 Dec 2026'),
+    ('%d-%b-%Y', 'DD-Mon-YYYY - 31-Dec-2026'),
+    ('%b %d, %Y', 'Mon DD, YYYY - Dec 31, 2026'),
+]
+DEFAULT_DATE_FORMAT = '%d/%m/%Y'
+# The same pattern for the browser (luxon) and for a spreadsheet cell.
+_LUXON = (('%d', 'dd'), ('%m', 'MM'), ('%Y', 'yyyy'), ('%y', 'yy'), ('%b', 'MMM'), ('%B', 'MMMM'))
+_EXCEL = (('%d', 'dd'), ('%m', 'mm'), ('%Y', 'yyyy'), ('%y', 'yy'), ('%b', 'mmm'), ('%B', 'mmmm'))
+
+
+def _translate_pattern(pattern, table):
+    for posix, other in table:
+        pattern = pattern.replace(posix, other)
+    return pattern
+
+
+def luxon_date_format(pattern):
+    """A company's date format as the browser's date library writes it."""
+    return _translate_pattern(pattern or DEFAULT_DATE_FORMAT, _LUXON)
+
+
+def excel_date_format(pattern):
+    """A company's date format as a spreadsheet's number format."""
+    return _translate_pattern(pattern or DEFAULT_DATE_FORMAT, _EXCEL)
 
 
 class Memo(dict):
@@ -182,11 +216,23 @@ class FinEngine(models.AbstractModel):
         return end - timedelta(days=span - 1), end
 
     @api.model
-    def fmt_date(self, day):
-        """A date the way the reader writes dates (their language), never the database's."""
+    def date_pattern(self, company=None):
+        """The company's date format (a strftime pattern). During a reading it travels
+        in the context, set from the reading's own company in `_prepare`."""
+        pattern = self.env.context.get('fin_date_format') or \
+            (company or self.env.company).sudo().ebshel_fin_date_format
+        return pattern if pattern in dict(DATE_FORMATS) else DEFAULT_DATE_FORMAT
+
+    @api.model
+    def fmt_date(self, day, company=None):
+        """A date the way the company writes dates in its reports - not each reader's
+        language, and never the database's. Month names are still in the reader's
+        language, where the format has them."""
         if not day:
             return ''
-        return format_date(self.env, fields.Date.to_date(day))
+        locale = babel_locale_parse(get_lang(self.env).code)
+        return format_date(self.env, fields.Date.to_date(day),
+                           date_format=posix_to_ldml(self.date_pattern(company), locale=locale))
 
     @api.model
     def period_label(self, date_from, date_to, single=False):

@@ -110,7 +110,7 @@
                 <div t-if="notes" style="margin-top:14px; page-break-inside:avoid;">
                     <div style="font-weight:700; color:#1f3a5f;">Notes</div>
                     <t t-foreach="notes" t-as="note">
-                        <div class="note">[<t t-out="note_index + 1"/>] <b t-out="note.get('line_name') or note['line_key']"/>: <t t-out="note['text']"/> — <i t-out="note['user']"/>, <t t-out="note['date']"/></div>
+                        <div class="note">[<t t-out="note_index + 1"/>] <b t-out="note.get('line_name') or note['line_key']"/>: <t t-out="note['text']"/> — <i t-out="note['user']"/>, <t t-out="note.get('date_text') or note['date']"/></div>
                     </t>
                 </div>
             </div>

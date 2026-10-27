@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dynamic Financial Reports',
-    'version': '20.0.1.11.0',
+    'version': '20.0.1.12.0',
     'category': 'Accounting/Accounting',
     'summary': 'Balance sheet, profit & loss, cash flow, ledgers, ageing, tax and your own '
                'reports - folding, drilling, comparing, trending, annotated, exported and '
@@ -50,6 +50,7 @@ tags or formulas over other lines - no code.
     ],
     'assets': {
         'web.assets_backend': [
+            'ebshel_account_reports/static/src/fin_date.js',
             'ebshel_account_reports/static/src/viewer/viewer.scss',
             'ebshel_account_reports/static/src/viewer/viewer.js',
             'ebshel_account_reports/static/src/viewer/viewer.xml',

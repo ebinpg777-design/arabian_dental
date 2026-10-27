@@ -105,7 +105,7 @@ class FinReportPdf(models.AbstractModel):
             'report': report, 'company': company, 'currency': currency,
             'company_line': ' · '.join(p for p in (company.city, company.phone, tax_id) if p),
             'options': options, 'summary': report._options_summary(options), 'unit_label': unit_label,
-            'period': facts[0][1], 'facts': facts[1:] if layout['filters'] else [], 'stamp': report._export_stamp(),
+            'period': facts[0][1], 'facts': facts[1:] if layout['filters'] else [], 'stamp': report._export_stamp(company),
             'columns': columns, 'slices': [lines[i:i + PDF_SLICE] for i in range(0, len(lines), PDF_SLICE)],
             'line_count': len(lines), 'cut_total': total if total > cap else 0, 'empty': report._is_empty(lines),
             'landscape': landscape, 'name_w': name_w, 'col_w': col_w, 'font': font,

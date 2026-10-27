@@ -24,7 +24,7 @@
                 <div t-foreach="this.events" t-as="e" t-key="e_index" t-att-class="'o_eal_event o_eal_e_' + e.kind">
                     <div class="o_eal_dotcol"><i class="oi" t-att-data-icon="this.icon(e.kind)"/></div>
                     <div class="o_eal_body">
-                        <div><b t-out="e.label"/> <span class="text-muted small" t-out="e.date"/><span t-if="e.user" class="text-muted small"> · <t t-out="e.user"/></span></div>
+                        <div><b t-out="e.label"/> <span class="text-muted small" t-out="this.fmtDate(e.date)"/><span t-if="e.user" class="text-muted small"> · <t t-out="e.user"/></span></div>
                         <div class="small" t-if="e.note" t-out="e.note"/>
                         <div class="small text-muted" t-if="e.amount" t-out="this.money(e.amount)"/>
                     </div>

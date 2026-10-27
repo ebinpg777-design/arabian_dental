@@ -26,7 +26,7 @@
                             <span t-if="j.uncleared" class="o_eaa_badge muted" t-att-title="this.money(j.deposits) + ' in, ' + this.money(j.payments) + ' out not yet at the bank'"><t t-out="j.uncleared"/> not at the bank</span>
                             <span t-if="j.checkpoint" t-att-class="'o_eaa_badge ' + (Math.abs(j.checkpoint.difference) &lt; 0.01 ? 'good' : 'bad')"
                                   t-att-title="'Bank balance ' + this.money(j.checkpoint.balance) + ' on ' + j.checkpoint.date">
-                                <t t-if="Math.abs(j.checkpoint.difference) &lt; 0.01">agrees <t t-out="j.checkpoint.date"/></t><t t-else="">off by <t t-out="this.money(j.checkpoint.difference)"/></t>
+                                <t t-if="Math.abs(j.checkpoint.difference) &lt; 0.01">agrees <t t-out="this.fmtDate(j.checkpoint.date)"/></t><t t-else="">off by <t t-out="this.money(j.checkpoint.difference)"/></t>
                             </span>
                         </div>
                     </div>
@@ -48,7 +48,7 @@
                         <div t-if="this.state.lines" class="o_eaa_linelist">
                             <div t-foreach="this.state.lines.rows" t-as="r" t-key="r.id" t-att-class="'o_eaa_stline' + (r.id === this.state.selectedId ? ' sel' : '') + (r.reconciled ? ' done' : '')" t-on-click="() => this.select(r.id)">
                                 <div class="o_eaa_stl_top">
-                                    <span class="o_eaa_stl_date" t-out="r.date"/>
+                                    <span class="o_eaa_stl_date" t-out="this.fmtDate(r.date)"/>
                                     <span t-att-class="'o_eaa_stl_amt ' + (r.amount &gt;= 0 ? 'in' : 'out')" t-out="this.money(r.amount)"/>
                                 </div>
                                 <div class="o_eaa_stl_label" t-out="r.label"/>
@@ -69,7 +69,7 @@
                         <t t-set="d" t-value="this.state.detail"/>
                         <div class="o_eaa_det_head">
                             <div>
-                                <div class="text-muted small"><t t-out="d.date"/><t t-if="d.rule"> · rule <t t-out="d.rule"/></t></div>
+                                <div class="text-muted small"><t t-out="this.fmtDate(d.date)"/><t t-if="d.rule"> · rule <t t-out="d.rule"/></t></div>
                                 <div class="o_eaa_det_label" t-out="d.label"/>
                             </div>
                             <div t-att-class="'o_eaa_det_amt ' + (d.amount &gt;= 0 ? 'in' : 'out')" t-out="this.money(d.amount)"/>
@@ -114,7 +114,7 @@
                             <input class="form-control form-control-sm mb-1" placeholder="Number, reference, partner or amount" t-model.proxy="this.state.itemSearch" t-on-change="this.searchItems"/>
                             <div class="o_eaa_results">
                                 <div t-foreach="this.state.itemResults" t-as="i" t-key="i.id" class="o_eaa_result">
-                                    <div class="o_eaa_cand_main"><b t-out="i.name"/> <span class="text-muted" t-out="i.partner"/><div class="small text-muted"><t t-out="i.date"/><t t-if="i.ref"> · <t t-out="i.ref"/></t><t t-if="i.label and i.label !== i.name"> · <t t-out="i.label"/></t></div></div>
+                                    <div class="o_eaa_cand_main"><b t-out="i.name"/> <span class="text-muted" t-out="i.partner"/><div class="small text-muted"><t t-out="this.fmtDate(i.date)"/><t t-if="i.ref"> · <t t-out="i.ref"/></t><t t-if="i.label and i.label !== i.name"> · <t t-out="i.label"/></t></div></div>
                                     <span class="num" t-out="this.money(i.amount)"/>
                                     <button class="btn btn-sm btn-outline-primary o_eaa_btn" t-if="this.state.overview.can_write" t-on-click="() => i.kind === 'book' ? this.booked(i.id) : this.addOpen(i)">
                                         <t t-out="i.kind === 'book' ? 'Tick' : 'Add'"/>
@@ -200,7 +200,7 @@
                                     <tbody>
                                         <tr t-foreach="b.items" t-as="i" t-key="i.id" t-att-class="(this.state.ticked[i.id] ? 'sel ' : '') + (i.stale ? 'stale' : '')">
                                             <td><input type="checkbox" t-att-checked="this.state.ticked[i.id]" t-on-change="(ev) => this.state.ticked[i.id] = ev.target.checked"/></td>
-                                            <td t-out="i.date"/>
+                                            <td t-out="this.fmtDate(i.date)"/>
                                             <td><a href="#" t-on-click.prevent="() => this.openMove(i.move_id)" t-out="i.name"/></td>
                                             <td class="o_eaa_trunc" t-out="i.label"/>
                                             <td class="o_eaa_trunc" t-out="i.partner"/>
@@ -242,7 +242,7 @@
                             <thead><tr><th>Date</th><th>Label</th><th class="num">Amount</th><th/></tr></thead>
                             <tbody>
                                 <tr t-foreach="this.preview.slice(0, 50)" t-as="r" t-key="r_index" t-att-class="r.ok ? '' : 'text-muted'">
-                                    <td t-out="r.date || '?'"/><td class="o_eaa_trunc" t-out="r.label"/>
+                                    <td t-out="this.fmtDate(r.date) || '?'"/><td class="o_eaa_trunc" t-out="r.label"/>
                                     <td t-att-class="'num ' + (r.amount &gt; 0 ? 'text-success' : 'text-danger')" t-out="r.amount === null ? '?' : this.money(r.amount)"/>
                                     <td><i t-if="!r.ok" class="oi text-warning" data-icon="warning" title="No date or no amount: skipped"/></td>
                                 </tr>
