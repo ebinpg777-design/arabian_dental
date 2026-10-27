@@ -78,6 +78,7 @@ def matching_url(env):
 MATCH_RADIUS_M = 100.0         # a fix is looked for on a road within this - NOT within the accuracy the
                                # phone claims: at "6-15 m" the matcher threw half of a real ride away
                                # (43 of 85 fixes, 2026-10-26); at 100 m it kept all but the two off the roads
+LONG_GAP_M = 300.0             # a step the matcher left straight and this long is asked of the router
 MATCH_DETOUR_FACTOR = 3.0      # a matched leg this much longer than its gap, plus...
 MATCH_DETOUR_SLACK_M = 300.0   # ...this, is drawn straight: a loop the matcher invented
 
@@ -353,10 +354,28 @@ class LabLocationPingRoad(models.Model):
         trace, down - is answered by the router."""
         if match_url:
             try:
-                return self._ask_match(match_url, chunk)
+                found = self._ask_match(match_url, chunk)
+                return self._route_long_gaps(url, chunk, found)
             except Exception as error:   # noqa: BLE001 - the router still knows the roads
                 _logger.info("road trail: match of %d fixes failed (%s), routing instead", len(chunk), error)
         return self._ask_route(url, chunk)
+
+    @api.model
+    def _route_long_gaps(self, url, chunk, found):
+        """The steps the matcher left straight - a long silence between two fixes is
+        no trace to match (Shajimon, 2026-10-27: 10 km across the fields after the
+        phone went quiet) - asked of the router, each on its own, as before the
+        matcher: the road between the two fixes, or straight when it is a detour."""
+        for a, b in zip(chunk, chunk[1:]):
+            key = str(epoch(b[0]))
+            road = found.get(key)
+            if road is None or len(road) != 1 or _straight(a, b) < LONG_GAP_M:
+                continue
+            try:
+                found.update(self._ask_route(url, [a, b]))
+            except Exception as error:   # noqa: BLE001 - straight stays straight
+                _logger.info("road trail: route of a %d m gap failed (%s)", _straight(a, b), error)
+        return found
 
     @api.model
     def _ask_match(self, url, chunk):

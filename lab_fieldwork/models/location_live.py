@@ -210,6 +210,45 @@ def _not_riding(point, prev):
     return _pace_limit(point, prev) < JUMP_KMH
 
 
+SPIKE_M = 300.0            # a lone fix this far from both its neighbours...
+
+
+def drop_spikes(points):
+    """The trail without a lone fix the phone's own speedometer contradicts.
+
+    Riding, a phone now and then puts one fix half a kilometre off the road and
+    the next one back on it (Abdul Latheef leaving the lab, 2026-10-27 10:49 IST:
+    a fix 600 m north, reached at 67 km/h and left at 89, while the phone itself
+    read 26 and 29 km/h). The excursion rule spares a riding phone, and rightly -
+    a ride out and back is real - but a fix that is SPIKE_M or more from both its
+    neighbours, reached AND left faster than one and a half times the phone's own
+    reading at each end plus 20 km/h, is no ride. Only fixes with a real speed
+    reading on both sides are judged. A week of the team's fixes held three.
+    """
+    if len(points) < 3:
+        return list(points)
+    out = [points[0]]
+    for i in range(1, len(points) - 1):
+        before, point, after = out[-1], points[i], points[i + 1]
+        into, away = _step(before, point), _step(point, after)
+        bar_in, bar_out = _reading_bar(point, points[i - 1]), _reading_bar(after, point)
+        if into[0] > SPIKE_M and away[0] > SPIKE_M and bar_in is not None and bar_out is not None \
+                and into[2] > bar_in and away[2] > bar_out:
+            continue
+        out.append(point)
+    out.append(points[-1])
+    return out
+
+
+def _reading_bar(point, prev):
+    """The fastest the phone can have come to `point`, by its own speed reading there:
+    None without a reading of VEHICLE_KMH or more (see _reading)."""
+    reading = _reading(point, prev)
+    if reading is None or reading < VEHICLE_KMH:
+        return None
+    return 1.5 * reading + 20.0
+
+
 EXCURSION_FIXES = 3        # a run of at most this many fixes...
 EXCURSION_M = 100.0        # ...at least this far from the fixes either side of it...
 EXCURSION_BACK_M = 60.0    # ...those two this close together: the phone was back...
@@ -620,7 +659,7 @@ class LabLocationPingLive(models.Model):
         and only where the phone went (drop_excursions)."""
         limit = self._trail_accuracy()
         points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
-        return drop_excursions(drop_impossible(points))
+        return drop_spikes(drop_excursions(drop_impossible(points)))
 
     @api.model
     def _day_points(self, user, day):

@@ -364,6 +364,23 @@ class TestLiveLayer(LiveTrackCase):
                          at(t0, 600, 3, speed=0.0, motion='still')]
         self.assertEqual(drop(drift), still + [drift[-1]])
 
+    def test_a_lone_fix_the_phones_speedometer_contradicts_is_not_the_trail(self):
+        """Riding, a phone put one fix 600 m off the road and the next back on it,
+        reached at 67 km/h and left at 89 while it read 26 and 29 (Abdul Latheef,
+        2026-10-27): no ride. A ride at the speed the phone reads is kept."""
+        t0 = fields.Datetime.now() - timedelta(hours=1)
+        drop = location_live.drop_spikes
+        ride = [at(t0, 30 * i, 250 * i, speed=30.0, motion='vehicle') for i in range(5)]
+        self.assertEqual(drop(ride), ride, "250 m every 30 s at a read 30 km/h")
+        spike = ride[:2] + [at(t0, 90, 250 + 1100, speed=26.0, motion='vehicle'),
+                            at(t0, 120, 250 + 350, speed=29.0, motion='vehicle')]
+        self.assertEqual(drop(spike), ride[:2] + [spike[-1]])
+        fast = ride[:2] + [at(t0, 50, 250 + 400, speed=72.0, motion='vehicle'),
+                           at(t0, 70, 250 + 800, speed=72.0, motion='vehicle')]
+        self.assertEqual(drop(fast), fast, "fast, but as fast as the phone reads")
+        mute = ride[:2] + [at(t0, 90, 250 + 1100, motion='vehicle'), at(t0, 120, 600, motion='vehicle')]
+        self.assertEqual(drop(mute), mute, "no reading either side: not judged here")
+
     def test_a_fix_the_phone_never_went_to_is_not_the_trail(self):
         """Standing at a clinic the phone puts a fix 500 m out at "7 m" and is back
         seconds later (ASHIQ, 2026-10-26): a spike on the map and km never driven.

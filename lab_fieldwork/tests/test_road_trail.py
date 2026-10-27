@@ -267,13 +267,14 @@ class TestRoadTrail(LiveTrackCase):
         self.assertEqual(track['trail_km'], round(5 * 200 * 1.1 / 1000, 1), "measured along the roads")
 
     def _outlier_drive(self):
-        """Seven fixes north, the fourth 400 m east of the line - riding, so the trail's
-        own rules keep it: only a map-matcher can tell it sits on no road."""
+        """Seven fixes north, the fourth 400 m east of the line - riding, and reading
+        a speed that bears the jump out, so the trail's own rules keep it: only a
+        map-matcher can tell it sits on no road."""
         self._drive(0, 3)
         east = 400 / (111_320.0 * math.cos(math.radians(10.0)))
         self.env['lab.location.ping'].with_user(self.exec_user).record([
             {'latitude': 10.0 + 3 * 200 * NORTH, 'longitude': 76.0 + east, 'accuracy_m': 8,
-             'speed_kmh': 36.0, 'motion': 'vehicle',
+             'speed_kmh': 60.0, 'motion': 'vehicle',
              'ts': fields.Datetime.to_string(self.now + timedelta(seconds=60))}])
         self._drive(4, 3)
 
@@ -307,6 +308,24 @@ class TestRoadTrail(LiveTrackCase):
         [segment] = sheet.get_day_track()['trail']
         self.assertLess(max(v[1] for v in segment), 76.001, "nor on the day sheet")
         self.assertEqual(len(segment), 11)
+
+    def test_a_long_silence_the_matcher_leaves_straight_is_asked_of_the_router(self):
+        """The matcher has no trace across a long silence; the router has the road
+        between its two ends (Shajimon, 2026-10-27: 10 km drawn across the fields)."""
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.matching_url', MATCHING)
+        self._drive(0, 3)
+        self._drive(40, 3)          # 7 km on, 12 minutes later: the phone heard nothing between
+        fake, calls = fake_services()
+        Ping = self.Ping.sudo()
+        day = fields.Date.context_today(self.exec_user)
+        with self._patched(fake), patch.object(type(Ping), '_ask_match', lambda self, url, chunk: {
+                str(location_live.epoch(b[0])): [location_road._vertex(b[1], b[2])] for b in chunk[1:]}):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        routed = [u for u, _p in calls if '/route/' in u]
+        self.assertEqual(len(routed), 1, "the one long gap, and nothing else, asked of the router")
+        steps = Ping._road_steps(self.exec_user, day)
+        gap_end = Ping._day_points(self.exec_user, day)[3]
+        self.assertEqual(len(steps[str(location_live.epoch(gap_end[0]))]), 3, "the gap along its road: fix, bend, fix")
 
     def test_a_matcher_that_fails_is_answered_by_the_router(self):
         self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.matching_url', MATCHING)
