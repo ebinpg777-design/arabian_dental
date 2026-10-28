@@ -31,6 +31,10 @@ class SaleOrder(models.Model):
         string='Gender', tracking=True)
     modification = fields.Char(string='Modifications', tracking=True)
     instruction = fields.Char(string='Special Instructions', tracking=True)
+    # Picked from Sales > Configuration > Dental Masters > Materials, as on Odoo 17
+    # (dental_sale's material_name). Migrated orders carried it in the instructions.
+    material_id = fields.Many2one('lab.material', string='Material', tracking=True,
+                                  index='btree_not_null')
     send_through = fields.Many2one('send.through', string='Send Through')
 
     # --- Appliance checkboxes ----------------------------------------------------

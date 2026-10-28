@@ -17,7 +17,7 @@ RESPONSIBILITY = [
 ]
 # order fields copied from the original when one is picked
 CARRY_OVER = (
-    'patient', 'age', 'gender', 'send_through', 'modification', 'instruction',
+    'patient', 'age', 'gender', 'send_through', 'modification', 'instruction', 'material_id',
     'is_screw', 'is_bite', 'is_bands', 'is_wires', 'is_teeth', 'is_facebow',
     'is_others', 'is_3d_model_print', 'impression_type', 'scanned_impression',
     'impression_tray', 'wax_bite', 'user_id', 'team_id', 'partner_id',

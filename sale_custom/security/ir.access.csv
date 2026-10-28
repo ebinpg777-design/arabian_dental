@@ -18,5 +18,7 @@ access_sale_order_count_report,sale.order.count.report,sale.order.count.report,b
 access_sale_order_change_customer,sale.order.change.customer,sale.order.change.customer,sales_team.group_sale_salesman,cru,
 access_lab_district_user,lab.district.user,lab.district,base.group_user,r,
 access_lab_district_sale,lab.district.sale,lab.district,sales_team.group_sale_manager,crud,
+access_lab_material_user,lab.material.user,lab.material,base.group_user,r,
+access_lab_material_sale,lab.material.sale,lab.material,sales_team.group_sale_manager,crud,
 access_lab_auth_card_wizard,lab.auth.card.wizard,lab.auth.card.wizard,base.group_user,crud,
 access_lab_auth_card_wizard_line,lab.auth.card.wizard.line,lab.auth.card.wizard.line,base.group_user,crud,

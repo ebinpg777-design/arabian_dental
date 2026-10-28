@@ -26,7 +26,7 @@ v17 -> v19 differences that bite here, all handled below:
 dental_sale's fields land on the suite's own:
   order.patient_name / line.patient_name -> sale.order.patient
   order.shade_name (res.shade)           -> line.color_scheme (product.colour)
-  order.material_name                    -> order.instruction ("Material: VITA")
+  order.material_name (res.material)     -> order.material_id (lab.material, by name)
   order.sale_priority                    -> order.priority
   order.technitian_name (m2m)            -> order.technician_ids (re-compared every run: _txn_technicians)
   line.jaw                               -> line.ul
@@ -541,6 +541,10 @@ class MigrationBackend(models.Model):
                                 'sale_order_id', 'res_partner_id')
         cur.execute("SELECT id, name FROM res_material")
         materials = {r['id']: r['name'] for r in cur.fetchall()}
+        # Odoo 17's materials by name: the ones in use become the list (2026-10-28 -
+        # they used to land in Special Instructions as "Material: VITA")
+        Material = self.env['lab.material'].sudo().with_context(active_test=False)
+        material_ids = {m.name: m.id for m in Material.search([])}
 
         counts = {'created': 0, 'updated': 0, 'failed': 0, 'skipped': 0, 'lines_kept': 0}
         pending, batch, processed = [], [], 0
@@ -574,9 +578,11 @@ class MigrationBackend(models.Model):
                         'patient': self._dental_patient(row, src_lines),
                         'priority': PRIORITY_MAP.get(row.get('sale_priority'), 'normal'),
                     })
-                    material = materials.get(row.get('material_name'))
+                    material = (materials.get(row.get('material_name')) or '').strip()
                     if material:
-                        vals['instruction'] = 'Material: %s' % material.strip()
+                        if material not in material_ids:
+                            material_ids[material] = Material.create({'name': material}).id
+                        vals['material_id'] = material_ids[material]
                     for dst, (src, model) in {
                             'partner_invoice_id': ('partner_invoice_id', 'res.partner'),
                             'partner_shipping_id': ('partner_shipping_id', 'res.partner'),

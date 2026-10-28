@@ -146,6 +146,24 @@ class TestMigrationRerun(AccountTestInvoicingCommon):
             self.backend._txn_sale_orders(cur, self._cache(), stats)
         return stats
 
+    def test_an_orders_material_lands_on_the_material_field(self):
+        """dental_sale's material_name is the order's Material (2026-10-28) - it used to
+        be written into Special Instructions as "Material: VITA"."""
+        order = {'id': SRC + 901, 'name': 'MIG-SO-901', 'partner_id': SRC + 5,
+                 'company_id': SRC + 1, 'date_order': '2026-04-02 10:00:00',
+                 'state': 'sale', 'material_name': SRC + 70}
+        cur = FakeSource([
+            ('FROM res_material', [{'id': SRC + 70, 'name': 'MIG VITA '}]),
+            ('account_tax_sale_order_line_rel', []),
+            ('FROM sale_order_line', [dict(self._sale_line(9101, 11, 'Crown'), order_id=SRC + 901)]),
+            ('FROM sale_order WHERE', [order]),
+        ])
+        with self._no_commit():
+            self.backend._txn_sale_orders(cur, self._cache(), [])
+        migrated = self.env['sale.order'].search([('x_src_id', '=', SRC + 901)])
+        self.assertEqual(migrated.material_id.name, 'MIG VITA')
+        self.assertFalse(migrated.instruction)
+
     def test_rerun_updates_sale_lines_in_place_and_keeps_invoice_links(self):
         self._run_sale_orders([
             self._sale_line(9001, 11, 'Crown', sequence=1),

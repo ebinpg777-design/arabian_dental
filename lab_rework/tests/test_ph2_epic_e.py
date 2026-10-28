@@ -52,6 +52,7 @@ class TestRework(TransactionCase):
 
     def test_picking_the_original_fills_the_case_in(self):
         origin = self._order(patient='RAVI')
+        origin.material_id = self.env['lab.material'].create({'name': 'RW VITA'})
         origin.action_confirm()
         form = Form(self.env['sale.order'])
         form.is_rework = True
@@ -60,6 +61,7 @@ class TestRework(TransactionCase):
         rework = form.save()
         self.assertEqual(rework.partner_id, origin.partner_id)
         self.assertEqual(rework.patient, 'RAVI')
+        self.assertEqual(rework.material_id.name, 'RW VITA', "the material comes with the case")
         self.assertEqual(len(rework.order_line), len(origin.order_line))
         self.assertEqual(rework.order_line.mapped('product_uom_qty'), [2.0])
         self.assertEqual(rework.amount_total, 0.0, "a remake is never charged")

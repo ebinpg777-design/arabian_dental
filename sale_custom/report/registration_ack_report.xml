@@ -58,6 +58,9 @@
                 <div t-if="o.modification" class="mt-2">
                     <strong>Modifications:</strong> <span t-field="o.modification"/>
                 </div>
+                <div t-if="o.material_id" class="mt-2">
+                    <strong>Material:</strong> <span t-field="o.material_id"/>
+                </div>
                 <div t-if="o.instruction" class="mt-2">
                     <strong>Special Instructions:</strong> <span t-field="o.instruction"/>
                 </div>

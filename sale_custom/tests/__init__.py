@@ -20,3 +20,4 @@ from . import test_sales_route_labels
 from . import test_dispatch_register
 from . import test_shade_search
 from . import test_salesperson_summary_lab
+from . import test_order_material
