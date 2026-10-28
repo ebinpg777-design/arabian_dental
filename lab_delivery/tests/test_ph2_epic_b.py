@@ -207,6 +207,56 @@ class TestEpicBDelivery(TransactionCase):
         if 'patient' in order._fields:
             self.assertIn('Patient Rani', message)
 
+    # ------------------------------------------------- handed over before the visit
+    def _handed_over(self, when):
+        """A case scanned and confirmed at the door before any visit was made."""
+        delivery = self.env['lab.delivery'].create({
+            'sale_order_id': self._order().id, 'executive_id': self.exec_user.id,
+            'partner_id': self.clinic.id, 'scheduled_date': when, 'state': 'out'})
+        delivery.write({'state': 'delivered', 'delivery_outcome': 'clinic',
+                        'delivered_datetime': when})
+        self.assertFalse(delivery.visit_id, "no visit existed to attach it to")
+        return delivery
+
+    def test_a_handover_before_the_visit_is_on_the_visit(self):
+        """28 Oct: Delivered at 11:41, the visit made at 11:42, refused at checkout
+        over two cases scanned at that door on 22 Oct."""
+        self.exec_user.tz = 'Asia/Kolkata'
+        handed = self._handed_over(datetime(2026, 10, 28, 6, 11, 58))     # 11:41 IST
+        stale = self.env['lab.delivery'].create({
+            'sale_order_id': self._order().id, 'executive_id': self.exec_user.id,
+            'partner_id': self.clinic.id, 'state': 'assigned',
+            'scheduled_date': datetime(2026, 10, 22, 12, 6, 44)})
+        visit = self.env['lab.visit'].create({
+            'partner_id': self.clinic.id, 'user_id': self.exec_user.id,
+            'date': fields.Date.to_date('2026-10-28')})
+        visit.do_check_in(latitude=9.98, longitude=76.58)
+        self.assertEqual(handed.visit_id, visit, "the visit takes the morning's hand-over")
+        visit.outcome = 'delivered'
+        visit.do_check_out(latitude=9.98, longitude=76.58)
+        self.assertEqual(visit.state, 'done', "the outcome is true: the executive goes")
+        self.assertEqual(stale.state, 'assigned', "the old case is not closed for them")
+        self.assertTrue(any(stale.name in (m.body or '') for m in visit.message_ids),
+                        "but the visit says it is still open")
+
+    def test_a_handover_on_another_day_stays_off_the_visit(self):
+        self.exec_user.tz = 'Asia/Kolkata'
+        yesterday = self._handed_over(datetime(2026, 10, 27, 18, 0, 0))   # 23:30 IST
+        tomorrow = self._handed_over(datetime(2026, 10, 28, 18, 45, 0))   # 00:15 IST, 29th
+        self.env['lab.delivery'].create({
+            'sale_order_id': self._order().id, 'executive_id': self.exec_user.id,
+            'partner_id': self.clinic.id, 'state': 'assigned',
+            'scheduled_date': fields.Datetime.now()})
+        visit = self.env['lab.visit'].create({
+            'partner_id': self.clinic.id, 'user_id': self.exec_user.id,
+            'date': fields.Date.to_date('2026-10-28'),
+            'state': 'open', 'check_in': fields.Datetime.now()})
+        visit._attach_handovers()
+        self.assertFalse((yesterday | tomorrow).visit_id)
+        visit.outcome = 'delivered'
+        with self.assertRaises(UserError, msg="nothing was handed over on this visit"):
+            visit.do_check_out(latitude=9.98, longitude=76.58)
+
     # ------------------------------------------------- shipped at the counter
     def _shipped_order(self):
         """An order the office ships by validating its transfer."""

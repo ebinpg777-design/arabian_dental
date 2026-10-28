@@ -135,8 +135,31 @@
         </field>
     </record>
 
-    <!-- ...and Field Roles opens on it (the action is defined before this file loads) -->
+    <!-- ...and Field Roles opens on it. Configuration owns who is in the field. The
+         whole action lives here since the desk views file that defined it went
+         (7ce1782): a database built from scratch had only this file's view_ids and
+         no name, and failed to install (2026-10-28). Same xmlid, same values. -->
     <record id="action_fieldwork_users" model="ir.actions.act_window">
+        <field name="name">Field Roles</field>
+        <field name="res_model">res.users</field>
+        <field name="view_mode">list,form</field>
+        <!-- eval + ref(), not %(xml_id)d: that substitution is NOT applied to an
+             act_window domain, so the literal text reaches the browser and py_js
+             dies the first time anyone opens the menu. -->
+        <field name="domain" eval="[('all_group_ids', 'in', [
+                   ref('group_fieldwork_executive'),
+                   ref('group_fieldwork_manager'),
+                   ref('group_fieldwork_ops_manager'),
+                   ref('group_fieldwork_marketing_manager'),
+                   ref('group_fieldwork_admin')])]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nobody is in the field yet</p>
+            <p>Give a user the <b>Executive</b>, <b>Operational Manager</b>,
+               <b>Marketing Manager</b> or <b>Administrator</b> role under Field Work
+               and they will appear here. The roles are separate applications, not
+               levels of one — a manager does not get the executive's own-work menus,
+               and each manager desk sees its own approval queue.</p>
+        </field>
         <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_users_list_fieldwork')})]"/>
     </record>
 </odoo>
