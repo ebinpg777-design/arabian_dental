@@ -42,6 +42,7 @@ const EVENT_ICONS = {
     gap: "fa-eye-slash", cash: "fa-money", sheet: "fa-file-text-o",
     location_off: "fa-ban", location_on: "fa-map-marker", permission_off: "fa-lock",
     recorder_restarted: "fa-refresh",
+    gps_saver_on: "fa-battery-quarter", gps_saver_off: "fa-battery-full", gps_silent: "fa-crosshairs",
 };
 const LEVEL_ICONS = { danger: "fa-exclamation-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
 const MOBILE = "(max-width: 767.98px)";

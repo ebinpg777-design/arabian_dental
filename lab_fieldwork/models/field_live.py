@@ -354,6 +354,15 @@ class LabFieldLive(models.AbstractModel):
                 _("turned off in the phone's settings at %s - nothing can be recorded until it is on")
                 % fields.Datetime.context_timestamp(self.with_context(tz=tz_name(self.env, user)),
                                                     off_since).strftime('%H:%M'))
+        saver_since = self.env['lab.location.event']._saver_on_since(day_events)
+        if ex.get('on_duty') and saver_since:
+            # The phone places itself by Wi-Fi and towers while the saver is on: no
+            # route, and no kilometres, wherever the mobile data drops (ADL Pro 1.0.13).
+            add('gps_saver', 'warning', _('Battery saver is switching GPS off'),
+                _("since %s - the route is recorded only where there is mobile data; ask "
+                  "them to turn battery saver off")
+                % fields.Datetime.context_timestamp(self.with_context(tz=tz_name(self.env, user)),
+                                                    saver_since).strftime('%H:%M'))
         if ex.get('on_duty') and (age is None or age >= offline_s):
             detail = _('on duty, no position for %s min') % (age // 60) if age is not None \
                 else _('on duty, no position yet today')

@@ -88,6 +88,22 @@ class TestFieldLive(TransactionCase):
         locoff = [b for b in self._me(board)['bands'] if b['kind'] == 'locoff']
         self.assertEqual(locoff[0]['to_epoch'] - locoff[0]['from_epoch'], 30 * 60)
 
+    def test_battery_saver_taking_the_gps_away_is_told_on_the_board(self):
+        """ADL Pro 1.0.13 (2026-10-28): a phone placing itself by Wi-Fi and towers records
+        nothing where the mobile data drops - the saver switching the GPS off is why."""
+        self._on_duty(hours_ago=2)
+        self._ping(30)
+        Event = self.env['lab.location.event']
+        on = fields.Datetime.now() - timedelta(minutes=40)
+        Event._record(self.exec_user, [{'kind': 'gps_saver_on', 'ts': fields.Datetime.to_string(on)},
+                                       {'kind': 'gps_silent', 'ts': fields.Datetime.to_string(on + timedelta(minutes=6))}])
+        board = self._board()
+        self.assertTrue(self._alerts(board, 'gps_saver', self.exec_user), "the manager is told")
+        self.assertTrue({'gps_saver_on', 'gps_silent'} <= {e['kind'] for e in self._me(board)['story']})
+        Event._record(self.exec_user, [{'kind': 'gps_saver_off',
+                                        'ts': fields.Datetime.to_string(on + timedelta(minutes=20))}])
+        self.assertFalse(self._alerts(self._board(), 'gps_saver', self.exec_user), "off again: no alert")
+
     # ------------------------------------------------------------------ access
     def test_only_a_manager_opens_the_board(self):
         with self.assertRaises(AccessError):

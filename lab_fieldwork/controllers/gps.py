@@ -146,7 +146,8 @@ def parse_body(body):
     return device_id, pings
 
 
-PHONE_EVENTS = ('location_off', 'location_on', 'permission_off', 'recorder_restarted')
+PHONE_EVENTS = ('location_off', 'location_on', 'permission_off', 'recorder_restarted',
+                'gps_saver_on', 'gps_saver_off', 'gps_silent')   # the last three: ADL Pro 1.0.13
 
 
 def parse_events(body):

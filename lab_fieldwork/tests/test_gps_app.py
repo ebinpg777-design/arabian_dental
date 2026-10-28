@@ -143,6 +143,11 @@ class TestGpsApp(HttpCase):
         self.assertEqual(events.mapped('kind'), ['location_off', 'location_on'], "each once, the unknown skipped")
         self.assertEqual(gps.parse_events({'events': 'x'}), [])
         self.assertEqual(gps.parse_events([1, 2]), [])
+        # ADL Pro 1.0.13: battery saver and the satellites
+        stamp = on.strftime('%Y-%m-%dT%H:%M:%SZ')
+        self.assertEqual([e['kind'] for e in gps.parse_events({'events': [
+            {'type': kind, 'timestamp': stamp} for kind in ('gps_saver_on', 'gps_saver_off', 'gps_silent')]})],
+            ['gps_saver_on', 'gps_saver_off', 'gps_silent'])
 
     def test_only_an_administrator_switches_the_app_and_the_id_is_secret(self):
         with self.assertRaises(AccessError):

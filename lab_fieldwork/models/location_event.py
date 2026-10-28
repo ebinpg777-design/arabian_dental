@@ -15,6 +15,12 @@ KINDS = [
     ('location_on', 'Location turned on again'),
     ('permission_off', 'Location permission taken from ADL Pro'),
     ('recorder_restarted', 'Recording started again after the phone stopped it'),
+    # ADL Pro 1.0.13 (2026-10-28): a phone placing itself by Wi-Fi and towers records
+    # nothing where the mobile data drops - battery saver taking the GPS away with the
+    # screen, and the road with no satellite fix, said by the phone.
+    ('gps_saver_on', 'Battery saver switched the GPS off'),
+    ('gps_saver_off', 'Battery saver off: GPS back'),
+    ('gps_silent', 'On the road with no GPS fix for 5 minutes'),
 ]
 
 
@@ -73,3 +79,15 @@ class LabLocationEvent(models.Model):
             elif event.kind == 'location_on':
                 off = None
         return off
+
+    @api.model
+    def _saver_on_since(self, events):
+        """The time battery saver took the GPS away and has not given it back, or None
+        (ADL Pro 1.0.13), from a day's events in time order."""
+        since = None
+        for event in events:
+            if event.kind == 'gps_saver_on':
+                since = since or event.ts
+            elif event.kind == 'gps_saver_off':
+                since = None
+        return since
