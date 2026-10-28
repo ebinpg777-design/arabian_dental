@@ -41,9 +41,13 @@ from .location_ping import JUMP_KMH
 
 _logger = logging.getLogger(__name__)
 
-# One colour per executive on the map, by position in the day's roster.
-PALETTE = ['#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777',
-           '#0891b2', '#65a30d', '#ea580c', '#4f46e5', '#0d9488', '#be123c']
+# One colour per executive on the map, by position in the day's roster. No orange,
+# amber, red or pink: the map draws National and State Highways salmon-orange and
+# yellow, so a trail in those colours vanishes into the road it runs along, and red
+# is the map's own "away from the clinic" and "over the speed limit" (client,
+# 2026-10-28). Dark enough to stand off the pale parks and rivers too.
+PALETTE = ['#2563eb', '#7c3aed', '#047857', '#a21caf', '#0e7490', '#4d7c0f',
+           '#1e3a8a', '#0f766e', '#4f46e5', '#1f2937']
 MOVING_KMH = 4.0            # below this a fix is "standing", whatever the GPS jitter says
 JITTER_M = 15.0             # two fixes closer than this are the same place
 MAX_KMH = 150.0             # a jump faster than this is a GPS error, not a journey
