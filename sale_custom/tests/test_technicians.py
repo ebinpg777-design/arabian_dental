@@ -77,29 +77,3 @@ class TestTechnicians(TransactionCase):
         self.assertEqual(self.Partner.lab_technician_lookup('t'), [], "too short to say anything")
         contact.lab_mark_technician()
         self.assertTrue(contact.is_technician)
-
-    def test_the_usual_technicians_are_offered(self):
-        busy = self.Partner.create({'name': 'TT BUSY', 'is_technician': True})
-        some = self.Partner.create({'name': 'TT SOME', 'is_technician': True})
-        not_one = self.Partner.create({'name': 'TT NOT ONE'})
-        for _i in range(3):
-            self._order(busy)
-        self._order(some)
-        self._order(not_one)
-        Order = self.env['sale.order']
-        offered = Order.lab_technician_suggestions(limit=50)
-        ids = [t['id'] for t in offered['technicians']]
-        self.assertLess(ids.index(busy.id), ids.index(some.id), "the busiest first")
-        self.assertNotIn(not_one.id, ids, "only technicians")
-        self.assertNotIn(busy.id, [t['id'] for t in Order.lab_technician_suggestions(exclude_ids=[busy.id], limit=50)['technicians']],
-                         "one already on the order is not offered again")
-        if 'department_id' in Order._fields:
-            department = self.env['hr.department'].create({'name': 'TT Ceramics'})
-            ceramist = self.Partner.create({'name': 'TT CERAMIST', 'is_technician': True})
-            self._order(ceramist, department_id=department.id)
-            scoped = Order.lab_technician_suggestions(department_id=department.id)
-            self.assertEqual(scoped['scope'], 'department')
-            self.assertEqual([t['id'] for t in scoped['technicians']], [ceramist.id])
-            empty = self.env['hr.department'].create({'name': 'TT Nobody'})
-            self.assertEqual(Order.lab_technician_suggestions(department_id=empty.id)['scope'], 'lab',
-                             "a department with no recent orders gets the lab's")

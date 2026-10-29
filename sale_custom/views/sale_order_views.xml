@@ -86,9 +86,8 @@
                 <field name="patient"/>
                 <!-- On the face of the order, not in a tab: who worked the case is asked
                      about every day (client, 2026-10-20). -->
-                <!-- Technicians only, a New button beside them that makes one without
-                     a second spelling of somebody who exists, and one-tap picks of the
-                     department's usual technicians (client, 2026-10-29). -->
+                <!-- Technicians only, and a New button beside them that makes one
+                     without a second spelling of somebody who exists (client, 2026-10-29). -->
                 <field name="technician_ids" widget="technician_tags"
                        options="{'no_create': True}"/>
                 <!-- Odoo 17's Material, chosen from Dental Masters > Materials (client,

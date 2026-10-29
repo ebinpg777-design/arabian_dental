@@ -5,7 +5,6 @@ import { _t } from "@web/core/l10n/translation";
 import { usePopover } from "@web/core/popover/popover_hook";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useRecordObserver } from "@web/model/relational_model/utils";
 import {
     Many2ManyTagsField,
     many2ManyTagsField,
@@ -104,10 +103,9 @@ export class NewTechnicianPopover extends Component {
 }
 
 /**
- * The order's Technicians: the usual tags, a "new technician" button beside them,
- * and the technicians orders of the same department named most in the last two
- * months, one tap each - the counter fills this field on every order, and the same
- * few people do most of a department's work.
+ * The order's Technicians: the usual tags and a "new technician" button beside them.
+ * (One-tap picks of the department's usual technicians came off on 2026-10-29 - the
+ * client: "this is not needed".)
  */
 export class TechnicianTagsField extends Component {
     static template = "sale_custom.TechnicianTagsField";
@@ -118,40 +116,12 @@ export class TechnicianTagsField extends Component {
 
     setup() {
         this.orm = useService("orm");
-        this.state = proxy({ suggestions: [], scope: "lab" });
         this.popover = usePopover(NewTechnicianPopover, {
             position: "bottom-end",
             popoverClass: "o_lab_tech_popover",
         });
         const { saveRecord } = useX2ManyCrud(() => this.props.record.data[this.props.name], true);
         this.saveRecord = saveRecord;
-        this.asked = 0;
-        useRecordObserver((record) => {
-            const department = record.data.department_id;
-            const chosen = record.data[this.props.name].currentIds;
-            if (!this.props.readonly) {
-                this.loadSuggestions(department && department.id, [...chosen]);
-            }
-        });
-    }
-
-    // The order's department, where the form shows it (lab_cost_centre adds it; this
-    // module does not depend on that one, so it is read, never declared).
-    get departmentName() {
-        const department = this.props.record.data.department_id;
-        return (department && department.display_name) || "";
-    }
-
-    async loadSuggestions(departmentId, chosen) {
-        const ask = ++this.asked;
-        const result = await this.orm.call("sale.order", "lab_technician_suggestions", [], {
-            department_id: departmentId || false,
-            exclude_ids: chosen,
-        });
-        if (ask === this.asked) {
-            this.state.suggestions = result.technicians;
-            this.state.scope = result.scope;
-        }
     }
 
     async add(id) {

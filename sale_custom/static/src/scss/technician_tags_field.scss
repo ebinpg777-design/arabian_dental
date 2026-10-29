@@ -1,4 +1,4 @@
-// The order's Technicians: tags, a "new technician" button, one-tap picks (2026-10-29).
+// The order's Technicians: tags and a "new technician" button (2026-10-29).
 .o_lab_tech {
     .o_lab_tech_new {
         flex: 0 0 auto;
@@ -13,26 +13,6 @@
         white-space: nowrap;
 
         &:hover, &:focus-visible { border-style: solid; border-color: $primary; color: $primary; }
-    }
-
-    .o_lab_tech_picks {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: .3rem;
-        margin-top: .35rem;
-    }
-    .o_lab_tech_picks_label { font-size: .75rem; color: $o-gray-600; margin-right: .1rem; }
-    .o_lab_tech_pick {
-        border: 1px solid $border-color;
-        border-radius: 1rem;
-        background: $o-gray-100;
-        padding: 0 .55rem;
-        font-size: .75rem;
-        line-height: 1.6rem;
-        color: $o-gray-800;
-
-        &:hover, &:focus-visible { background: $primary; border-color: $primary; color: #fff; }
     }
 }
 

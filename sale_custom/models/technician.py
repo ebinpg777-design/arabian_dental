@@ -4,18 +4,12 @@
 is_technician ... Provide a new widget button of creating new technician from SO").
 
 The order form's `technician_tags` widget (static/src/js/technician_tags_field.js)
-calls the three methods here: what a typed name may already be, a technician made
-without a second spelling of somebody who exists, and the technicians an order of
-the same department usually names.
+calls the methods here: what a typed name may already be, and a technician made
+without a second spelling of somebody who exists.
 """
 import re
-from datetime import timedelta
-
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
-
-SUGGEST_DAYS = 60
-
 
 def technician_key(name):
     """A name the way two spellings of it agree: 'Rana.' and 'RANA' are one."""
@@ -91,35 +85,3 @@ class ResPartner(models.Model):
         self.filtered(lambda p: not p.is_technician).write({'is_technician': True})
         return True
 
-
-class SaleOrder(models.Model):
-    _inherit = 'sale.order'
-
-    @api.model
-    def lab_technician_suggestions(self, department_id=False, exclude_ids=(), limit=5):
-        """The technicians orders of this department named most in the last
-        SUGGEST_DAYS days - one tap each on the form. Without a department, or for
-        one with no recent orders, the whole lab's."""
-        since = fields.Datetime.now() - timedelta(days=SUGGEST_DAYS)
-        exclude = list(exclude_ids or []) or [0]
-        by_department = bool(department_id) and 'department_id' in self._fields
-        for scoped in ((True, False) if by_department else (False,)):
-            self.env.cr.execute("""
-                SELECT r.partner_id, count(*) AS n
-                  FROM sale_order_technician_rel r
-                  JOIN sale_order s ON s.id = r.order_id
-                  JOIN res_partner p ON p.id = r.partner_id
-                 WHERE s.date_order >= %s AND p.is_technician AND p.active
-                   AND NOT (r.partner_id = ANY(%s))
-                   AND s.company_id = ANY(%s)
-            """ + ("AND s.department_id = %s " if scoped else "") + """
-                 GROUP BY r.partner_id ORDER BY n DESC, r.partner_id LIMIT %s
-            """, [since, exclude, self.env.companies.ids] + ([department_id] if scoped else []) + [limit])
-            rows = self.env.cr.fetchall()
-            if rows:
-                break
-        names = {p.id: p.display_name for p in self.env['res.partner'].browse([r[0] for r in rows]).exists()}
-        return {
-            'scope': 'department' if rows and by_department and scoped else 'lab',
-            'technicians': [{'id': pid, 'name': names[pid], 'orders': n} for pid, n in rows if pid in names],
-        }

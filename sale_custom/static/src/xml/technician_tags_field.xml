@@ -14,18 +14,6 @@
                     <span class="o_lab_tech_new_label">New</span>
                 </button>
             </div>
-            <div t-if="!this.props.readonly and this.state.suggestions.length" class="o_lab_tech_picks">
-                <span class="o_lab_tech_picks_label">
-                    <i class="fa fa-bolt me-1"/>
-                    <t t-if="this.state.scope === 'department' and this.departmentName">Often on <t t-out="this.departmentName"/>:</t>
-                    <t t-else="">Often named:</t>
-                </span>
-                <button t-foreach="this.state.suggestions" t-as="s" t-key="s.id" type="button"
-                        class="o_lab_tech_pick" t-on-click="() => this.add(s.id)"
-                        t-att-title="s.orders + ' orders in the last 60 days'">
-                    + <t t-out="s.name"/>
-                </button>
-            </div>
         </div>
     </t>
 
