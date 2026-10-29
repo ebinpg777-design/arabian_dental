@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="sale_custom.TechnicianTagsField">
+        <div class="o_lab_tech w-100">
+            <div class="o_lab_tech_row d-flex align-items-start gap-1">
+                <div class="flex-grow-1 min-w-0">
+                    <Many2ManyTagsField t-props="this.props"/>
+                </div>
+                <button t-if="!this.props.readonly" type="button" t-ref="this.newRef"
+                        class="btn btn-sm o_lab_tech_new" t-on-click="() => this.openNew()"
+                        title="New technician" aria-label="New technician">
+                    <i class="fa fa-user-plus"/>
+                    <span class="o_lab_tech_new_label">New</span>
+                </button>
+            </div>
+            <div t-if="!this.props.readonly and this.state.suggestions.length" class="o_lab_tech_picks">
+                <span class="o_lab_tech_picks_label">
+                    <i class="fa fa-bolt me-1"/>
+                    <t t-if="this.state.scope === 'department' and this.departmentName">Often on <t t-out="this.departmentName"/>:</t>
+                    <t t-else="">Often named:</t>
+                </span>
+                <button t-foreach="this.state.suggestions" t-as="s" t-key="s.id" type="button"
+                        class="o_lab_tech_pick" t-on-click="() => this.add(s.id)"
+                        t-att-title="s.orders + ' orders in the last 60 days'">
+                    + <t t-out="s.name"/>
+                </button>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="sale_custom.NewTechnicianPopover">
+        <div class="o_lab_tech_pop">
+            <div class="o_lab_tech_pop_head">
+                <i class="fa fa-user-plus me-2"/>New technician
+            </div>
+            <input type="text" class="form-control o_lab_tech_pop_name" t-ref="this.nameRef"
+                   placeholder="Name" autofocus="1" autocomplete="off"
+                   t-att-value="this.state.name" t-on-input="(ev) => this.onName(ev)"
+                   t-on-keydown="(ev) => this.onKeydown(ev)"/>
+            <input type="tel" class="form-control mt-2" placeholder="Phone (optional)" autocomplete="off"
+                   t-att-value="this.state.phone" t-on-input="(ev) => this.state.phone = ev.target.value"
+                   t-on-keydown="(ev) => this.onKeydown(ev)"/>
+            <div t-if="this.state.matches.length" class="o_lab_tech_matches">
+                <div class="o_lab_tech_matches_head">Already here? Pick instead of a second spelling:</div>
+                <button t-foreach="this.state.matches" t-as="m" t-key="m.id" type="button"
+                        class="o_lab_tech_match" t-att-class="{'o_lab_tech_match_exact': m.exact}"
+                        t-att-disabled="this.state.busy" t-on-click="() => this.pick(m)">
+                    <span class="o_lab_tech_match_name" t-out="m.name"/>
+                    <span class="o_lab_tech_match_meta">
+                        <t t-if="m.orders"><t t-out="m.orders"/> orders</t>
+                        <span t-if="!m.technician" class="o_lab_tech_match_new">not yet a technician</span>
+                    </span>
+                </button>
+            </div>
+            <div class="o_lab_tech_pop_foot">
+                <button type="button" class="btn btn-link btn-sm" t-on-click="() => this.props.close()">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" t-att-disabled="!this.canCreate"
+                        t-on-click="() => this.create()">
+                    <t t-out="this.createLabel"/>
+                </button>
+            </div>
+        </div>
+    </t>
+
+</templates>

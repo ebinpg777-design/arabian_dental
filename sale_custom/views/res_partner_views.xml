@@ -33,6 +33,7 @@
             <field name="category_id" position="after">
                 <field name="is_clinic"/>
                 <field name="is_doctor"/>
+                <field name="is_technician"/>
                 <field name="doctor_name" invisible="parent_id"/>
                 <field name="billing_name" invisible="parent_id"/>
                 <field name="gst_number"/>
@@ -80,6 +81,7 @@
             <filter name="filter_vat_set" position="after">
                 <separator/>
                 <filter string="Clinics" name="clinics" domain="[('is_clinic', '=', True)]"/>
+                <filter string="Technicians" name="technicians" domain="[('is_technician', '=', True)]"/>
                 <filter string="Has a Sales Route" name="has_team" domain="[('team_id', '!=', False)]"/>
                 <filter string="No Sales Route" name="no_team" domain="[('team_id', '=', False)]"/>
             </filter>

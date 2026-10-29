@@ -402,6 +402,9 @@ class SaleOrder(models.Model):
     technician_ids = fields.Many2many(
         'res.partner', 'sale_order_technician_rel', 'order_id', 'partner_id',
         string='Technicians', copy=False,
+        # only contacts marked Technician are offered, and one made from here is one
+        # (client, 2026-10-29)
+        domain="[('is_technician', '=', True)]", context={'default_is_technician': True},
         help="Who worked this case. Filled from the old system for migrated cases; "
              "new cases record the bench on their work orders.")
     register_person_id = fields.Many2one(

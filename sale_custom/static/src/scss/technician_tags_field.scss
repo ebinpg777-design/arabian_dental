@@ -1,0 +1,65 @@
+// The order's Technicians: tags, a "new technician" button, one-tap picks (2026-10-29).
+.o_lab_tech {
+    .o_lab_tech_new {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        padding: .15rem .55rem;
+        border: 1px dashed $border-color;
+        border-radius: 1rem;
+        color: $o-gray-700;
+        background: transparent;
+        white-space: nowrap;
+
+        &:hover, &:focus-visible { border-style: solid; border-color: $primary; color: $primary; }
+    }
+
+    .o_lab_tech_picks {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .3rem;
+        margin-top: .35rem;
+    }
+    .o_lab_tech_picks_label { font-size: .75rem; color: $o-gray-600; margin-right: .1rem; }
+    .o_lab_tech_pick {
+        border: 1px solid $border-color;
+        border-radius: 1rem;
+        background: $o-gray-100;
+        padding: 0 .55rem;
+        font-size: .75rem;
+        line-height: 1.6rem;
+        color: $o-gray-800;
+
+        &:hover, &:focus-visible { background: $primary; border-color: $primary; color: #fff; }
+    }
+}
+
+.o_lab_tech_popover {
+    .o_lab_tech_pop { width: 20rem; max-width: calc(100vw - 2rem); padding: .9rem; }
+    .o_lab_tech_pop_head { font-weight: 600; margin-bottom: .6rem; }
+    .o_lab_tech_pop_name { text-transform: uppercase; }
+    .o_lab_tech_matches { margin-top: .7rem; }
+    .o_lab_tech_matches_head { font-size: .75rem; color: $o-gray-600; margin-bottom: .3rem; }
+    .o_lab_tech_match {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .5rem;
+        width: 100%;
+        border: 1px solid $border-color;
+        border-radius: .4rem;
+        background: transparent;
+        padding: .3rem .55rem;
+        margin-bottom: .25rem;
+        text-align: left;
+
+        &:hover, &:focus-visible { border-color: $primary; background: rgba($primary, .06); }
+    }
+    .o_lab_tech_match_exact { border-color: $warning; background: rgba($warning, .08); }
+    .o_lab_tech_match_name { font-weight: 600; }
+    .o_lab_tech_match_meta { font-size: .75rem; color: $o-gray-600; white-space: nowrap; }
+    .o_lab_tech_match_new { margin-left: .35rem; color: $warning; }
+    .o_lab_tech_pop_foot { display: flex; justify-content: flex-end; gap: .4rem; margin-top: .8rem; }
+}

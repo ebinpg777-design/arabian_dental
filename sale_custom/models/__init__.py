@@ -12,4 +12,5 @@ from . import ir_actions_report
 from . import change_customer
 from . import district
 from . import material
+from . import technician
 from . import sales_route_labels

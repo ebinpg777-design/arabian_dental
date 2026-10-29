@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Sales Custom',
-    'version': '20.0.1.58.0',
+    'version': '20.0.1.59.0',
     'category': 'Sales',
     'summary': 'Dental lab customization: per-patient orders, MRP job cards, GST invoicing, daily sales',
     'description': """
@@ -81,6 +81,9 @@ Re-implemented for Odoo 19. Provides:
             'sale_custom/static/src/scss/auth_card_wizard.scss',
             'sale_custom/static/src/js/auth_card_stock_field.js',
             'sale_custom/static/src/xml/auth_card_stock_field.xml',
+            'sale_custom/static/src/scss/technician_tags_field.scss',
+            'sale_custom/static/src/js/technician_tags_field.js',
+            'sale_custom/static/src/xml/technician_tags_field.xml',
         ],
         'web.report_assets_common': [
             'sale_custom/static/src/scss/letterhead.scss',
