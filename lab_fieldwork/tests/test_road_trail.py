@@ -136,6 +136,34 @@ def fake_osrm_longer(factor):
     return fake_get, calls
 
 
+def fake_osrm_off_road(offset_m=260.0):
+    """A routing service that reaches a road only `offset_m` east of each fix - a home
+    down a lane - so every road it gives begins there, 1.2 times the straight line."""
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append((url, params))
+        coords = [tuple(float(x) for x in c.split(',')) for c in url[len(ROUTING):].split(';')]
+        east = offset_m / (111_320.0 * math.cos(math.radians(coords[0][1])))
+        legs = []
+        for a, b in zip(coords, coords[1:]):
+            straight = metres_between(a[1], a[0], b[1], b[0]) or 0.0
+            legs.append({'distance': straight * 1.2,
+                         'steps': [{'geometry': {'coordinates': [[a[0] + east, a[1]], list(b)]}}]})
+
+        class Response:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {'code': 'Ok', 'routes': [{'legs': legs}],
+                        'waypoints': [{'location': list(c)} for c in coords]}
+        return Response()
+    return fake_get, calls
+
+
 @tagged('post_install', '-at_install')
 class TestRoadTrail(LiveTrackCase):
 
@@ -554,6 +582,33 @@ class TestRoadTrail(LiveTrackCase):
         with self._patched(fake):
             Ping.with_context(lab_test_routing=True)._cron_fill_roads()
         self.assertEqual(len(calls), 1, "a day whose roads are all known asks nothing more")
+
+    def test_a_road_that_begins_off_its_fix_is_kept_and_not_asked_again(self):
+        """From a fix off the mapped roads the router's road begins where it reaches
+        one, 260 m away (Shajimon's home, 2026-10-27): it was refused as a road set off
+        elsewhere, asked again every five minutes - 2,110 requests for one day - and the
+        13 km stretch counted straight. The fix it was asked from is held beside it."""
+        self._blind_day()
+        day = self.env['lab.location.ping']._today_for(self.exec_user)
+        trip = self.env['lab.trip'].sudo().create({
+            'user_id': self.exec_user.id, 'date': day, 'vehicle': 'bike', 'odo_start': 100, 'odo_end': 103})
+        straight = trip.gps_km
+        fake, calls = fake_osrm_off_road()
+        with self._patched(fake):
+            self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
+        asked = len(calls)
+        self.assertTrue(asked)
+        self.assertGreater(trip.gps_km, straight + 0.1, "the roads count, though each begins 260 m off its fix")
+        with self._patched(fake):
+            self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertEqual(len(calls), asked, "known now: nothing asked again")
+        # a road asked from another fix - a late fix now starts the step - is not this step's
+        pts = self.Ping._day_points(self.exec_user, day)
+        steps = self.Ping._road_steps(self.exec_user, day)
+        a, b = pts[-2], pts[-1]
+        self.assertIsNotNone(location_live.road_step(steps, a, b))
+        late = (a[0] + timedelta(seconds=1), a[1] - 400 * NORTH, a[2]) + a[3:]
+        self.assertIsNone(location_live.road_step(steps, late, b))
 
     def test_a_drive_counts_its_road_and_a_snap_beside_it_does_not(self):
         """Straight lines cut every corner: 119 km on a day the vehicle read 128."""

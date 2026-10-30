@@ -31,7 +31,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
 from .lab_visit import metres_between
-from .location_live import JITTER_M, MAX_KMH, classify_modes, epoch, road_step
+from .location_live import JITTER_M, MAX_KMH, ROAD_ORIGIN, classify_modes, epoch, road_step
 
 _logger = logging.getLogger(__name__)
 
@@ -266,12 +266,24 @@ class LabLocationPingRoad(models.Model):
                         complete = False
                         break
                     asked += 1
+                    chunk = run[start:start + ROAD_WAYPOINTS]
                     try:
-                        cache.update(self._ask_roads(url, run[start:start + ROAD_WAYPOINTS], match_url))
+                        found = self._ask_roads(url, chunk, match_url)
                     except Exception as error:   # noqa: BLE001 - a map must never break the board
                         _logger.info("road trail %s %s: no roads (%s)", user.login, day, error)
                         state, complete = 'failed', False
                         break
+                    cache.update(found)
+                    # where each road set off: road_step judges a step by it. A fix the
+                    # matcher put off every road is passed over, as the trail does.
+                    origin = chunk[0]
+                    for b in chunk[1:]:
+                        key = str(epoch(b[0]))
+                        if found.get(key) == []:
+                            continue
+                        if key in found:
+                            cache[ROAD_ORIGIN + key] = _vertex(origin[1], origin[2])
+                        origin = b
                 if state == 'failed' or not complete:
                     break
             if (asked or state == 'failed') and road:

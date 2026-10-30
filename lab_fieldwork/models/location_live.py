@@ -567,6 +567,7 @@ def thin_runs(points, modes, limit):
 
 
 ROAD_STEP_TOLERANCE_M = 150.0   # a known road must set off this close to its step's start fix
+ROAD_ORIGIN = '@'              # beside each road, keyed so: the fix it was asked from (2026-10-30)
 
 
 def road_step(steps, start, end):
@@ -578,16 +579,24 @@ def road_step(steps, start, end):
     meanwhile (2026-10-24) - land between two fixes whose road was already read. The
     step ending at the later fix now starts at a new fix, and its stored road, set off
     from the earlier one, would be drawn running back there. A road that does not set
-    off near the step's start is not known for it; the service is asked again."""
+    off near the step's start is not known for it; the service is asked again.
+
+    "Near" is to the fix the road was asked from, held beside it (ROAD_ORIGIN), not
+    to the road's first vertex (2026-10-30): from a fix off the mapped roads - a home
+    down a lane - the road begins where the router reaches one, 260-300 m away, and
+    such a road was refused, asked again every five minutes and refused again: a
+    13 km stretch counted straight, 2,110 requests for one day. Roads held from
+    before keep the first-vertex test until they are asked again."""
     if not steps:
         return None
-    road = steps.get(str(epoch(end[0])))
+    key = str(epoch(end[0]))
+    road = steps.get(key)
     if road is None:
         return None
     if not road:
         return []          # known: the map-matcher put this fix off every road (2026-10-26)
-    if len(road) > 1 and \
-            (metres_between(start[1], start[2], road[0][0], road[0][1]) or 0.0) > ROAD_STEP_TOLERANCE_M:
+    anchor = steps.get(ROAD_ORIGIN + key) or (road[0] if len(road) > 1 else None)
+    if anchor and (metres_between(start[1], start[2], anchor[0], anchor[1]) or 0.0) > ROAD_STEP_TOLERANCE_M:
         return None
     return road
 
