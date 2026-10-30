@@ -42,6 +42,7 @@ ROAD_REQUESTS_PER_CALL = 6    # a first look at a long day; the rest on the next
 DETOUR_FACTOR = 1.5           # by road this much longer than the straight gap...
 DETOUR_SLACK_M = 150.0        # ...plus this: a fix snapped to the wrong road
 FAILED_RETRY_SECONDS = 600
+ROAD_OPEN_DAYS = 7            # a day this recent whose trip is not approved yet keeps being measured
 ROAD_TEAM_ASK_SECONDS = 60    # the overview asks for a person's newest stretch this often at most
 
 
@@ -328,22 +329,31 @@ class LabLocationPingRoad(models.Model):
         Yesterday too, and each day's km read again after (2026-10-24): a stretch
         the phone did not record counts its road, not the straight line across
         (mode_km), and the app sends the whole day again when it ends - so the last
-        stretches of a day, and anything that arrived late, are measured as well."""
+        stretches of a day, and anything that arrived late, are measured as well.
+
+        And every day of the last ROAD_OPEN_DAYS whose trip is not approved yet
+        (2026-10-30): a road is held for the two fixes it was asked for, so a day
+        whose fixes change after - a phone sending it again days later, the trail
+        read anew (drop_headless) - had its new stretches counted straight for good
+        once it was older than yesterday. Shajimon, 26-28 Oct: 13 stretches never
+        asked, 4-9 km a day under his odometer. A complete day asks nothing more."""
         if not (self._road_trail_enabled() and routing_url(self.env)):
             return
         Ping = self.sudo()
         Users = self.env['res.users'].sudo().with_context(active_test=False)
-        self.env.cr.execute("SELECT DISTINCT user_id FROM lab_location_ping WHERE date >= %s",
-                            [fields.Date.today() - timedelta(days=1)])
+        since = fields.Date.today() - timedelta(days=ROAD_OPEN_DAYS)
+        open_days = {(trip.user_id.id, trip.date) for trip in self.env['lab.trip'].sudo().search(
+            [('date', '>=', since), ('state', 'in', ('open', 'closed'))])}
+        self.env.cr.execute("SELECT DISTINCT user_id, date FROM lab_location_ping WHERE date >= %s ORDER BY date",
+                            [since])
         filled = 0
-        for (user_id,) in self.env.cr.fetchall():
+        for user_id, day in self.env.cr.fetchall():
             user = Users.browse(user_id)
-            today = Ping._today_for(user)
-            for day in (today - timedelta(days=1), today):
-                if Ping.search_count([('user_id', '=', user.id), ('date', '=', day)], limit=1):
-                    Ping._road_legs(user, day)
-                    Ping._refresh_day_km(user, day)
-                    filled += 1
+            if day < Ping._today_for(user) - timedelta(days=1) and (user_id, day) not in open_days:
+                continue
+            Ping._road_legs(user, day)
+            Ping._refresh_day_km(user, day)
+            filled += 1
         _logger.info("road trail: %d day(s) of trail brought up to date", filled)
 
     @api.model

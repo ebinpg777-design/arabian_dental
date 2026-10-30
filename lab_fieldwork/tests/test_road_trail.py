@@ -524,6 +524,37 @@ class TestRoadTrail(LiveTrackCase):
             self.env['lab.location.ping'].with_context(lab_test_routing=True)._cron_fill_roads()
         self.assertEqual(trip.gps_km, before)
 
+    def test_the_job_measures_an_older_day_until_its_trip_is_approved(self):
+        """A day older than yesterday whose trip is not approved yet keeps being
+        measured (2026-10-30): a road is held for the two fixes it was asked for, and
+        a stretch whose fixes changed after was left straight for good - 4-9 km a day
+        under an odometer. A day whose trip is approved is not asked about."""
+        Ping = self.env['lab.location.ping'].sudo()
+        today = Ping._today_for(self.exec_user)
+
+        def day_of_driving(days_ago):
+            day, t0 = today - timedelta(days=days_ago), self.now - timedelta(days=days_ago)
+            for metres, seconds in ((0.0, 0), (200.0, 20), (400.0, 40), (1100.0, 170), (1300.0, 190)):
+                Ping.create({'user_id': self.exec_user.id, 'date': day, 'source': 'app',
+                             'latitude': 10.0 + metres * NORTH, 'longitude': 76.0, 'accuracy_m': 8,
+                             'speed_kmh': 36.0, 'ts': t0 + timedelta(seconds=seconds)})
+            trip = self.env['lab.trip'].sudo().create({
+                'user_id': self.exec_user.id, 'date': day, 'vehicle': 'bike', 'odo_start': 100, 'odo_end': 102})
+            trip.state = 'closed'
+            return trip
+
+        submitted, approved = day_of_driving(3), day_of_driving(4)
+        approved.state = 'approved'
+        straight = submitted.gps_km
+        fake, calls = fake_osrm_longer(1.3)
+        with self._patched(fake):
+            Ping.with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertEqual(len(calls), 1, "the submitted day's roads, not the approved one's")
+        self.assertGreater(submitted.gps_km, straight + 0.2, "and its km read along them")
+        with self._patched(fake):
+            Ping.with_context(lab_test_routing=True)._cron_fill_roads()
+        self.assertEqual(len(calls), 1, "a day whose roads are all known asks nothing more")
+
     def test_a_drive_counts_its_road_and_a_snap_beside_it_does_not(self):
         """Straight lines cut every corner: 119 km on a day the vehicle read 128."""
         t0 = fields.Datetime.now()
