@@ -116,6 +116,43 @@ def _motion(point):
     return point[8] if len(point) > 8 else None
 
 
+def _heading(point):
+    """The phone's own heading at this fix, in degrees; 0.0 where it gave none."""
+    return (point[9] or 0.0) if len(point) > 9 else 0.0
+
+
+HEADLESS_SECONDS = 300     # a fix with no heading between two with one this close in time
+
+
+def drop_headless(points):
+    """The trail without the rough fixes a phone sends between its satellite ones.
+
+    A phone reading the satellites gives every fix on the move a heading; a position
+    it works out from Wi-Fi and towers has none, and lands 100-400 m off the road at
+    a claimed 7-40 m. Sent between the satellite ones - ADL Pro 1.0.13 reads both
+    (Shajimon, 2026-10-29: every other fix) - the trail went road, field, road every
+    few seconds and the km counted every crossing: 202.9 km on a day the bike read
+    162, the first 19 km of it not recorded at all. A fix with no heading is dropped
+    when fixes with one lie on both sides of it within HEADLESS_SECONDS: the
+    satellites were there, and what lies between them is measured along the road
+    (mode_km). A phone that gives no heading at all - a browser, a phone placing
+    itself from the network only - keeps every fix. Tried on a week of the team's
+    trips: the others moved by under 2.5 km a day, each nearer its odometer.
+    """
+    sure = [i for i, point in enumerate(points) if _heading(point) > 0]
+    if not sure:
+        return list(points)
+    out, k = [], 0
+    for i, point in enumerate(points):
+        while k < len(sure) and sure[k] < i:
+            k += 1
+        if _heading(point) <= 0 and 0 < k < len(sure) and \
+                (points[sure[k]][0] - points[sure[k - 1]][0]).total_seconds() <= HEADLESS_SECONDS:
+            continue
+        out.append(point)
+    return out
+
+
 SLOW_KMH = 8.0             # a phone still or on foot by its sensors AND its own reading may come this
                            # fast from the last fix kept (a brisk walk)...
 STILL_DRIFT_M = 150.0      # ...and one still by both may sit at most this far from it, however slowly
@@ -645,25 +682,26 @@ class LabLocationPingLive(models.Model):
     @api.model
     def _day_fixes(self, user, day):
         """Every fix of the day, in order, as [(ts, lat, lon, speed_kmh, overspeed,
-        battery, accuracy_m, source, motion), ...] - the latest one is where the phone
+        battery, accuracy_m, source, motion, heading), ...] - the latest one is where the phone
         is. Readers unpack with `*_rest`: the tuple has grown before."""
         pings = self.sudo().search_read(
             [('user_id', '=', user.id), ('date', '=', day)],
             ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m',
-             'source', 'motion'],
+             'source', 'motion', 'heading'],
             order='ts')
         return [(p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
                  bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
-                 p['source'] or 'browser', p['motion'] or None)
+                 p['source'] or 'browser', p['motion'] or None, p['heading'] or 0.0)
                 for p in pings]
 
     @api.model
     def _trail_points(self, fixes):
         """The fixes worth drawing and measuring: accurate enough to sit on a road,
-        and only where the phone went (drop_excursions)."""
+        satellite ones where the phone had them (drop_headless), and only where the
+        phone went (drop_excursions)."""
         limit = self._trail_accuracy()
         points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
-        return drop_spikes(drop_excursions(drop_impossible(points)))
+        return drop_spikes(drop_excursions(drop_impossible(drop_headless(points))))
 
     @api.model
     def _day_points(self, user, day):

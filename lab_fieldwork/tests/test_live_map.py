@@ -14,10 +14,10 @@ from .test_live_track import LiveTrackCase
 from ..models import location_live
 
 
-def at(t0, seconds, north_m, speed=0.0, motion=None):
+def at(t0, seconds, north_m, speed=0.0, motion=None, heading=0.0, east_m=0.0):
     """A trail point as _day_fixes gives it, `north_m` north of 10N 76E."""
-    return (t0 + timedelta(seconds=seconds), 10.0 + north_m / 111_320.0, 76.0, speed,
-            False, 0.0, 10.0, 'app', motion)
+    return (t0 + timedelta(seconds=seconds), 10.0 + north_m / 111_320.0, 76.0 + east_m / 109_640.0, speed,
+            False, 0.0, 10.0, 'app', motion, heading)
 
 
 def letters(modes):
@@ -380,6 +380,35 @@ class TestLiveLayer(LiveTrackCase):
         self.assertEqual(drop(fast), fast, "fast, but as fast as the phone reads")
         mute = ride[:2] + [at(t0, 90, 250 + 1100, motion='vehicle'), at(t0, 120, 600, motion='vehicle')]
         self.assertEqual(drop(mute), mute, "no reading either side: not judged here")
+
+    def test_a_rough_fix_between_satellite_ones_is_not_the_trail(self):
+        """Riding, the phone sent a satellite fix with a heading, then one worked out from
+        Wi-Fi and towers with none, 300 m off the road, and so on every few seconds
+        (Shajimon, 2026-10-29: 202.9 km on a bike that read 162). Between satellite
+        fixes the rough ones are dropped; where there are no satellites they stay."""
+        t0 = fields.Datetime.now() - timedelta(hours=1)
+        drop = location_live.drop_headless
+        road = [at(t0, 20 * i, 250 * i, speed=45.0, motion='vehicle', heading=1.0) for i in range(5)]
+        zigzag = []
+        for i, fix in enumerate(road):
+            zigzag.append(fix)
+            if i < len(road) - 1:
+                zigzag.append(at(t0, 20 * i + 10, 250 * i + 125, motion='vehicle', east_m=300))
+        self.assertEqual(drop(zigzag), road)
+        straight = location_live.mode_km(road)['travel']
+        self.assertGreater(location_live.mode_km(zigzag)['travel'], 2 * straight, "every crossing was counted")
+        self.assertAlmostEqual(location_live.mode_km(drop(zigzag))['travel'], straight, places=2)
+        # the satellites lost for longer than HEADLESS_SECONDS: the network's fixes are the trail
+        tunnel = road[:2] + [at(t0, 20 + 60 * i, 250 + 300 * i, motion='vehicle') for i in range(1, 6)] \
+            + [at(t0, 20 + 60 * 6 + 1, 250 + 1800, speed=45.0, motion='vehicle', heading=1.0)]
+        self.assertEqual(drop(tunnel), tunnel)
+        # before the first satellite fix and after the last: kept
+        ends = [at(t0, 0, 0, motion='vehicle')] + road + [at(t0, 200, 1100, motion='vehicle')]
+        self.assertEqual(drop(ends), ends)
+        # a phone that never gives a heading keeps every fix
+        network = [fix[:9] + (0.0,) for fix in zigzag]
+        self.assertEqual(drop(network), network)
+        self.assertEqual(drop([fix[:9] for fix in zigzag]), [fix[:9] for fix in zigzag], "the tuple without one")
 
     def test_a_fix_the_phone_never_went_to_is_not_the_trail(self):
         """Standing at a clinic the phone puts a fix 500 m out at "7 m" and is back
