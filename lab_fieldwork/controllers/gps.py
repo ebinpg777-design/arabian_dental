@@ -240,5 +240,11 @@ class FieldGpsController(http.Controller):
         # app reports in even with nothing to send, to hear this.
         running = request.env['lab.my.day'].with_user(user).with_company(user.company_id) \
             ._attendance_payload().get('state') == 'checked_in'
-        return request.make_response('OK %s' % kept, headers=[
-            ('Content-Type', 'text/plain'), ('X-Lab-Track', 'on' if running else 'off')])
+        headers = [('Content-Type', 'text/plain'), ('X-Lab-Track', 'on' if running else 'off')]
+        # The newest build of the Lab app, for the app's "update available" alert
+        # (ADL Pro 1.0.16; client, 2026-10-31). Every post hears it, so a build
+        # uploaded at noon reaches the phones on the road within minutes.
+        latest = request.env['lab.field.app'].sudo()._version()
+        if latest:
+            headers.append(('X-Lab-App', latest))
+        return request.make_response('OK %s' % kept, headers=headers)

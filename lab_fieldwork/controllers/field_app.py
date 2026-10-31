@@ -10,7 +10,8 @@ from markupsafe import Markup
 from odoo import http
 from odoo.http import request
 
-from ..models.field_app import APP_MIMETYPE, IOS_FILE, IOS_PREFIX, platform_of
+from ..models.field_app import APP_DOWNLOAD, APP_MIMETYPE, IOS_FILE, IOS_PREFIX, platform_of
+from .gps import MIN_DEVICE_ID
 
 
 class FieldAppController(http.Controller):
@@ -37,15 +38,33 @@ class FieldAppController(http.Controller):
             'company': request.env.company,
         })
 
-    @http.route('/lab_fieldwork/app/download', type='http', auth='user', methods=['GET'])
+    @http.route(APP_DOWNLOAD, type='http', auth='user', methods=['GET'])
     def download(self, **kw):
-        App = request.env['lab.field.app']
+        return self._apk(request.env['lab.field.app'])
+
+    @http.route(APP_DOWNLOAD + '/<string:device_id>', type='http', auth='none', methods=['GET'],
+                save_session=False)
+    def download_for_device(self, device_id, **kw):
+        """The APK for the app's own "update available" alert (ADL Pro 1.0.16; client,
+        2026-10-31: "when clicking push notification it download the latest app").
+        The phone's download manager fetches it without the app's login, so it
+        answers to the phone's device id - the key the phone already posts its
+        positions with - instead of a session."""
+        device_id = str(device_id or '')
+        user = request.env['res.users'].sudo().search(
+            [('fw_gps_device_id', '=', device_id), ('fw_native_app', '=', True)], limit=1) \
+            if len(device_id) >= MIN_DEVICE_ID else None
+        if not user:
+            return request.make_response('unknown device', status=403)
+        return self._apk(request.env['lab.field.app'].sudo())
+
+    def _apk(self, App):
         attachment = App._attachment()
         if not attachment:
             raise request.not_found()
         version = App._version()
         filename = 'adl-pro-%s.apk' % version if version else 'adl-pro.apk'
-        stream = request.env['ir.binary']._get_stream_from(
+        stream = request.env['ir.binary'].sudo()._get_stream_from(
             attachment, 'raw', filename=filename, mimetype=APP_MIMETYPE)
         return stream.get_response(as_attachment=True)
 

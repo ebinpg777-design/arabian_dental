@@ -142,6 +142,32 @@ class TestFieldApp(HttpCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.headers.get('X-Lab-Track'), 'off')
 
+    def test_the_phone_hears_of_a_new_build_and_fetches_it_with_its_own_key(self):
+        """Client, 2026-10-31: "If new app version updated in the server then show push
+        notification to update the latest app. when clicking push notification it
+        download the latest app". Every answer to the app's post names the newest
+        build; the phone's download manager fetches it with the phone's device id,
+        no login."""
+        self._on_duty()
+        device = self._state(client='app', app_version='1.0.0')['native']['device_id']
+        r = self.url_open('/lab_fieldwork/gps', json={'device_id': device, 'locations': []})
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.headers.get('X-Lab-App'), "no build uploaded: nothing to offer")
+        self.assertEqual(self.url_open('/lab_fieldwork/app/download/' + device).status_code, 404)
+        self.App._store(APK, '1.0.16', 'adl-pro-1.0.16.apk')
+        r = self.url_open('/lab_fieldwork/gps', json={'device_id': device, 'locations': []})
+        self.assertEqual(r.headers.get('X-Lab-App'), '1.0.16')
+        apk = self.url_open('/lab_fieldwork/app/download/' + device)
+        self.assertEqual(apk.status_code, 200)
+        self.assertEqual(apk.content, APK)
+        self.assertIn('android.package-archive', apk.headers.get('Content-Type', ''))
+        self.assertIn('adl-pro-1.0.16.apk', apk.headers.get('Content-Disposition', ''))
+        for wrong in ('X' * 16, device[:-1] + ('A' if device[-1] != 'A' else 'B'), 'short'):
+            self.assertEqual(self.url_open('/lab_fieldwork/app/download/' + wrong).status_code, 403, wrong)
+        # a device id the Traccar switch made is not the Lab app's: no APK for it
+        self.exec_user.sudo().fw_native_app = False
+        self.assertEqual(self.url_open('/lab_fieldwork/app/download/' + device).status_code, 403)
+
     # ------------------------------------------------------------- the APK
     def test_settings_keep_the_apk_and_the_page_serves_it(self):
         self.assertIsNone(self.App._info())
