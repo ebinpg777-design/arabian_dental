@@ -111,6 +111,38 @@ def _step(a, b):
     return metres, seconds, metres / seconds * 3.6
 
 
+def drop_detours(points):
+    """The trail without a lone fix the phone put off the road and came straight back from.
+
+    Riding, a phone placing itself from Wi-Fi and towers now and then lands one fix
+    100-650 m off the road, with no heading, and the next one back on it (Abdul Latheef
+    on the Areekode-Manjeri road, 2026-10-31: 650 m out and 590 m back between two
+    fixes 174 m apart, in 65 s; five such that day). On the map a V to nowhere, in the
+    km the V. The excursion rule spares a riding phone, the spike rule judges only a
+    phone reading its own speed, and the headless rule needs satellite fixes around -
+    this phone gave a heading on one fix in four. A fix with no heading of its own is
+    dropped when it is DETOUR_OUT_M or more from both the fix kept before it and the
+    one after, the way round through it is DETOUR_FACTOR times the way straight
+    between those two, and the phone was back within DETOUR_SECONDS. A real errand
+    down a side road leaves more than one fix - the app takes one every ten seconds -
+    and a fix with a heading, a satellite fix on the move, is believed.
+    """
+    if len(points) < 3:
+        return list(points)
+    out = [points[0]]
+    for i in range(1, len(points) - 1):
+        before, point, after = out[-1], points[i], points[i + 1]
+        if _heading(point) <= 0:
+            way_in, way_out = _step(before, point)[0], _step(point, after)[0]
+            if min(way_in, way_out) >= DETOUR_OUT_M \
+                    and way_in + way_out >= DETOUR_FACTOR * max(_step(before, after)[0], 1.0) \
+                    and (after[0] - before[0]).total_seconds() <= DETOUR_SECONDS:
+                continue
+        out.append(point)
+    out.append(points[-1])
+    return out
+
+
 def _motion(point):
     """What the phone's sensors said at this fix ('vehicle'/'foot'/'still'), or None."""
     return point[8] if len(point) > 8 else None
@@ -122,6 +154,9 @@ def _heading(point):
 
 
 HEADLESS_SECONDS = 300     # a fix with no heading between two with one this close in time
+DETOUR_OUT_M = 100.0       # a lone fix at least this far from the fixes either side of it...
+DETOUR_FACTOR = 3.0        # ...the way round through it this many times the way straight...
+DETOUR_SECONDS = 180       # ...and the phone back within this: a place it never went to
 
 
 def drop_headless(points):
@@ -707,10 +742,10 @@ class LabLocationPingLive(models.Model):
     def _trail_points(self, fixes):
         """The fixes worth drawing and measuring: accurate enough to sit on a road,
         satellite ones where the phone had them (drop_headless), and only where the
-        phone went (drop_excursions)."""
+        phone went (drop_detours, drop_excursions)."""
         limit = self._trail_accuracy()
         points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
-        return drop_spikes(drop_excursions(drop_impossible(drop_headless(points))))
+        return drop_spikes(drop_excursions(drop_impossible(drop_detours(drop_headless(points)))))
 
     @api.model
     def _day_points(self, user, day):
@@ -753,7 +788,7 @@ class LabLocationPingLive(models.Model):
             [('user_id', '=', user.id), ('date', '=', day), ('state', 'in', ('draft', 'submitted', 'sent_back'))])
         if sheets:
             summary = self._day_summary(user, day)
-            values = {key: summary[key] for key in ('gps_km', 'foot_km', 'blind_km')}
+            values = {key: summary[key] for key in ('gps_km', 'foot_km', 'blind_km', 'halt_minutes')}
             for sheet in sheets:
                 if any(round(sheet[key] or 0.0, 1) != round(value, 1) for key, value in values.items()):
                     sheet.write(values)
@@ -866,7 +901,14 @@ class LabLocationPingLive(models.Model):
     def _detect_halts(self, user, day, points=None):
         """Stretches of the day's trail where the phone sat still away from any
         clinic. Re-reading the day never doubles a halt: they are keyed by when they
-        began, and an open one is extended or closed in place."""
+        began, and an open one is extended or closed in place.
+
+        A halt is open - still there, counting - only while the day runs; once the
+        executive has ended it, the stop ends with the last fix (2026-10-31: Abdul
+        Latheef ended his day at 13:30 at the lab and was "stopped 345 min away from
+        any clinic" at 19:15). And a halt the day no longer shows - inside a clinic or
+        the lab once that is pinned, or begun at a fix the trail has since left out -
+        is removed."""
         points = self._day_points(user, day) if points is None else points
         if len(points) < 2:
             return self.env['lab.location.halt']
@@ -889,9 +931,13 @@ class LabLocationPingLive(models.Model):
                 anchor = (ts, lat, lon) if speed < HALT_SPEED_KMH else None
             last_ts = ts
         now = fields.Datetime.now()
-        if anchor is not None and (last_ts - anchor[0] >= minimum
-                                   or (day == self._today_for(user) and now - anchor[0] >= minimum)):
-            found.append((anchor[0], None, anchor[1], anchor[2]))   # still there
+        employee = user.sudo()._fw_employee() if day == self._today_for(user) else None
+        on_duty = bool(employee) and employee.attendance_state == 'checked_in'
+        if anchor is not None:
+            if on_duty and now - anchor[0] >= minimum:
+                found.append((anchor[0], None, anchor[1], anchor[2]))   # still there
+            elif last_ts - anchor[0] >= minimum:
+                found.append((anchor[0], last_ts, anchor[1], anchor[2]))   # the day ended there
 
         Halt = self.env['lab.location.halt'].sudo()
         existing = {h.started_at: h for h in Halt.search(
@@ -914,6 +960,9 @@ class LabLocationPingLive(models.Model):
                 halt = Halt.create(dict(vals, user_id=user.id, date=day, started_at=started,
                                         company_id=user.company_id.id))
             touched |= halt
+        stale = Halt.browse([h.id for h in existing.values()]) - touched
+        if stale:
+            stale.unlink()
         return touched
 
     @api.model

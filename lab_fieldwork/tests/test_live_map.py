@@ -410,6 +410,39 @@ class TestLiveLayer(LiveTrackCase):
         self.assertEqual(drop(network), network)
         self.assertEqual(drop([fix[:9] for fix in zigzag]), [fix[:9] for fix in zigzag], "the tuple without one")
 
+    def test_a_lone_fix_off_the_road_with_no_heading_is_not_the_trail(self):
+        """Riding, a phone placing itself from Wi-Fi and towers landed one fix 650 m off
+        the road and the next back on it, 174 m along, in 65 s (Abdul Latheef,
+        2026-10-31): a V on the map and in the km. A satellite fix is believed, and a
+        real errand down a side road leaves more than one fix."""
+        t0 = fields.Datetime.now() - timedelta(hours=1)
+        drop = location_live.drop_detours
+        road = [at(t0, 30 * i, 100 * i, motion='vehicle') for i in range(3)]
+        spike = at(t0, 90, 200, motion='vehicle', east_m=620)
+        after = [at(t0, 120, 300, motion='vehicle'), at(t0, 150, 400, motion='vehicle')]
+        trail = road + [spike] + after
+        self.assertEqual(drop(trail), road + after)
+        self.assertLess(location_live.mode_km(drop(trail))['travel'], location_live.mode_km(trail)['travel'] - 1.0)
+        # the same place, with a heading: a satellite fix on the move is believed
+        sure = at(t0, 90, 200, motion='vehicle', east_m=620, heading=90.0)
+        self.assertEqual(drop(road + [sure] + after), road + [sure] + after)
+        # a bend in the road: the way round is not three times the way straight
+        bend = road + [at(t0, 90, 300, motion='vehicle', east_m=150), at(t0, 120, 450, motion='vehicle')]
+        self.assertEqual(drop(bend), bend)
+        # close to the road: GPS wander, for the road to sort out
+        near = road + [at(t0, 90, 200, motion='vehicle', east_m=60)] + after
+        self.assertEqual(drop(near), near)
+        # an errand: out at walking pace and back minutes later
+        errand = road + [at(t0, 300, 200, east_m=400), at(t0, 600, 300)]
+        self.assertEqual(drop(errand), errand)
+        # the first fix and the latest have no way back to judge
+        self.assertEqual(drop([spike] + after), [spike] + after)
+        self.assertEqual(drop(road + [spike]), road + [spike])
+        # two in turn: both go, each judged from the last fix kept
+        twice = road + [spike, at(t0, 120, 300, motion='vehicle'),
+                        at(t0, 140, 350, motion='vehicle', east_m=-500), at(t0, 160, 400, motion='vehicle')]
+        self.assertEqual([round((p[1] - 10.0) * 111_320.0) for p in drop(twice)], [0, 100, 200, 300, 400])
+
     def test_a_fix_the_phone_never_went_to_is_not_the_trail(self):
         """Standing at a clinic the phone puts a fix 500 m out at "7 m" and is back
         seconds later (ASHIQ, 2026-10-26): a spike on the map and km never driven.
@@ -559,6 +592,33 @@ class TestLiveLayer(LiveTrackCase):
         self.env['lab.location.ping'].sudo()._detect_halts(user, day)
         self.assertEqual(self.env['lab.location.halt'].sudo().search_count([('user_id', '=', user.id)]), 1)
         self.assertEqual(self.env['lab.location.ping'].sudo()._day_summary(user, day)['halt_minutes'], 15)
+
+    def test_a_halt_ends_with_the_day_and_a_stop_at_the_lab_is_no_halt(self):
+        """Abdul Latheef ended his day at 13:30 at the lab and at 19:15 the board said
+        "stopped 345 min away from any clinic": the stop stayed open after the day, and
+        the lab had no pin. Open only while the day runs; gone once the lab is pinned."""
+        user = self.exec_user
+        now = fields.Datetime.now() - timedelta(minutes=60)
+        attendance = self._start_day(user, now - timedelta(minutes=30))
+        self.env['ir.config_parameter'].sudo().set_str('lab_fieldwork.halt_minutes', '10')
+        Ping = self.env['lab.location.ping'].sudo()
+        day = Ping._today_for(user)
+        self._pings(user, now, [(10.0, 76.0, s, 0.0) for s in (0, 300, 600, 900)])
+        halt = self.env['lab.location.halt'].sudo().search([('user_id', '=', user.id)])
+        self.assertEqual(len(halt), 1)
+        self.assertFalse(halt.ended_at, "the day is running: still there")
+        # the day ends: the stop ends with the last fix, whatever the clock says after
+        self.env['hr.attendance'].sudo().search(
+            [('employee_id.user_id', '=', user.id), ('check_out', '=', False)]).write(
+            {'check_out': now + timedelta(seconds=950)})
+        Ping._detect_halts(user, day)
+        self.assertEqual(halt.ended_at, now + timedelta(seconds=900))
+        self.assertEqual(halt.minutes, 15)
+        # the lab pinned: the day read again has no halt there
+        self.env.company.partner_id.sudo().write({'partner_latitude': 10.0, 'partner_longitude': 76.0})
+        Ping._detect_halts(user, day)
+        self.assertFalse(halt.exists(), "a stop at the lab is no halt, and it goes")
+        self.assertEqual(Ping._day_summary(user, day)['halt_minutes'], 0)
 
     def test_the_trip_carries_the_trails_km_beside_the_claim(self):
         user = self.exec_user
