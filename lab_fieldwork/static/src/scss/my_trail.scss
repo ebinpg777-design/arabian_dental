@@ -119,6 +119,9 @@
         font-weight: 600;
         white-space: nowrap;
         &:hover { background-color: $o-gray-200; }
+        &:disabled { opacity: .6; }
+        // two buttons on the km row: only the first takes the room
+        & + & { margin-left: 0; }
     }
     .o_fw_where .o_fw_warn { margin-top: .5rem; }
 

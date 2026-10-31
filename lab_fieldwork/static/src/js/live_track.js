@@ -65,6 +65,8 @@ const POLL_MS = 300000;
 // The browser fallback: back in front after this long in the background, the gap is
 // named on the card - and, on Android, the app that would have closed it is offered.
 const GAP_NOTICE_S = 120;
+// Sync now: how long the page waits for the app to send a whole day again.
+const SYNC_WAIT_MS = 45000;
 
 /**
  * The Lab app's bridge (2026-10-20). Inside the app's WebView, Android injects
@@ -551,6 +553,43 @@ export class LiveTracker {
         } finally {
             this.flushing = false;
         }
+    }
+
+    /**
+     * Everything this phone holds, sent now (Sync now, 2026-10-31). Inside the Lab
+     * app the recorder posts its queue and the whole day again, and says "synced" or
+     * "sync_failed" on the labapp event; a shell without sync() holds nothing this
+     * page can send. In the browser the queue is flushed. Resolves to what happened:
+     * "synced", "sync_failed", "timeout" or "unsupported".
+     */
+    async syncPhone() {
+        if (this.native) {
+            if (typeof this.native.sync !== "function") {
+                return "unsupported";
+            }
+            return new Promise((resolve) => {
+                let timer = null;
+                const done = (what) => {
+                    window.removeEventListener("labapp", onEvent);
+                    clearTimeout(timer);
+                    resolve(what);
+                };
+                const onEvent = (ev) => {
+                    if (ev.detail === "synced" || ev.detail === "sync_failed") {
+                        done(ev.detail);
+                    }
+                };
+                timer = setTimeout(() => done("timeout"), SYNC_WAIT_MS);
+                window.addEventListener("labapp", onEvent);
+                try {
+                    this.native.sync();
+                } catch {
+                    done("sync_failed");
+                }
+            });
+        }
+        await this.flush();
+        return this.buffer.length ? "sync_failed" : "synced";
     }
 
     // ------------------------------------------------------------------ the queue

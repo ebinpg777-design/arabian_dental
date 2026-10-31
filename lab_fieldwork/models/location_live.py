@@ -1286,8 +1286,38 @@ class ResUsersLive(models.Model):
         }
 
 
+SYNC_ROAD_REQUESTS = 12     # Sync now fills a whole day's new stretches in one go
+
+
 class LabMyDayLive(models.AbstractModel):
     _inherit = 'lab.my.day'
+
+    @api.model
+    def sync_now(self):
+        """The executive's Sync now on My Day (client, 2026-10-31: "provide manual sync
+        button also for users so that they can sync"). The phone has just sent
+        everything it holds; now the day's roads are filled at once - a long day's
+        new stretches in one go, where the five-minute job takes six a run - and the
+        day's km read again, so the figure the card shows is the figure the trip
+        has. The job does the same by itself within minutes; the button does it now.
+        On 30 Oct the card read 159 km when the odometer was entered, 174 once the
+        last half hour's positions and roads were in."""
+        user = self.env.user
+        Ping = self.env['lab.location.ping'].sudo()
+        day = Ping._today_for(user)
+        roads = Ping._road_legs(user, day, budget=SYNC_ROAD_REQUESTS)
+        Ping._refresh_day_km(user, day)
+        fixes = Ping._day_fixes(user, day)
+        now = fields.Datetime.now()
+        return {
+            'km_today': mode_km(Ping._trail_points(fixes), steps=Ping._road_steps(user, day))['travel'],
+            'fixes_today': len(fixes),
+            'last_fix_age_s': int((now - fixes[-1][0]).total_seconds()) if fixes else None,
+            'roads': roads['state'],
+            'roads_complete': bool(roads['complete']),
+            'synced_at': fields.Datetime.context_timestamp(
+                self.with_context(tz=tz_name(self.env, user)), now).strftime('%H:%M'),
+        }
 
     @api.model
     def tracking_state(self, client=None, app_version=None, app_device=None):

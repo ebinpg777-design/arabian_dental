@@ -610,6 +610,31 @@ class TestRoadTrail(LiveTrackCase):
         late = (a[0] + timedelta(seconds=1), a[1] - 400 * NORTH, a[2]) + a[3:]
         self.assertIsNone(location_live.road_step(steps, late, b))
 
+    def test_sync_now_fills_the_days_roads_at_once_and_the_trip_has_the_figure(self):
+        """Client, 2026-10-31: "provide manual sync button also for users so that they
+        can sync" - the km on My Day read 159 when the odometer was entered and 174 an
+        hour later, as the job filled six stretches every five minutes. Sync now fills
+        the day at once, and the trip takes the same figure."""
+        self._blind_day()
+        day = self.env['lab.location.ping']._today_for(self.exec_user)
+        trip = self.env['lab.trip'].sudo().create({
+            'user_id': self.exec_user.id, 'date': day, 'vehicle': 'bike', 'odo_start': 100, 'odo_end': 103})
+        self.assertAlmostEqual(trip.gps_km, 1.7, 1, "straight, no road known yet")
+        fake, calls = fake_osrm_longer(1.3)
+        with self._patched(fake):
+            answer = self.env['lab.my.day'].with_user(self.exec_user) \
+                .with_context(lab_test_routing=True).sync_now()
+        self.assertEqual(len(calls), 1, "the day's roads, asked now")
+        self.assertTrue(answer['roads_complete'])
+        self.assertEqual(answer['fixes_today'], 6)
+        self.assertAlmostEqual(answer['km_today'], (0.8 + 0.9) * 1.3, 1, "the drive and the gap along their roads")
+        self.assertEqual(trip.gps_km, round(answer['km_today'], 1), "the trip has the figure the card shows")
+        self.assertRegex(answer['synced_at'], r'^\d\d:\d\d$')
+        with self._patched(fake):
+            again = self.env['lab.my.day'].with_user(self.exec_user).with_context(lab_test_routing=True).sync_now()
+        self.assertEqual(len(calls), 1, "nothing to ask the second time")
+        self.assertEqual(again['km_today'], answer['km_today'])
+
     def test_a_drive_counts_its_road_and_a_snap_beside_it_does_not(self):
         """Straight lines cut every corner: 119 km on a day the vehicle read 128."""
         t0 = fields.Datetime.now()

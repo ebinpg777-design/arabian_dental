@@ -244,6 +244,15 @@
                         <span class="o_fw_where_km">
                             <strong t-out="this.kmToday"/> km today
                         </span>
+                        <!-- Sync now (client, 2026-10-31): everything the phone holds
+                             goes, the roads are filled and the km counted again, now. -->
+                        <button class="o_fw_where_btn" t-att-disabled="this.state.where.syncing"
+                                t-on-click="() => this.syncNow()"
+                                title="Send every position this phone holds and count today's kilometres again now.">
+                            <i t-att-class="'fa fa-refresh me-1' + (this.state.where.syncing ? ' fa-spin' : '')" title="Sync"/>
+                            <t t-if="this.state.where.syncing">Syncing…</t>
+                            <t t-else="">Sync now</t>
+                        </button>
                         <button class="o_fw_where_btn" t-on-click="() => this.toggleTrail()">
                             <i t-att-class="'fa me-1 ' + (this.state.where.trail ? 'fa-chevron-up' : 'fa-map-o')"
                                t-att-title="this.state.where.trail ? 'Hide my trail' : 'Show my trail'"/>

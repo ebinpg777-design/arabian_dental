@@ -64,7 +64,7 @@ export class LabMyDay extends Component {
             // server's answer to tracking_state (km, nudges), whether the trail map
             // is open, and the nudges this phone has waved away.
             where: { status: null, server: null, trail: false, dismissed: {},
-                     now: Date.now() } });
+                     now: Date.now(), syncing: false, synced: null } });
         this.state.where.dismissed = this.readDismissed();
         onMounted(() => this.scheduleWhere());
         onWillUnmount(() => clearTimeout(this._whereTimer));
@@ -409,7 +409,58 @@ export class LabMyDay extends Component {
             // Out of coverage: the phone is holding them, and says so.
             bits.push(`${s.queued} waiting to send`);
         }
+        if (this.state.where.synced) {
+            bits.push(`synced ${this.state.where.synced}`);
+        }
         return bits.join(" · ");
+    }
+
+    /**
+     * Sync now (client, 2026-10-31: "provide manual sync button also for users so
+     * that they can sync"). The phone sends everything it holds, the server fills
+     * the day's roads at once and counts the km again, and the card shows the figure
+     * the trip has. What the 90-second post and the five-minute road job do by
+     * themselves, done now - for the executive who has just entered the odometer
+     * and wants the trail beside it to be the whole day so far.
+     */
+    async syncNow() {
+        const w = this.state.where;
+        if (w.syncing) {
+            return;
+        }
+        w.syncing = true;
+        try {
+            const phone = await this.tracker.syncPhone();
+            let answer = null;
+            try {
+                answer = await this.orm.call("lab.my.day", "sync_now", []);
+            } catch {
+                answer = null;
+            }
+            if (answer) {
+                if (w.server) {
+                    w.server.km_today = answer.km_today;
+                }
+                w.synced = answer.synced_at;
+            }
+            const waiting = (this.tracker.getStatus() || {}).queued || 0;
+            if (!answer) {
+                this.notification.add(_t("Could not reach the server. Your positions stay on the phone and go when the network is back."),
+                                      { type: "warning" });
+            } else if (phone === "sync_failed" || waiting) {
+                this.notification.add(_t("%(n)s positions are still waiting for the network. %(km)s km counted so far.",
+                                         { n: waiting || _t("Some"), km: answer.km_today.toFixed(1) }),
+                                      { type: "warning" });
+            } else {
+                this.notification.add(_t("Synced: %(n)s positions, %(km)s km today%(roads)s.",
+                                         { n: answer.fixes_today, km: answer.km_today.toFixed(1),
+                                           roads: answer.roads_complete ? "" : _t(" (roads still being filled)") }),
+                                      { type: "success" });
+            }
+            this.refreshWhere();
+        } finally {
+            w.syncing = false;
+        }
     }
 
     /** From the server, not the phone: the kilometres it has actually kept. */
