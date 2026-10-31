@@ -566,15 +566,23 @@ export class LabMyDay extends Component {
         }
     }
 
-    /** A newer build of the app than the one this page runs in, or "". */
+    /**
+     * A newer ADL Pro on the server than the one this page runs in: {latest, current,
+     * url}, or null (client, 2026-10-31: "If new app version updated in the server
+     * then show ... update the latest app. when clicking ... it download the latest
+     * app"). The app's own notification says so from 1.0.16; this banner says it at
+     * the top of My Day to every version, on duty or not, and its button downloads
+     * the APK - the app hands the download to Android, whose "download complete"
+     * opens the installer.
+     */
     get appUpdate() {
-        const s = this.nativeStatus;
         const server = this.state.where.server;
-        const latest = server && server.native && server.native.latest_version;
-        if (!s || !latest || !s.version || !newerVersion(latest, s.version)) {
-            return "";
+        const info = server && server.app_download;
+        const current = this.tracker.native ? this.tracker.nativeVersion : "";
+        if (!info || !info.version || !current || !newerVersion(info.version, current)) {
+            return null;
         }
-        return latest;
+        return { latest: info.version, current, url: info.download_url || "/lab_fieldwork/app/download" };
     }
 
     /** The app, offered on a phone that is not running it: the APK on Android, the

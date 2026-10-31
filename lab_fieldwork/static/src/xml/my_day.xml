@@ -4,6 +4,19 @@
 <t t-name="lab_fieldwork.MyDay">
     <div class="o_fw_day o_action">
 
+        <!-- A newer ADL Pro on the server (client, 2026-10-31): to every version of the
+             app, on duty or not; the button downloads it. -->
+        <div t-if="this.appUpdate" class="o_fw_app_update">
+            <i class="fa fa-arrow-circle-up o_fw_app_update_icon" title="Update available"/>
+            <div class="o_fw_app_update_text">
+                <strong>ADL Pro <t t-out="this.appUpdate.latest"/> is available</strong>
+                <span>You have <t t-out="this.appUpdate.current"/>. Download it, then tap the finished download to install.</span>
+            </div>
+            <a class="o_fw_app_update_btn" t-att-href="this.appUpdate.url">
+                <i class="fa fa-download me-1" title="Download"/>Download update
+            </a>
+        </div>
+
         <!-- Header: what today amounts to, in four numbers and a progress ring. -->
         <div class="o_fw_hero">
             <div class="o_fw_hero_top">
@@ -288,11 +301,6 @@
                         <i class="fa fa-battery-half me-1" title="Battery saving"/>
                         <t t-out="this.nativeBatteryHint"/>
                         <button class="o_fw_where_btn ms-1" t-on-click="() => this.nativeBattery()">Battery settings</button>
-                    </div>
-                    <div t-if="this.appUpdate" class="o_fw_app_note">
-                        <i class="fa fa-arrow-circle-up me-1" title="Update"/>
-                        Version <t t-out="this.appUpdate"/> of ADL Pro is out.
-                        <a href="/lab_fieldwork/app">Get it</a>
                     </div>
                     <div t-if="this.gapNotice" class="o_fw_app_note">
                         <i class="fa fa-pause-circle me-1" title="Not recorded"/>

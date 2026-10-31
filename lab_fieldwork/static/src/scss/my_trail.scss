@@ -192,3 +192,38 @@
     a { color: #2563eb; font-weight: 600; }
 }
 .o_fw_where .o_fw_app_offer { color: #1f2937; }
+
+// A newer ADL Pro on the server: the top of My Day, above the day itself (2026-10-31)
+.o_fw_app_update {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem .75rem;
+    margin-bottom: 1rem;
+    padding: .75rem 1rem;
+    border: 1px solid rgba($primary, .35);
+    border-radius: .625rem;
+    background-color: rgba($primary, .08);
+    .o_fw_app_update_icon { font-size: 1.5rem; color: $primary; }
+    .o_fw_app_update_text {
+        flex: 1 1 12rem;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        font-size: .8125rem;
+        color: $o-gray-700;
+        strong { font-size: .9375rem; color: $o-gray-900; }
+    }
+    .o_fw_app_update_btn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        padding: .375rem 1rem;
+        border-radius: 999px;
+        background-color: $primary;
+        color: #fff;
+        font-weight: 600;
+        white-space: nowrap;
+        &:hover, &:focus-visible { color: #fff; filter: brightness(.95); }
+    }
+}
