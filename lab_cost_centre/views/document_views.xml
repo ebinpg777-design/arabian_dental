@@ -55,9 +55,13 @@
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
-            <field name="invoice_payment_term_id" position="after">
-                <field name="department_id" options="{'no_create': True}"/>
-            </field>
+            <!-- After the due date / payment terms row, not inside it: Odoo 20 keeps
+                 that row in one unlabelled flex div, where the department showed as
+                 a bare name with no label. -->
+            <xpath expr="//div[@name='due_date']" position="after">
+                <field name="department_id" options="{'no_create': True}"
+                       invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')"/>
+            </xpath>
         </field>
     </record>
 
