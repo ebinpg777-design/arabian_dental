@@ -1,7 +1,7 @@
 # Part of ebshel_whatsapp_password_reset. See LICENSE file for full copyright and licensing details.
 {
     "name": "Password Reset on WhatsApp",
-    "version": "20.0.1.0.0",
+    "version": "20.0.1.1.0",
     "category": "Hidden/Tools",
     "summary": "A button on the user form that opens WhatsApp with a fresh link to set a new "
     "password - for the people who read WhatsApp, not email.",
@@ -17,6 +17,11 @@ adds one, else their work mobile, else their phone); without a number, WhatsApp 
 whom to send it to. The link works once, for as long as the reset password validity
 allows (4 hours by default). The user's chatter records that it was sent - never the
 link itself.
+
+The link also works in a phone browser that keeps no cookies, where Odoo's own reset
+page answers the new password with "400: Bad Request - Session expired (invalid CSRF
+token)": a reset link carries its own one-time token, so the new password is taken
+on that token alone.
     """,
     "author": "Ebshel Technologies",
     "maintainer": "Ebshel Technologies",

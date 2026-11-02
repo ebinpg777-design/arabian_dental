@@ -16,6 +16,12 @@ message to the user:
   Odoo's own rules for a reset link.
 * **The link:** Odoo's own reset link; it works once, for
   `auth_signup.reset_password.validity.hours` (4 by default).
+* **Any browser:** Odoo's reset page refuses the new password with "400: Bad Request -
+  Session expired (invalid CSRF token)" when the browser comes back with another session
+  than the one the page was given - every time, on a phone whose browser keeps no cookies
+  for the site. A link with a reset token is accepted on that token alone (one-time,
+  signed, expiring: whoever holds it can set the password anyway); asking for a reset
+  email by login still needs the page's form token (`controllers/main.py`).
 * **The record:** the user's chatter notes that it was sent and to which number - never
   the link.
 
