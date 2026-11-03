@@ -215,8 +215,17 @@ class LabLocationPing(models.Model):
 
             values = []
             held = None                   # the day's fixes already held, read once, for late ones
+            queued = set()                # the seconds this batch has filed already
             for when, latitude, longitude, accuracy, extra in rows:
                 if not self._on_duty_at(windows, when):
+                    continue
+                if when in queued:
+                    # Times arrive in whole seconds and a person holds one fix a second.
+                    # The second copy was judged late against the fixes HELD, which do
+                    # not include the first copy still waiting in this batch - so both
+                    # went in, the unique key refused the whole batch, and the phone sent
+                    # it again every few seconds: at the sister project one executive
+                    # recorded nothing for three days (2026-11-02).
                     continue
                 late = bool(last_ts) and when <= last_ts
                 if late:
@@ -286,6 +295,7 @@ class LabLocationPing(models.Model):
                     # set only by the app endpoint: the browser cannot claim to be the app
                     'source': 'app' if self.env.context.get('fw_ping_source') == 'app' else 'browser',
                 })
+                queued.add(when)
                 if late:
                     # a second late fix of the batch is judged against this one
                     held.append({'ts': when, 'latitude': latitude, 'longitude': longitude,
@@ -297,6 +307,12 @@ class LabLocationPing(models.Model):
                         good_point = (when, latitude, longitude)
                 if existing + len(values) >= MAX_PINGS_PER_DAY:
                     break
+            if values:
+                # The key is the person and the second, whatever the day: a fix filed under
+                # another day (a timezone that has changed since) must not fail the batch.
+                taken = set(self.sudo().search([('user_id', '=', user.id),
+                                                ('ts', 'in', [v['ts'] for v in values])]).mapped('ts'))
+                values = [v for v in values if v['ts'] not in taken]
             if values:
                 # sudo on the create: the executive is entitled to record where they
                 # are, and the ACL grants exactly that — but the batch is written in

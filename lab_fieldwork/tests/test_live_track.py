@@ -329,3 +329,28 @@ class TestLateFixes(LiveTrackCase):
         self.assertEqual(self._post(rows), 0, "the same batch again: nothing new")
         self.assertEqual(self._post(rows[:1]), 0, "the older one alone, again: held already")
         self.assertEqual(len(self._stored()), 2)
+
+    def test_one_second_twice_in_a_batch_is_one_fix(self):
+        """Times arrive in whole seconds. A batch carrying one second twice failed whole
+        on the unique key, and the phone sent it again every few seconds - for three days
+        at the sister project (2026-11-02)."""
+        self._on_duty()
+        self._post([(self._at(6, 0), LAT, LON, 10)])
+        kept = self._post([(self._at(6, 10), LAT + 0.01, LON, 10),
+                           (self._at(6, 10), LAT + 0.0101, LON, 12),
+                           (self._at(6, 20), LAT + 0.02, LON, 10)])
+        self.assertEqual(kept, 2, "the repeat is dropped, the rest of the batch is kept")
+        self.assertEqual([p.ts for p in self._stored()],
+                         [self._at(6, 0), self._at(6, 10), self._at(6, 20)])
+
+    def test_a_fix_held_under_another_day_does_not_fail_the_batch(self):
+        """The key is the person and the second, whatever the day it was filed under."""
+        self._on_duty()
+        self._post([(self._at(6, 0), LAT, LON, 10)])
+        self.pings.sudo().create({
+            'user_id': self.exec_user.id, 'date': self.today - timedelta(days=1),
+            'ts': self._at(6, 10), 'latitude': LAT + 0.01, 'longitude': LON,
+            'company_id': self.env.company.id})
+        kept = self._post([(self._at(6, 10), LAT + 0.01, LON, 10),
+                           (self._at(6, 20), LAT + 0.02, LON, 10)])
+        self.assertEqual(kept, 1, "held already, under another day: only the new one")
