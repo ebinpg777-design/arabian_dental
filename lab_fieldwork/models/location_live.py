@@ -385,6 +385,116 @@ def _excursion(before, run, after):
                for _metres, secs, kmh in (_step(before, run[0]), _step(run[-1], after)))
 
 
+WANDER_KMH = 1.0           # a phone reading less than this of itself is standing (a walk reads 3-6)
+WANDER_M = 300.0           # a run of such fixes at most this far from where it stood...
+WANDER_SECONDS = 600       # ...and back there within this: it never left
+WANDER_STEP_M = 100.0      # a step no longer than this, the phone reading standing at both ends: still
+WANDER_LONE_FIXES = 2      # a run this short, a heartbeat either side of it, need not read standing
+
+
+def drop_wander(points):
+    """The trail without the fixes a phone lying still puts round about itself.
+
+    A phone left on a table at home all afternoon sent a heartbeat every five
+    minutes - and three times, out of nowhere, a burst of fixes every 10-20 s, 50
+    to 186 m away at a claimed 3-26 m, reading 0.0-0.6 km/h of itself every time,
+    and was back beside the table a minute or five later. Drawn, walks and a ride
+    round the house; measured, 0.9 km on a day it never left. The excursion rule
+    wants a fast way out or back and 100 m from both ends; this drift crept out
+    between two heartbeats and came back at 18 km/h, never fast enough. Here the
+    phone's own speed reading is the evidence, and its coming back the proof:
+    a run of fixes is dropped when
+      * each of them reads under WANDER_KMH, with the sensors not saying
+        'vehicle' or 'foot' - a walk reads its pace, a ride its speed;
+      * each is STAY_M or more from where the phone stood and from the fix it
+        came back at, and within WANDER_M of where it stood;
+      * the phone is back within EXCURSION_BACK_M of where it stood, within
+        WANDER_SECONDS of the last fix kept.
+    Where the phone stood is the first fix kept of the stay - not the last one
+    kept, which may itself be a drift of 40 m. A phone that settles somewhere
+    new does not come back and is believed; the latest fixes have no way back to
+    judge and are kept until there is one.
+
+    The same phone, later that evening, put one fix 84 m out reading 19.4 km/h
+    and was back by the house 38 s later reading 31.7, between two heartbeats:
+    a "ride" of two fixes. A phone that rides is sampled every few seconds, and
+    one riding at 30 km/h does not stand still five minutes later 15 m on. So a
+    run of at most WANDER_LONE_FIXES fixes need not read standing when the phone
+    sent a heartbeat (PAUSE_SECONDS or more, under STAY_M) just before it and
+    just after it - unless the sensors said 'vehicle' or 'foot'. The fix it came
+    back at goes too when it claims a speed as well (31.7 km/h by the house): the
+    heartbeat after it, under STAY_M away, says where the phone is.
+    """
+    if len(points) < 3:
+        return list(points)
+    out, i, n = [points[0]], 1, len(points)
+    stood = points[0]
+    while i < n:
+        back = _wander_back(points, i, out, stood)
+        if back is not None:
+            unread = not all(_reads_standing(points[k], points[k - 1]) for k in range(i, back))
+            # a run that claimed a speed came back past a heartbeat (_wander_back):
+            # the fix it came back at claimed one too and goes with it
+            i = back + 1 if unread and not _reads_standing(points[back], points[back - 1]) else back
+            continue
+        point = points[i]
+        if _metres(stood, point) >= STAY_M:
+            stood = point
+        out.append(point)
+        i += 1
+    return out
+
+
+def _wander_back(points, i, out, stood):
+    """The index of the fix the phone came back at, if points[i:that] are fixes a
+    still phone put round `stood` (see drop_wander); else None. `out` is the
+    trail kept so far."""
+    last, unread = out[-1], False
+    for k in range(i, len(points)):
+        point = points[k]
+        if (point[0] - last[0]).total_seconds() > WANDER_SECONDS:
+            return None
+        if k > i and _metres(stood, point) <= EXCURSION_BACK_M:
+            if not all(_metres(fix, point) >= STAY_M for fix in points[i:k]):
+                return None
+            if unread and not (len(out) > 1 and _heartbeat(out[-2], last)
+                               and k + 1 < len(points) and _heartbeat(point, points[k + 1])):
+                return None
+            return k
+        if not STAY_M <= _metres(stood, point) <= WANDER_M or _motion(point) in ('vehicle', 'foot'):
+            return None
+        unread = unread or not _reads_standing(point, points[k - 1])
+        if unread and k - i + 1 > WANDER_LONE_FIXES:
+            return None
+    return None
+
+
+def _heartbeat(a, b):
+    """Whether `b` is the phone saying again, a pause after `a`, that it is still there."""
+    return (b[0] - a[0]).total_seconds() >= PAUSE_SECONDS and _metres(a, b) < STAY_M
+
+
+def _reads_standing(point, prev):
+    """Whether the phone's own speed reading at `point` - never one the server worked
+    out - says it was standing, with the sensors not saying it rode or walked."""
+    reading = _reading(point, prev)
+    return reading is not None and reading < WANDER_KMH and _motion(point) not in ('vehicle', 'foot')
+
+
+def _stood_at(point, prev):
+    """Whether the phone stood at `point`: by its own reading (_reads_standing), or -
+    a heartbeat repeating its place, whose 0.0 the server cannot tell from one it
+    worked out - by a slow stored speed with next to no ground covered since `prev`."""
+    if prev is not None and _reads_standing(point, prev):
+        return True
+    return _motion(point) not in ('vehicle', 'foot') and (point[3] or 0.0) < WANDER_KMH \
+        and (prev is None or _step(prev, point)[2] < WANDER_KMH)
+
+
+def _metres(a, b):
+    return metres_between(a[1], a[2], b[1], b[2]) or 0.0
+
+
 def _riding(point, prev):
     """Whether the phone said it was riding at `point`: by its own speed reading
     where it gave one, else by its motion sensor. A speed the phone did not give is
@@ -433,6 +543,8 @@ def classify_modes(points):
       stretch is timed from the start of the stay - the slowest it can have been -
       for telling a walk from a drive.
     * Slower than DRIFT_KMH even at the fastest reading is a phone on a desk: still.
+      So is a step of at most WANDER_STEP_M at walking pace while the phone's own
+      reading says it stood at both ends (_reads_standing): a walk reads its pace.
     * Far and long with nothing between, and not a walk: blind (travel, but a
       straight line under the road).
     * Then the corrections a reader makes by eye, never across a recording gap and
@@ -479,6 +591,12 @@ def classify_modes(points):
             paused[i] = secs >= PAUSE_SECONDS
         elif max(slowest, reported) >= VEHICLE_KMH:
             modes[i] = 'vehicle'
+        elif metres <= WANDER_STEP_M and _reads_standing(b, a) and _stood_at(a, points[i - 2] if i > 1 else None):
+            # walking pace by the ground, standing by the phone's own reading at both
+            # ends: a walk reads its pace, a phone lying still wanders 40-60 m. Not a
+            # longer step - 650 m in five minutes between two stops is a drive
+            # (2026-11-07)
+            paused[i] = secs >= PAUSE_SECONDS
         else:
             modes[i] = 'foot'
         # leaving a stay of a pause or more: a walk can begin here
@@ -660,7 +778,12 @@ def drawn_leg(leg, index_of, points, steps=None):
                         continue
                     out.append([lat, lon, when, end[3], 'vehicle'])
         else:
-            out.append([point[1], point[2], epoch(point[0]), point[3], mode])
+            lat, lon = point[1], point[2]
+            if mode == 'still' and out and (metres_between(out[-1][0], out[-1][1], lat, lon) or 0.0) < STAY_M:
+                # standing: the line stays where the phone stopped. Its fixes wander 10-50
+                # m about it, and drawn they were a scribble round a phone on a table.
+                lat, lon = out[-1][0], out[-1][1]
+            out.append([lat, lon, epoch(point[0]), point[3], mode])
         prev = point
     return out
 
@@ -742,10 +865,10 @@ class LabLocationPingLive(models.Model):
     def _trail_points(self, fixes):
         """The fixes worth drawing and measuring: accurate enough to sit on a road,
         satellite ones where the phone had them (drop_headless), and only where the
-        phone went (drop_detours, drop_excursions)."""
+        phone went (drop_detours, drop_wander, drop_excursions)."""
         limit = self._trail_accuracy()
         points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
-        return drop_spikes(drop_excursions(drop_impossible(drop_detours(drop_headless(points)))))
+        return drop_spikes(drop_excursions(drop_impossible(drop_wander(drop_detours(drop_headless(points))))))
 
     @api.model
     def _day_points(self, user, day):

@@ -7,7 +7,9 @@ cuts every corner. OSRM's route service - the one the day sheet already asks for
 road between two doors - is asked for the road from each fix to the next, the whole
 trail at once up to ROAD_WAYPOINTS fixes a request, and the roads it returns are
 drawn instead of the straight lines. Fixes closer than JITTER_M to the last waypoint
-are skipped (a phone standing still is one place); a stretch nobody could have driven
+are skipped (a phone standing still is one place), and so are fixes of a standing
+phone closer than STAY_M (classify_modes: 'still') - routed, a phone on a table at
+home wandering 40 m went out to the main road and back every few minutes; a stretch nobody could have driven
 (over MAX_KMH) is never asked for; and a leg the service makes far longer than the
 gap it bridges is a fix snapped to the wrong road - that leg is drawn straight. (The
 phone's heading was tried as a bearing hint and made it worse: 3 wrong snaps became
@@ -31,7 +33,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
 from .lab_visit import metres_between
-from .location_live import JITTER_M, MAX_KMH, ROAD_ORIGIN, classify_modes, epoch, road_step
+from .location_live import JITTER_M, MAX_KMH, ROAD_ORIGIN, STAY_M, classify_modes, epoch, road_step
 
 _logger = logging.getLogger(__name__)
 
@@ -227,7 +229,8 @@ class LabLocationPingRoad(models.Model):
         for leg in ([points] if points else []):
             wps = [leg[0]]
             for p in leg[1:]:
-                if _straight(wps[-1], p) >= JITTER_M:
+                gone = _straight(wps[-1], p)
+                if gone >= JITTER_M and (gone >= STAY_M or mode_of.get(id(p)) != 'still'):
                     wps.append(p)
             if len(wps) < 2:
                 continue
@@ -236,8 +239,10 @@ class LabLocationPingRoad(models.Model):
             for a, b in zip(wps, wps[1:]):
                 secs = max(1.0, (b[0] - a[0]).total_seconds())
                 jump = _straight(a, b) / secs * 3.6 > MAX_KMH
+                # a phone standing is on no road: never asked (2026-11-07)
+                still = mode_of.get(id(b), 'still') == 'still'
                 # known for THIS step: a late fix between two read ones changes the step
-                if road_step(cache, a, b) is not None or jump:
+                if road_step(cache, a, b) is not None or jump or still:
                     run = None
                     continue
                 if run is None:
@@ -304,6 +309,16 @@ class LabLocationPingRoad(models.Model):
             for b in wps[1:]:
                 mode = mode_of.get(id(b), 'still')
                 when, speed = epoch(b[0]), b[3]
+                if mode == 'still':
+                    # standing: no road, and the line holds where the phone stopped, as
+                    # on the plain trail (drawn_leg) - routed, two fixes 50 m apart at
+                    # home snapped to two roads and drew the drive between them
+                    lat, lon = b[1], b[2]
+                    if (metres_between(out[-1][0], out[-1][1], lat, lon) or 0.0) < STAY_M:
+                        lat, lon = out[-1][0], out[-1][1]
+                    out.append([lat, lon, when, speed, mode])
+                    last = b
+                    continue
                 geometry = road_step(cache, last, b)
                 if geometry == []:
                     continue        # the map-matcher put this fix off every road: not drawn

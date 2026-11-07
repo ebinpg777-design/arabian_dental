@@ -215,6 +215,28 @@ class TestRoadTrail(LiveTrackCase):
         record = self.env['lab.location.road'].sudo().search([('user_id', '=', self.exec_user.id)])
         self.assertEqual((len(record), record.state, record.request_count), (1, 'ok', 1))
 
+    def test_a_phone_standing_still_is_never_routed(self):
+        """Routed, a phone on a table at home wandering about went out to the main road
+        and back: two fixes 50 m apart snapped to two roads. A standing step is asked
+        of nobody and drawn where the phone is; the drive after it is routed as ever."""
+        Ping = self.env['lab.location.ping'].with_user(self.exec_user)
+        Ping.record([{'latitude': 10.0 + metres * NORTH, 'longitude': 76.0, 'accuracy_m': 8, 'speed_kmh': 0.1,
+                      'ts': fields.Datetime.to_string(self.now + timedelta(seconds=seconds))}
+                     for metres, seconds in ((0, 0), (30, 300), (60, 600), (90, 900))])
+        Ping.record([{'latitude': 10.0 + (90 + 200 * i) * NORTH, 'longitude': 76.0, 'accuracy_m': 8,
+                      'speed_kmh': 36.0, 'ts': fields.Datetime.to_string(self.now + timedelta(seconds=900 + 20 * i))}
+                     for i in range(1, 5)])
+        fake, calls = fake_osrm()
+        with self._patched(fake):
+            road = self.Ping.get_road_trail(user_id=self.exec_user.id)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls[0][0][len(ROUTING):].split(';')), 5, "the drive, from where the phone stood")
+        [leg] = road['legs']
+        standing = [v for v in leg if v[4] == 'still']
+        self.assertGreaterEqual(len(standing), 2)
+        self.assertEqual({v[1] for v in standing}, {76.0}, "no road, no bend east")
+        self.assertEqual({v[4] for v in leg if v[1] != 76.0}, {'vehicle'})
+
     def _age_road(self, seconds):
         """The person's road record written `seconds` ago (the clock is frozen).
         Flushed first: a pending write would set write_date again on its way out."""

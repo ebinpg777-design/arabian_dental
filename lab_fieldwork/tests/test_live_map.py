@@ -494,6 +494,67 @@ class TestLiveLayer(LiveTrackCase):
         self.assertTrue(Ping.sudo().search_count([('user_id', '=', user.id), ('latitude', '>', 10.004)]),
                         "the fix itself stays stored")
 
+    def test_a_phone_lying_still_is_not_a_walk_round_the_house(self):
+        """A phone on a table all afternoon (2026-11-07): a heartbeat every five
+        minutes, and now and then a burst of fixes every 10-20 s, 100-190 m away,
+        reading 0.0-0.6 km/h of itself, back beside the table a minute later -
+        drawn, walks and a ride round the house. Such a run is dropped; a walk, a
+        ride, a phone settling somewhere new and the latest fixes are not."""
+        t0 = fields.Datetime.now() - timedelta(hours=1)
+        drop = location_live.drop_wander
+        home = [at(t0, 0, 0), at(t0, 300, 3), at(t0, 600, 0)]
+        burst = [at(t0, 864, 97, speed=0.1), at(t0, 874, 186), at(t0, 887, 135, speed=0.6, motion='still')]
+        back = [at(t0, 903, 4, speed=0.4, motion='still'), at(t0, 1200, 2)]
+        self.assertEqual(drop(home + burst + back), home + back)
+        self.assertEqual(drop(home + burst[:2]), home + burst[:2], "the latest fixes: no way back to judge yet")
+        # where the phone stood is where the stay began, not the last fix kept: a
+        # 46 m wander kept, the phone's true place after it is no wander
+        creep = home + [at(t0, 900, 46, speed=0.1), at(t0, 950, -11, speed=0.1), at(t0, 1000, 40, speed=0.1)]
+        self.assertEqual(drop(creep), creep)
+        errand = home + [at(t0, 700, 120, speed=4.5), at(t0, 800, 2, speed=4.5)]
+        self.assertEqual(drop(errand), errand, "a walk reads its pace")
+        ride = home + [at(t0, 620, 150, motion='vehicle'), at(t0, 640, 3, motion='vehicle')]
+        self.assertEqual(drop(ride), ride, "0.0 while the sensors say vehicle is no reading")
+        moved = home + [at(t0, 900, 120, speed=0.1), at(t0, 1200, 122, speed=0.1), at(t0, 1500, 121, speed=0.1)]
+        self.assertEqual(drop(moved), moved, "settled somewhere new and never came back")
+        far = home + [at(t0, 864, 450, speed=0.1), at(t0, 903, 4, speed=0.1)]
+        self.assertEqual(drop(far), far, "beyond WANDER_M is for the other rules")
+        # a "ride" of two fixes between two heartbeats by the house: 84 m out at a
+        # claimed 19.4 km/h, back 38 s later at 31.7, standing there five minutes on
+        lone = home + [at(t0, 813, 84, speed=19.4), at(t0, 851, 3, speed=31.7), at(t0, 1157, 1)]
+        self.assertEqual(drop(lone), home + [lone[-1]])
+        rode = home + [at(t0, 813, 84, speed=19.4), at(t0, 851, 3, speed=31.7), at(t0, 861, 90, speed=30.0)]
+        self.assertEqual(drop(rode), rode, "no heartbeat after it: the phone rode on")
+        sensed = home + [at(t0, 813, 84, speed=19.4, motion='vehicle'), at(t0, 851, 3, speed=31.7),
+                         at(t0, 1157, 1)]
+        self.assertEqual(drop(sensed), sensed, "the sensors said vehicle")
+        # the steps the phone read itself standing at both ends of are no walk...
+        wobble = home + [at(t0, 690, 57, speed=0.1), at(t0, 760, 4, speed=0.1), at(t0, 850, 50, speed=0.1)]
+        self.assertEqual(letters(location_live.classify_modes(wobble)), '......')
+        self.assertEqual(location_live.mode_km(wobble)['total'], 0.0)
+        walked = home + [at(t0, 690, 57, speed=3.5), at(t0, 760, 4, speed=4.0)]
+        self.assertEqual(letters(location_live.classify_modes(walked)), '...FF')
+        # ...but 650 m in five minutes between two stops on a ride is a drive
+        stop_go = [at(t0, 20 * i, 166 * i, speed=30.0) for i in range(5)] + [
+            at(t0, 100, 670, speed=0.2), at(t0, 400, 1320, speed=0.9)] + [
+            at(t0, 400 + 20 * i, 1320 + 166 * i, speed=30.0) for i in range(1, 4)]
+        self.assertNotEqual(location_live.classify_modes(stop_go)[6], 'still')
+
+    def test_a_phone_left_at_home_is_one_place_on_the_map(self):
+        """The same afternoon through the map: one place, no line, no km. (A fix under
+        MIN_MOVE_METRES from the last is stored only a heartbeat on: five minutes.)"""
+        user = self.exec_user
+        start = fields.Datetime.now() - timedelta(minutes=60)
+        self._start_day(user, start - timedelta(minutes=5))
+        path = [(10.0 + metres / 111_320.0, 76.0, seconds, speed) for metres, seconds, speed in (
+            (0, 0, 0.0), (14, 300, 0.0), (46, 600, 0.1), (-11, 650, 0.1), (40, 700, 0.1), (2, 1000, 0.0),
+            (97, 1264, 0.1), (186, 1274, 0.0), (135, 1287, 0.6), (18, 1303, 0.4), (111, 1314, 0.0),
+            (16, 1333, 0.2), (5, 1640, 0.0), (84, 1853, 19.4), (3, 1891, 31.7), (1, 2197, 0.0))]
+        self._pings(user, start, path)
+        [ex] = self.env['lab.location.ping'].with_user(user).get_live_map()['executives']
+        self.assertEqual({(round(p[0], 6), round(p[1], 6)) for leg in ex['legs'] for p in leg}, {(10.0, 76.0)})
+        self.assertEqual(ex['km'], 0.0)
+
     def test_a_batch_writes_the_last_fix_forward_only(self):
         user = self.exec_user
         now = fields.Datetime.now() - timedelta(minutes=10)
