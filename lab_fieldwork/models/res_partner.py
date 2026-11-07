@@ -68,16 +68,15 @@ class ResPartner(models.Model):
 
     @api.model
     def _lab_my_route_ids(self):
-        """The sales routes this user works.
+        """The sales routes this user works today.
 
-        Both ways a person is attached to a route: leading it (`user_id`, which is
-        how every route on this database is staffed today) and being listed on it
-        (`member_ids`, unused so far but the field Odoo intends for exactly this).
-        sudo because an executive cannot read crm.team.
+        Both ways a person is attached to a route for good: leading it (`user_id`,
+        which is how every route on this database is staffed today) and being
+        listed on it (`member_ids`) - plus the routes they are on today by a duty
+        (covering a colleague, assisting, assigned for a spell; see
+        lab.route.duty). sudo inside because an executive cannot read crm.team.
         """
-        user = self.env.user
-        return self.env['crm.team'].sudo().search(
-            ['|', ('user_id', '=', user.id), ('member_ids', 'in', user.id)]).ids
+        return self.env['lab.route.duty']._routes_on(self.env.user).ids
 
     def _compute_lab_on_my_route(self):
         limited = self._lab_route_limited()
@@ -298,8 +297,9 @@ class ResUsers(models.Model):
     fw_route_ids = fields.Many2many(
         'crm.team', 'fw_user_route_rel', 'user_id', 'team_id',
         string='My Sales Routes', compute='_compute_fw_routes',
-        help="Sales routes this person leads or is a member of. Read by the partner "
-             "record rule that confines a field executive to their own round.")
+        help="Sales routes this person leads or is a member of, plus the ones "
+             "they are on today by a route duty. Read by the partner record rule "
+             "that confines a field executive to their own round.")
 
     fw_menu_ids = fields.Many2many(
         'ir.ui.menu', 'fw_user_menu_rel', 'user_id', 'menu_id',
@@ -356,11 +356,11 @@ class ResUsers(models.Model):
                 'camera': bool(me.fw_camera_exception)}
 
     def _compute_fw_routes(self):
-        # sudo: an executive cannot read crm.team, and must still resolve their own.
-        Team = self.env['crm.team'].sudo()
+        # Standing membership plus today's duties, read elevated inside: an
+        # executive cannot read crm.team, and must still resolve their own.
+        Duty = self.env['lab.route.duty']
         for user in self:
-            user.fw_route_ids = Team.search(
-                ['|', ('user_id', '=', user.id), ('member_ids', 'in', user.id)])
+            user.fw_route_ids = Duty._routes_on(user)
 
     fw_is_field_person = fields.Boolean(
         string='Works the Field', compute='_compute_fw_is_field_person',

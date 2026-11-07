@@ -88,5 +88,21 @@
             <field name="interval_type">days</field>
             <field name="active" eval="True"/>
         </record>
+
+        <!--
+            A duty that begins or ends today changes "my routes" without anybody
+            writing anything, and the access rules that read it are cached per
+            user. Hourly, flushing once per lab day and only when such a duty
+            exists; the day turns on the lab's clock, not the server's. (2026-11-07)
+        -->
+        <record id="cron_route_duty_turn_of_day" model="ir.cron">
+            <field name="name">Field Work: route duties at the turn of the day</field>
+            <field name="model_id" ref="model_lab_route_duty"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_turn_of_day()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
     </data>
 </odoo>

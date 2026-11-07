@@ -43,6 +43,36 @@ deliveries on it is refused, and the message names them. A completed one stays. 
 executive may only remove their own visits, and only within the days My Day opens.
 A manager may remove anyone's, on any day.
 
+## Route Roster (2026-11-07)
+
+A sales route has its standing people - the leader and the members - and that is
+how every route is staffed for good. A **route duty** puts somebody on a route for a
+day or a spell on top of that: *assigned* by a manager, *covering* a colleague who
+is away, or *assisting* one. For those days the route is theirs everywhere Field
+Work asks "my routes" - the clinics they may reach, the pickers, Track order, new
+clinics, the live board - and nothing is taken from the person who handed it over.
+
+* **Planning > Route Roster** is the manager's grid: routes against days for a week
+  or a fortnight, the people on each as chips (standing faint; assigned, covering,
+  assisting solid; a request not yet answered dashed; somebody away struck through
+  with who covers). A route-day nobody is on is amber; turned round *by person*, a
+  heavy day (more than three routes) is red. Drag a person from the side panel onto
+  a day to put them on that route; drag a chip to another day or route to move the
+  duty; tap a chip for what it is and the buttons; **Assign** puts many people on
+  many routes for a period in one go.
+* **My Day** shows the routes the executive is on today, with who else is on each.
+  **Hand over** sends a colleague a request to cover the round while they are away;
+  **Ask for help** sends one to come along. The colleague answers on their own My
+  Day with two buttons; until then nothing changes. The dialog offers first the
+  colleagues who already know the route, then the lightest day.
+* Accepting a **cover** moves the absent person's planned visits on that route to the
+  cover for those days, and ending it moves them back; *Plan This Week* plans
+  straight to whoever covers that day.
+* Everyone concerned is told in their inbox; a request also raises a to-do for the
+  person asked. A manager can answer a request on the colleague's behalf, end any
+  duty, and see the records as a list and a calendar under **Planning > Route
+  Duties**.
+
 ## Roles
 
 Each role is a different application, not the same one with items greyed out.

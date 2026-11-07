@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!-- Route Roster (2026-11-07): the head, the strip, the grid, the rail. -->
+<t t-name="lab_fieldwork.RouteRoster">
+    <div class="o_fw_rr o_action" t-att-class="{ o_fw_rr_rail_open: this.state.railOpen }" t-on-click="() => this.closeFocus()">
+
+        <!-- ================================================== the head -->
+        <div class="o_fw_rr_head">
+            <div class="o_fw_rr_title">
+                <h4>Route Roster</h4>
+                <div class="o_fw_rr_sub" t-out="this.spanWord"/>
+            </div>
+            <div class="o_fw_rr_views" role="tablist">
+                <button type="button" t-att-class="{ o_fw_rr_view_on: this.state.view === 'routes' }"
+                        t-on-click="() => this.setView('routes')"><i class="fa fa-map-signs me-1" aria-hidden="true"/>By route</button>
+                <button type="button" t-att-class="{ o_fw_rr_view_on: this.state.view === 'people' }"
+                        t-on-click="() => this.setView('people')"><i class="fa fa-users me-1" aria-hidden="true"/>By person</button>
+            </div>
+            <div class="o_fw_rr_tools">
+                <label class="o_fw_rr_search">
+                    <i class="fa fa-search" aria-hidden="true"/>
+                    <input type="search" placeholder="Route or name" t-att-value="this.state.query" t-on-input="(ev) => this.onQuery(ev)"/>
+                </label>
+                <div class="o_fw_rr_nav" role="group" aria-label="Week">
+                    <button type="button" class="o_fw_rr_btn" title="The week before" t-on-click="() => this.shift(-1)"><i class="fa fa-chevron-left" aria-hidden="true"/></button>
+                    <label class="o_fw_rr_dayword" t-att-title="this.state.from">
+                        <i class="fa fa-calendar-o" aria-hidden="true"/>
+                        <span t-if="this.isThisWeek">This week</span>
+                        <span t-else="" t-out="this.spanWord"/>
+                        <input type="date" class="o_fw_rr_date" t-att-value="this.state.from" t-on-change="(ev) => this.pickDate(ev.target.value)"/>
+                    </label>
+                    <button type="button" class="o_fw_rr_btn" title="The week after" t-on-click="() => this.shift(1)"><i class="fa fa-chevron-right" aria-hidden="true"/></button>
+                    <button t-if="!this.isThisWeek" type="button" class="o_fw_rr_btn o_fw_rr_btn_go" t-on-click="() => this.thisWeek()">Today</button>
+                </div>
+                <div class="o_fw_rr_days" role="group" aria-label="Days">
+                    <button type="button" t-att-class="{ o_fw_rr_day_on: this.state.days === 7 }" t-on-click="() => this.setDays(7)">7</button>
+                    <button type="button" t-att-class="{ o_fw_rr_day_on: this.state.days === 14 }" t-on-click="() => this.setDays(14)">14</button>
+                </div>
+                <button type="button" class="o_fw_rr_primary" t-on-click="() => this.openAssign()">
+                    <i class="fa fa-plus me-1" aria-hidden="true"/>Assign
+                </button>
+                <button type="button" class="o_fw_rr_btn o_fw_rr_rail_toggle" t-att-title="this.state.railOpen ? 'Hide the side panel' : 'Show the side panel'"
+                        t-on-click="() => this.toggleRail()"><i class="fa fa-columns" aria-hidden="true"/></button>
+            </div>
+        </div>
+
+        <!-- ================================================== the strip -->
+        <div t-if="this.state.data" class="o_fw_rr_strip">
+            <div class="o_fw_rr_tile o_fw_rr_tile_warn" t-on-click="() => this.setView('routes')" title="Route-days with nobody on them (Sundays and past days not counted)">
+                <span class="o_fw_rr_tile_n" t-out="this.state.data.kpis.uncovered"/>
+                <span class="o_fw_rr_tile_l">route-days uncovered</span>
+            </div>
+            <div class="o_fw_rr_tile o_fw_rr_tile_pending" t-on-click="() => this.setRail('requests')">
+                <span class="o_fw_rr_tile_n" t-out="this.state.data.kpis.pending"/>
+                <span class="o_fw_rr_tile_l">waiting for an answer</span>
+            </div>
+            <div class="o_fw_rr_tile o_fw_rr_tile_away" t-on-click="() => this.setRail('away')">
+                <span class="o_fw_rr_tile_n" t-out="this.state.data.kpis.away"/>
+                <span class="o_fw_rr_tile_l">away, covered</span>
+            </div>
+            <div class="o_fw_rr_tile o_fw_rr_tile_heavy" t-on-click="() => this.setView('people')" t-att-title="'More than ' + this.state.data.heavy_after + ' routes in one day'">
+                <span class="o_fw_rr_tile_n" t-out="this.state.data.kpis.heavy"/>
+                <span class="o_fw_rr_tile_l">heavy days</span>
+            </div>
+            <div class="o_fw_rr_tile" t-on-click="() => this.setRail('people')">
+                <span class="o_fw_rr_tile_n" t-out="this.state.data.kpis.on_duty_today"/>
+                <span class="o_fw_rr_tile_l">on a route today</span>
+            </div>
+        </div>
+
+        <div class="o_fw_rr_body">
+            <!-- ================================================== the grid -->
+            <div class="o_fw_rr_main">
+                <div t-if="this.state.loading" class="text-center text-muted py-5">
+                    <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+                </div>
+                <div t-else="" class="o_fw_rr_scroll">
+                    <table class="o_fw_rr_grid">
+                        <thead>
+                            <tr>
+                                <th class="o_fw_rr_corner">
+                                    <t t-if="this.state.view === 'routes'">Route</t><t t-else="">Person</t>
+                                </th>
+                                <th t-foreach="this.state.data.days" t-as="day" t-key="day.iso" t-att-class="this.dayClass(day)">
+                                    <span class="o_fw_rr_dayl" t-out="day.label"/>
+                                    <span class="o_fw_rr_daym" t-out="day.month"/>
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <!-- by route -->
+                        <tbody t-if="this.state.view === 'routes'">
+                            <tr t-foreach="this.routes" t-as="r" t-key="r.id">
+                                <th class="o_fw_rr_rowh" t-attf-style="--fw-rc: {{ this.routeColour(r.color) }}">
+                                    <span class="o_fw_rr_rdot"/>
+                                    <span class="o_fw_rr_rname" t-out="r.name"/>
+                                    <span class="o_fw_rr_rsub" t-if="r.standing.length"><t t-out="r.standing.length"/> standing</span>
+                                    <span class="o_fw_rr_rsub o_fw_rr_rsub_warn" t-else="">no one standing</span>
+                                </th>
+                                <td t-foreach="this.state.data.days" t-as="day" t-key="day.iso"
+                                    class="o_fw_rr_cell" t-att-class="{ o_fw_rr_uncovered: this.isUncovered(r.id, day.iso), o_fw_rr_today: day.is_today, o_fw_rr_off: day.off, o_fw_rr_past: day.past, o_fw_rr_dropping: this.state.dragging }"
+                                    t-on-dragover="(ev) => this.allowDrop(ev)" t-on-drop="(ev) => this.drop(ev, r.id, day.iso)">
+                                    <div class="o_fw_rr_chips">
+                                        <button t-foreach="this.cell(r.id, day.iso)" t-as="chip" t-key="chip.duty_id + ':' + chip.user_id" type="button"
+                                                class="o_fw_rr_chip" t-att-class="this.chipClass(chip)" t-att-title="this.chipTitle(chip)"
+                                                draggable="true" t-on-dragstart="(ev) => this.dragChip(ev, chip)" t-on-dragend="() => this.dragEnd()"
+                                                t-on-click="(ev) => this.focusChip(ev, chip, r.id, day.iso)">
+                                            <img t-att-src="this.person(chip.user_id).avatar" t-att-alt="this.person(chip.user_id).name" loading="lazy"/>
+                                            <span class="o_fw_rr_chip_name" t-out="this.firstName(this.person(chip.user_id).name)"/>
+                                            <i t-att-class="'fa o_fw_rr_chip_k ' + this.kindIcon(chip.kind)" aria-hidden="true"/>
+                                        </button>
+                                        <button type="button" class="o_fw_rr_add" title="Put somebody on this route that day"
+                                                t-on-click="(ev) => this.assignHereClick(ev, r.id, day.iso)">
+                                            <i class="fa fa-plus" aria-hidden="true"/>
+                                        </button>
+                                    </div>
+                                    <t t-if="this.isFocusCell(r.id, day.iso)" t-call="lab_fieldwork.RouteRosterPop"/>
+                                </td>
+                            </tr>
+                            <tr t-if="!this.routes.length"><td t-att-colspan="this.state.data.days.length + 1" class="o_fw_rr_empty">No route by that name.</td></tr>
+                        </tbody>
+
+                        <!-- by person -->
+                        <tbody t-else="">
+                            <tr t-foreach="this.people" t-as="p" t-key="p.id">
+                                <th class="o_fw_rr_rowh o_fw_rr_rowh_person">
+                                    <span class="o_fw_rr_pav" t-attf-style="border-color: {{ p.colour }}"><img t-att-src="p.avatar" t-att-alt="p.name" loading="lazy"/></span>
+                                    <span class="o_fw_rr_rname" t-out="p.name"/>
+                                </th>
+                                <td t-foreach="this.state.data.days" t-as="day" t-key="day.iso"
+                                    class="o_fw_rr_cell" t-att-class="{ o_fw_rr_heavy: this.isHeavy(p.id, day.iso), o_fw_rr_today: day.is_today, o_fw_rr_off: day.off, o_fw_rr_past: day.past }">
+                                    <div class="o_fw_rr_chips">
+                                        <button t-foreach="this.personCell(p.id, day.iso)" t-as="chip" t-key="chip.team_id + ':' + chip.duty_id" type="button"
+                                                class="o_fw_rr_chip o_fw_rr_chip_route" t-att-class="this.chipClass(chip)" t-att-title="this.chipTitle(chip)"
+                                                t-attf-style="--fw-rc: {{ this.routeColour(this.route(chip.team_id).color) }}"
+                                                draggable="true" t-on-dragstart="(ev) => this.dragChip(ev, chip)" t-on-dragend="() => this.dragEnd()"
+                                                t-on-click="(ev) => this.focusChip(ev, chip, chip.team_id, day.iso)">
+                                            <span class="o_fw_rr_rdot"/>
+                                            <span class="o_fw_rr_chip_name" t-out="this.route(chip.team_id).name"/>
+                                            <i t-att-class="'fa o_fw_rr_chip_k ' + this.kindIcon(chip.kind)" aria-hidden="true"/>
+                                        </button>
+                                        <button type="button" class="o_fw_rr_add" title="Put this person on a route that day"
+                                                t-on-click="(ev) => this.assignPersonClick(ev, p.id, day.iso)">
+                                            <i class="fa fa-plus" aria-hidden="true"/>
+                                        </button>
+                                    </div>
+                                    <t t-if="this.isFocusPersonCell(p.id, day.iso)" t-call="lab_fieldwork.RouteRosterPop"/>
+                                </td>
+                            </tr>
+                            <tr t-if="!this.people.length"><td t-att-colspan="this.state.data.days.length + 1" class="o_fw_rr_empty">Nobody by that name.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="o_fw_rr_legend">
+                    <span><i class="fa fa-circle o_fw_rr_lg_standing" aria-hidden="true"/> standing</span>
+                    <span><i class="fa fa-thumb-tack o_fw_rr_lg_regular" aria-hidden="true"/> assigned</span>
+                    <span><i class="fa fa-plane o_fw_rr_lg_cover" aria-hidden="true"/> covering</span>
+                    <span><i class="fa fa-user-plus o_fw_rr_lg_assist" aria-hidden="true"/> assisting</span>
+                    <span><span class="o_fw_rr_lg_dash"/> not answered yet</span>
+                    <span><span class="o_fw_rr_lg_warn"/> nobody on it</span>
+                    <span class="o_fw_rr_legend_hint"><i class="fa fa-hand-rock-o" aria-hidden="true"/> drag a person onto a day, or a chip to another day</span>
+                </div>
+            </div>
+
+            <!-- ================================================== the rail -->
+            <aside class="o_fw_rr_rail" t-if="this.state.data and this.state.railOpen">
+                <div class="o_fw_rr_rail_tabs" role="tablist">
+                    <button type="button" t-att-class="{ o_fw_rr_tab_on: this.state.rail === 'requests' }" t-on-click="() => this.setRail('requests')">
+                        Requests <span t-if="this.state.data.requests.length" class="o_fw_rr_badge" t-out="this.state.data.requests.length"/>
+                    </button>
+                    <button type="button" t-att-class="{ o_fw_rr_tab_on: this.state.rail === 'away' }" t-on-click="() => this.setRail('away')">
+                        Away <span t-if="this.state.data.away.length" class="o_fw_rr_badge o_fw_rr_badge_quiet" t-out="this.state.data.away.length"/>
+                    </button>
+                    <button type="button" t-att-class="{ o_fw_rr_tab_on: this.state.rail === 'people' }" t-on-click="() => this.setRail('people')">People</button>
+                </div>
+
+                <div t-if="this.state.rail === 'requests'" class="o_fw_rr_rail_body">
+                    <div t-if="!this.state.data.requests.length" class="o_fw_rr_rail_empty">Nothing waiting for an answer.</div>
+                    <div t-foreach="this.state.data.requests" t-as="q" t-key="q.id" class="o_fw_rr_req">
+                        <div class="o_fw_rr_req_text">
+                            <b t-out="q.requester"/>
+                            <t t-if="q.kind === 'cover'"> asks </t><t t-else=""> asks </t>
+                            <b t-out="q.user"/>
+                            <t t-if="q.kind === 'cover'"> to cover </t><t t-else=""> to come along on </t>
+                            <span class="o_fw_rr_pill" t-attf-style="--fw-rc: {{ this.routeColour(this.route(q.team_id).color) }}" t-out="q.route"/>
+                            · <t t-out="q.span"/>
+                            <t t-if="q.note"> · <i t-out="q.note"/></t>
+                        </div>
+                        <div class="o_fw_rr_req_actions">
+                            <button type="button" class="o_fw_rr_small o_fw_rr_small_ok" t-on-click="() => this.answer(q, true)" title="Accept on their behalf"><i class="fa fa-check" aria-hidden="true"/> Accept</button>
+                            <button type="button" class="o_fw_rr_small" t-on-click="() => this.answer(q, false)"><i class="fa fa-times" aria-hidden="true"/> Decline</button>
+                            <button type="button" class="o_fw_rr_small" t-on-click="() => this.openDuty(q)" title="Open"><i class="fa fa-external-link" aria-hidden="true"/></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-elif="this.state.rail === 'away'" class="o_fw_rr_rail_body">
+                    <div t-if="!this.state.data.away.length" class="o_fw_rr_rail_empty">Nobody is away with cover arranged in these days.</div>
+                    <div t-foreach="this.state.data.away" t-as="a" t-key="a.duty_id" class="o_fw_rr_req">
+                        <div class="o_fw_rr_req_text">
+                            <b t-out="a.user"/> is away ·
+                            <span class="o_fw_rr_pill" t-attf-style="--fw-rc: {{ this.routeColour(this.route(a.team_id).color) }}" t-out="a.route"/>
+                            · <t t-out="a.span"/> · covered by <b t-out="a.covered_by"/>
+                            <t t-if="a.note"> · <i t-out="a.note"/></t>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-else="" class="o_fw_rr_rail_body">
+                    <div class="o_fw_rr_rail_hint"><i class="fa fa-hand-rock-o me-1" aria-hidden="true"/>Drag a person onto a route's day.</div>
+                    <div t-foreach="this.people" t-as="p" t-key="p.id" class="o_fw_rr_person" draggable="true"
+                         t-on-dragstart="(ev) => this.dragPerson(ev, p.id)" t-on-dragend="() => this.dragEnd()">
+                        <span class="o_fw_rr_pav" t-attf-style="border-color: {{ p.colour }}"><img t-att-src="p.avatar" t-att-alt="p.name" loading="lazy"/></span>
+                        <span class="o_fw_rr_person_name" t-out="p.name"/>
+                        <button type="button" class="o_fw_rr_small" t-on-click="() => this.openAssign({ users: [p.id] })" title="Put on routes"><i class="fa fa-plus" aria-hidden="true"/></button>
+                    </div>
+                </div>
+
+                <div class="o_fw_rr_rail_foot">
+                    <button type="button" class="o_fw_rr_link" t-on-click="() => this.openDuties()"><i class="fa fa-list me-1" aria-hidden="true"/>All duties, as a list and a calendar</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+</t>
+
+<!-- What a tapped chip is, and what can be done with it. Sits inside its cell. -->
+<t t-name="lab_fieldwork.RouteRosterPop">
+    <div class="o_fw_rr_pop" t-on-click="(ev) => ev.stopPropagation()">
+        <t t-set="f" t-value="this.state.focus"/>
+        <div class="o_fw_rr_pop_head">
+            <img t-att-src="this.person(f.chip.user_id).avatar" t-att-alt="this.person(f.chip.user_id).name"/>
+            <div>
+                <div class="o_fw_rr_pop_name" t-out="this.person(f.chip.user_id).name"/>
+                <div class="o_fw_rr_pop_sub">
+                    <t t-out="this.route(f.teamId).name"/> ·
+                    <t t-if="f.chip.away">away, <t t-out="f.chip.covered_by"/> covers</t>
+                    <t t-elif="f.duty"><t t-out="this.kindWord(f.duty.kind)"/><t t-if="f.duty.origin"> <t t-if="f.duty.kind === 'cover'">for</t><t t-else="">with</t> <t t-out="f.duty.origin"/></t> · <t t-out="f.duty.span"/><t t-if="f.duty.state === 'pending'"> · <span class="o_fw_rr_pop_wait">not answered yet</span></t></t>
+                    <t t-else="">their own route</t>
+                </div>
+                <div t-if="f.duty and f.duty.note" class="o_fw_rr_pop_note"><i t-out="f.duty.note"/></div>
+                <div t-if="f.duty and f.duty.moved_visits" class="o_fw_rr_pop_note"><t t-out="f.duty.moved_visits"/> planned visit(s) handed over</div>
+            </div>
+            <button type="button" class="o_fw_rr_pop_x" t-on-click="() => this.closeFocus()"><i class="fa fa-times" aria-hidden="true"/></button>
+        </div>
+        <div class="o_fw_rr_pop_actions">
+            <t t-if="f.duty">
+                <button t-if="f.duty.state === 'pending'" type="button" class="o_fw_rr_small o_fw_rr_small_ok" t-on-click="() => this.answer(f.duty, true)"><i class="fa fa-check" aria-hidden="true"/> Accept</button>
+                <button t-if="f.duty.state === 'pending'" type="button" class="o_fw_rr_small" t-on-click="() => this.answer(f.duty, false)"><i class="fa fa-times" aria-hidden="true"/> Decline</button>
+                <button type="button" class="o_fw_rr_small o_fw_rr_small_danger" t-on-click="() => this.cancelDuty(f.duty)"><i class="fa fa-ban" aria-hidden="true"/> End</button>
+                <button type="button" class="o_fw_rr_small" t-on-click="() => this.openDuty(f.duty)"><i class="fa fa-external-link" aria-hidden="true"/> Open</button>
+            </t>
+            <t t-else="">
+                <button type="button" class="o_fw_rr_small" t-on-click="() => this.coverFor(f.chip, f.teamId, f.iso)"><i class="fa fa-plane" aria-hidden="true"/> Away - arrange cover</button>
+                <button type="button" class="o_fw_rr_small" t-on-click="() => this.assistFor(f.chip, f.teamId, f.iso)"><i class="fa fa-user-plus" aria-hidden="true"/> Send help along</button>
+            </t>
+        </div>
+    </div>
+</t>
+
+</templates>

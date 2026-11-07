@@ -28,6 +28,8 @@ from . import attendance
 from . import day_close
 from . import visit_tags
 from . import crm_team
+# After crm_team and before the screens that read "my routes" through it.
+from . import route_duty
 from . import new_clinics
 from . import ir_ui_menu
 from . import desk_cover

@@ -83,3 +83,6 @@ rule_location_road_own,Road trail: own,lab.location.road,lab_fieldwork.group_fie
 rule_location_road_all,Road trail: all,lab.location.road,lab_fieldwork.group_fieldwork_manager,r,
 rule_location_road_all_1,Road trail: all,lab.location.road,base.group_system,crud,
 rule_location_road_company,Road trail: company,lab.location.road,,crud,"[('company_id', 'in', company_ids)]"
+access_route_duty_exec,Route duty: mine,lab.route.duty,lab_fieldwork.group_fieldwork_executive,cru,"['|', '|', ('user_id', '=', user.id), ('origin_user_id', '=', user.id), ('requester_id', '=', user.id)]"
+access_route_duty_mgr,Route duty: all,lab.route.duty,lab_fieldwork.group_fieldwork_manager,crud,
+rule_route_duty_company,Route duty: company,lab.route.duty,,crud,"[('company_id', 'in', company_ids)]"

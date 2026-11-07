@@ -106,6 +106,7 @@ class LabBeat(models.Model):
         unsure whether they already planned will press it again.
         """
         Visit = self.env['lab.visit']
+        Duty = self.env['lab.route.duty']
         today = fields.Date.context_today(self)
         created = 0
         for beat in self:
@@ -125,9 +126,14 @@ class LabBeat(models.Model):
                         ('date', '=', date)])
                     if exists:
                         continue
+                    # Planned straight to whoever covers this round that day: a
+                    # visit planned in an absent person's name is a visit nobody
+                    # makes. (lab.route.duty, 2026-11-07)
+                    team = clinic.team_id or clinic.commercial_partner_id.team_id
+                    worker = Duty._cover_for(beat.user_id, team, date) or beat.user_id
                     Visit.create({
                         'beat_id': beat.id, 'partner_id': clinic.id,
-                        'user_id': beat.user_id.id, 'date': date,
+                        'user_id': worker.id, 'date': date,
                     })
                     created += 1
         return self._notify(_("%s visit(s) planned.", created) if created

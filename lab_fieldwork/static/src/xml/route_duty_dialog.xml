@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<!-- The hand-over / assign dialog (2026-11-07). Kind, routes, people, days, a
+     word on why, and one sentence saying what will happen. -->
+<t t-name="lab_fieldwork.RouteDutyDialog">
+    <Dialog title="this.title" size="'md'" contentClass="'o_fw_rd'">
+        <div t-if="this.state.loading" class="text-center text-muted py-4">
+            <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
+        </div>
+        <t t-else="">
+            <!-- which kind -->
+            <div class="o_fw_rd_kinds" role="radiogroup">
+                <button t-foreach="this.kinds" t-as="k" t-key="k.id" type="button"
+                        class="o_fw_rd_kind" t-att-class="{ o_fw_rd_kind_on: this.state.kind === k.id }"
+                        t-on-click="() => this.setKind(k.id)">
+                    <i t-att-class="'fa ' + (k.id === 'cover' ? 'fa-plane' : k.id === 'assist' ? 'fa-user-plus' : 'fa-thumb-tack')" aria-hidden="true"/>
+                    <span class="o_fw_rd_kind_t" t-out="k.title"/>
+                    <span class="o_fw_rd_kind_s" t-out="k.sub"/>
+                </button>
+            </div>
+
+            <!-- which routes -->
+            <div class="o_fw_rd_sec">
+                <div class="o_fw_rd_label">
+                    <span><i class="fa fa-map-signs me-1" aria-hidden="true"/>Routes</span>
+                    <button type="button" class="o_fw_rd_link" t-if="this.state.options.routes.length > 1"
+                            t-on-click="() => this.allRoutes()">
+                        <t t-if="this.state.routeIds.length === this.state.options.routes.length">none</t>
+                        <t t-else="">all</t>
+                    </button>
+                </div>
+                <div t-if="!this.state.options.routes.length" class="o_fw_rd_empty">
+                    You are not on a sales route on that day.
+                </div>
+                <div class="o_fw_rd_chips">
+                    <button t-foreach="this.state.options.routes" t-as="r" t-key="r.id" type="button"
+                            class="o_fw_rd_chip" t-att-class="{ o_fw_rd_chip_on: this.hasRoute(r.id) }"
+                            t-attf-style="--fw-rc: {{ this.routeColour(r.color) }}"
+                            t-on-click="() => this.toggleRoute(r.id)">
+                        <span class="o_fw_rd_dot"/>
+                        <span t-out="r.name"/>
+                        <small t-if="r.clinics" class="o_fw_rd_chip_n"><t t-out="r.clinics"/></small>
+                    </button>
+                </div>
+            </div>
+
+            <!-- whom -->
+            <div class="o_fw_rd_sec">
+                <div class="o_fw_rd_label">
+                    <span>
+                        <i class="fa fa-user me-1" aria-hidden="true"/>
+                        <t t-if="this.isAssign">Who</t>
+                        <t t-elif="this.state.kind === 'cover'">Who takes it</t>
+                        <t t-else="">Who comes along</t>
+                    </span>
+                    <label class="o_fw_rd_search">
+                        <i class="fa fa-search" aria-hidden="true"/>
+                        <input type="search" placeholder="Name" t-att-value="this.state.query"
+                               t-on-input="(ev) => this.onQuery(ev)"/>
+                    </label>
+                </div>
+                <div class="o_fw_rd_people">
+                    <button t-foreach="this.people" t-as="p" t-key="p.id" type="button"
+                            class="o_fw_rd_person" t-att-class="{ o_fw_rd_person_on: this.hasPerson(p.id) }"
+                            t-on-click="() => this.togglePerson(p.id)">
+                        <span class="o_fw_rd_avatar" t-attf-style="border-color: {{ p.colour }}">
+                            <img t-att-src="p.avatar" t-att-alt="p.name" loading="lazy"/>
+                        </span>
+                        <span class="o_fw_rd_person_body">
+                            <span class="o_fw_rd_person_name" t-out="p.name"/>
+                            <span class="o_fw_rd_person_sub">
+                                <t t-out="p.loadWord"/>
+                                <t t-if="p.standingChosen"> · <i class="fa fa-star" aria-hidden="true"/> their own route</t>
+                                <t t-elif="p.knowsChosen"> · <i class="fa fa-check" aria-hidden="true"/> knows the route</t>
+                            </span>
+                        </span>
+                        <i t-if="this.hasPerson(p.id)" class="fa fa-check-circle o_fw_rd_tick" aria-hidden="true"/>
+                    </button>
+                    <div t-if="!this.people.length" class="o_fw_rd_empty">Nobody by that name.</div>
+                </div>
+            </div>
+
+            <!-- on whose behalf (a manager arranging a cover or an assist) -->
+            <div class="o_fw_rd_sec" t-if="this.isAssign and this.state.kind !== 'regular'">
+                <div class="o_fw_rd_label">
+                    <span>
+                        <i class="fa fa-user-o me-1" aria-hidden="true"/>
+                        <t t-if="this.state.kind === 'cover'">Standing in for</t>
+                        <t t-else="">Alongside</t>
+                    </span>
+                </div>
+                <select class="o_fw_rd_select" t-on-change="(ev) => this.setOrigin(ev)">
+                    <option value="">Choose…</option>
+                    <option t-foreach="this.originChoices" t-as="p" t-key="p.id" t-att-value="p.id"
+                            t-att-selected="p.id === this.state.originId" t-out="p.name"/>
+                </select>
+            </div>
+
+            <!-- which days -->
+            <div class="o_fw_rd_sec">
+                <div class="o_fw_rd_label">
+                    <span><i class="fa fa-calendar-o me-1" aria-hidden="true"/>Days</span>
+                    <span class="o_fw_rd_span" t-out="this.spanWord"/>
+                </div>
+                <div class="o_fw_rd_quick">
+                    <button type="button" class="o_fw_rd_q" t-on-click="() => this.quick('today')">Today</button>
+                    <button type="button" class="o_fw_rd_q" t-on-click="() => this.quick('tomorrow')">Tomorrow</button>
+                    <button type="button" class="o_fw_rd_q" t-on-click="() => this.quick('week')">Rest of this week</button>
+                    <button type="button" class="o_fw_rd_q" t-on-click="() => this.quick('next_week')">Next week</button>
+                </div>
+                <div class="o_fw_rd_dates">
+                    <label>From <input type="date" t-att-value="this.state.dateFrom"
+                                      t-on-change="(ev) => this.onDate('dateFrom', ev)"/></label>
+                    <label>To <input type="date" t-att-value="this.state.dateTo" t-att-min="this.state.dateFrom"
+                                    t-on-change="(ev) => this.onDate('dateTo', ev)"/></label>
+                </div>
+            </div>
+
+            <!-- why -->
+            <div class="o_fw_rd_sec">
+                <input type="text" class="o_fw_rd_note" t-att-value="this.state.note"
+                       t-att-placeholder="this.isAssign ? 'A word for them (optional)' : 'Why - leave, a wedding, a hospital day (optional)'"
+                       t-on-input="(ev) => this.onNote(ev)"/>
+            </div>
+
+            <div t-if="this.summary" class="o_fw_rd_summary">
+                <i class="fa fa-info-circle me-1" aria-hidden="true"/><t t-out="this.summary"/>
+                <t t-if="!this.isAssign"> They answer on their My Day.</t>
+            </div>
+        </t>
+        <t t-set-slot="footer">
+            <button type="button" class="btn btn-primary" t-att-disabled="!this.canSubmit"
+                    t-on-click="() => this.submit()">
+                <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin me-1" aria-hidden="true"/>
+                <t t-out="this.submitLabel"/>
+            </button>
+            <button type="button" class="btn btn-secondary" t-on-click="() => this.props.close()">Cancel</button>
+        </t>
+    </Dialog>
+</t>
+
+<!-- My Day's card: the routes this person is on today, who else is on them, the
+     requests waiting for an answer, what they asked of others, what is coming.
+     Called from lab_fieldwork.MyDay, so `this` is the My Day component. -->
+<t t-name="lab_fieldwork.MyDayRoutes">
+    <t t-set="rd" t-value="this.state.data.routes"/>
+    <div class="o_fw_routes" t-if="rd">
+        <div class="o_fw_routes_head">
+            <span class="o_fw_routes_title">
+                <i class="fa fa-map-signs me-1" aria-hidden="true"/>
+                <t t-if="this.state.data.is_today">My routes today</t>
+                <t t-else="">My routes that day</t>
+            </span>
+            <div class="o_fw_routes_actions" t-if="rd.can_ask and this.state.data.is_today">
+                <button type="button" class="o_fw_routes_btn" t-on-click="() => this.askRoute('cover')"
+                        title="Hand my round to a colleague while I am away">
+                    <i class="fa fa-plane me-1" aria-hidden="true"/>Hand over
+                </button>
+                <button type="button" class="o_fw_routes_btn o_fw_routes_btn_ghost" t-on-click="() => this.askRoute('assist')"
+                        title="Ask a colleague to come along">
+                    <i class="fa fa-user-plus me-1" aria-hidden="true"/>Ask for help
+                </button>
+            </div>
+        </div>
+
+        <div t-if="!rd.rows.length" class="o_fw_routes_empty">
+            You are not on a sales route today. Ask your manager to put you on one.
+        </div>
+        <div class="o_fw_routes_chips" t-else="">
+            <button t-foreach="rd.rows" t-as="r" t-key="r.id" type="button"
+                    class="o_fw_route_chip" t-att-class="'o_fw_route_chip_' + r.kind"
+                    t-attf-style="--fw-rc: {{ this.routeColour(r.color) }}"
+                    t-att-title="'Doctors and clinics on ' + r.name"
+                    t-on-click="() => this.openRouteClinics(r)">
+                <span class="o_fw_route_dot"/>
+                <span class="o_fw_route_body">
+                    <span class="o_fw_route_name" t-out="r.name"/>
+                    <span class="o_fw_route_sub">
+                        <t t-if="r.kind === 'cover'"><i class="fa fa-plane" aria-hidden="true"/> covering <t t-out="r.for"/> · until <t t-out="r.until"/></t>
+                        <t t-elif="r.kind === 'assist'"><i class="fa fa-user-plus" aria-hidden="true"/> with <t t-out="r.for"/> · until <t t-out="r.until"/></t>
+                        <t t-elif="r.kind === 'regular'"><i class="fa fa-thumb-tack" aria-hidden="true"/> assigned · until <t t-out="r.until"/></t>
+                        <t t-else=""><t t-out="r.clinics"/> clinics<t t-if="r.visits"> · <t t-out="r.visits"/> planned</t></t>
+                    </span>
+                </span>
+                <span class="o_fw_route_with" t-if="r.with.length" t-att-title="'Also on this route: ' + r.with.map((w) => w.name).join(', ')">
+                    <img t-foreach="r.with.slice(0, 3)" t-as="w" t-key="w.id" t-att-src="w.avatar" t-att-alt="w.name" loading="lazy"/>
+                    <span t-if="r.with.length > 3" class="o_fw_route_more">+<t t-out="r.with.length - 3"/></span>
+                </span>
+            </button>
+        </div>
+
+        <!-- asked of me -->
+        <div t-foreach="rd.requests" t-as="q" t-key="q.id" class="o_fw_route_req">
+            <img class="o_fw_route_req_avatar" t-att-src="q.avatar" t-att-alt="q.from" loading="lazy"/>
+            <div class="o_fw_route_req_body">
+                <div class="o_fw_route_req_text">
+                    <b t-out="q.from"/>
+                    <t t-if="q.kind === 'cover'"> asks you to cover </t>
+                    <t t-else=""> asks you to come along on </t>
+                    <span class="o_fw_route_req_route" t-attf-style="--fw-rc: {{ this.routeColour(q.color) }}" t-out="q.route"/>
+                    · <t t-out="q.span"/>
+                    <t t-if="q.note"> · <i t-out="q.note"/></t>
+                </div>
+                <div class="o_fw_route_req_actions">
+                    <button type="button" class="o_fw_route_req_btn o_fw_route_req_yes"
+                            t-att-disabled="this.state.busy === 'req' + q.id"
+                            t-on-click="() => this.answerRequest(q, true)">
+                        <i class="fa fa-check me-1" aria-hidden="true"/>Accept
+                    </button>
+                    <button type="button" class="o_fw_route_req_btn"
+                            t-att-disabled="this.state.busy === 'req' + q.id"
+                            t-on-click="() => this.answerRequest(q, false)">
+                        <i class="fa fa-times me-1" aria-hidden="true"/>Decline
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- asked of others -->
+        <div t-foreach="rd.outgoing" t-as="o" t-key="o.id" class="o_fw_route_out">
+            <img class="o_fw_route_req_avatar" t-att-src="o.avatar" t-att-alt="o.to" loading="lazy"/>
+            <span class="o_fw_route_out_text">
+                <b t-out="o.to"/>
+                <t t-if="o.kind === 'cover'"> covers </t><t t-else=""> comes along on </t>
+                <span class="o_fw_route_req_route" t-attf-style="--fw-rc: {{ this.routeColour(o.color) }}" t-out="o.route"/>
+                · <t t-out="o.span"/>
+                <span t-if="o.state === 'pending'" class="o_fw_route_out_wait"><i class="fa fa-clock-o" aria-hidden="true"/> waiting</span>
+                <span t-else="" class="o_fw_route_out_ok"><i class="fa fa-check" aria-hidden="true"/> agreed</span>
+            </span>
+            <button type="button" class="o_fw_route_out_x" title="Withdraw"
+                    t-on-click="() => this.withdrawRequest(o)">
+                <i class="fa fa-times" aria-hidden="true"/>
+            </button>
+        </div>
+
+        <!-- coming -->
+        <div t-if="rd.upcoming.length" class="o_fw_route_up">
+            <span class="o_fw_route_up_title"><i class="fa fa-calendar-o me-1" aria-hidden="true"/>Coming up</span>
+            <span t-foreach="rd.upcoming" t-as="u" t-key="u.id" class="o_fw_route_up_item">
+                <span class="o_fw_route_req_route" t-attf-style="--fw-rc: {{ this.routeColour(u.color) }}" t-out="u.route"/>
+                <t t-out="u.span"/>
+                <t t-if="u.kind === 'cover'"> · covering <t t-out="u.for"/></t>
+                <t t-elif="u.kind === 'assist'"> · with <t t-out="u.for"/></t>
+            </span>
+        </div>
+    </div>
+</t>
+
+</templates>

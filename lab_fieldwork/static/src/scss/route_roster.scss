@@ -1,0 +1,233 @@
+// Route Roster (2026-11-07). The manager's palette - the one Field Live wears -
+// so the two screens read as one app. No min()/max() with mixed units (libsass).
+$rr-ink: #111827;
+$rr-muted: #6b7280;
+$rr-line: #e5e7eb;
+$rr-bg: #f3f4f6;
+$rr-card: #fff;
+$rr-brand: #3730a3;
+$rr-regular: #3730a3;
+$rr-cover: #d97706;
+$rr-assist: #0d7c8a;
+$rr-standing: #6b7280;
+$rr-warn: #d97706;
+$rr-danger: #dc2626;
+$rr-ok: #059669;
+
+.o_fw_rr {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: $rr-bg;
+    color: $rr-ink;
+    font-size: .875rem;
+
+    // ------------------------------------------------------------ the head
+    .o_fw_rr_head {
+        display: flex; align-items: center; gap: .6rem 1rem; padding: .5rem 1rem;
+        background: $rr-card; border-bottom: 1px solid $rr-line; flex-wrap: wrap;
+    }
+    .o_fw_rr_title { flex: 0 0 auto; h4 { margin: 0; font-size: 1.05rem; font-weight: 700; } }
+    .o_fw_rr_sub { font-size: .75rem; color: $rr-muted; white-space: nowrap; }
+    .o_fw_rr_views {
+        display: inline-flex; padding: .15rem; border-radius: 10px; background: $rr-bg; border: 1px solid $rr-line;
+        button {
+            display: inline-flex; align-items: center; padding: .3rem .7rem; border: 0; border-radius: 8px;
+            background: transparent; color: $rr-muted; font-weight: 600; font-size: .78rem; cursor: pointer; white-space: nowrap;
+            &:hover { color: $rr-ink; }
+        }
+        .o_fw_rr_view_on { background: $rr-card; color: $rr-ink; box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+    }
+    .o_fw_rr_tools { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-left: auto; min-width: 0; justify-content: flex-end; }
+    .o_fw_rr_search {
+        display: inline-flex; align-items: center; gap: .35rem; margin: 0; padding: .15rem .55rem;
+        border: 1px solid $rr-line; border-radius: 999px; background: $rr-bg;
+        .fa { color: $rr-muted; font-size: .8rem; }
+        input { border: 0; background: transparent; outline: none; width: 130px; font-size: .8rem; min-width: 0; }
+    }
+    .o_fw_rr_btn {
+        display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 .5rem;
+        border: 1px solid $rr-line; border-radius: 8px; background: $rr-card; color: $rr-ink; font-size: .8rem; font-weight: 600; cursor: pointer;
+        &:hover { border-color: #cbd5e1; }
+        &:disabled { opacity: .5; cursor: default; }
+    }
+    .o_fw_rr_btn_go { color: $rr-brand; }
+    .o_fw_rr_nav { display: inline-flex; align-items: center; gap: .25rem; }
+    .o_fw_rr_dayword {
+        position: relative; display: inline-flex; align-items: center; gap: .35rem; margin: 0; padding: 0 .6rem; height: 32px;
+        border: 1px solid $rr-line; border-radius: 8px; background: $rr-card; font-weight: 600; font-size: .8rem; cursor: pointer; white-space: nowrap;
+        .fa { color: $rr-muted; }
+    }
+    // the native picker sits invisibly over the word, as Field Live's does
+    .o_fw_rr_date { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+    .o_fw_rr_days {
+        display: inline-flex; padding: .15rem; border-radius: 8px; background: $rr-bg; border: 1px solid $rr-line;
+        button { border: 0; background: transparent; padding: .15rem .5rem; border-radius: 6px; font-size: .78rem; font-weight: 700; color: $rr-muted; cursor: pointer; }
+        .o_fw_rr_day_on { background: $rr-card; color: $rr-ink; box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+    }
+    .o_fw_rr_primary {
+        display: inline-flex; align-items: center; height: 32px; padding: 0 .8rem; border-radius: 8px; border: 1px solid $rr-brand;
+        background: $rr-brand; color: #fff; font-weight: 700; font-size: .8rem; cursor: pointer; white-space: nowrap;
+        &:hover { filter: brightness(1.08); }
+    }
+
+    // ------------------------------------------------------------ the strip
+    .o_fw_rr_strip {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .4rem; padding: .5rem 1rem;
+        background: $rr-card; border-bottom: 1px solid $rr-line;
+    }
+    .o_fw_rr_tile {
+        display: flex; flex-direction: column; padding: .35rem .6rem; border-radius: 8px; background: $rr-bg; border-left: 3px solid $rr-muted; cursor: pointer;
+        &:hover { background: darken($rr-bg, 3%); }
+    }
+    .o_fw_rr_tile_n { font-size: 1.15rem; font-weight: 700; line-height: 1.1; }
+    .o_fw_rr_tile_l { font-size: .7rem; color: $rr-muted; }
+    .o_fw_rr_tile_warn { border-left-color: $rr-warn; }
+    .o_fw_rr_tile_pending { border-left-color: $rr-cover; }
+    .o_fw_rr_tile_away { border-left-color: $rr-assist; }
+    .o_fw_rr_tile_heavy { border-left-color: $rr-danger; }
+
+    // ------------------------------------------------------------- the body
+    .o_fw_rr_body { display: flex; flex: 1 1 auto; min-height: 0; }
+    .o_fw_rr_main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+    .o_fw_rr_scroll { flex: 1 1 auto; overflow: auto; min-height: 0; }
+
+    .o_fw_rr_grid {
+        border-collapse: separate; border-spacing: 0; width: 100%; min-width: 640px; background: $rr-card;
+        th, td { border-bottom: 1px solid $rr-line; border-right: 1px solid $rr-line; vertical-align: top; }
+        thead th {
+            position: sticky; top: 0; z-index: 2; background: $rr-card; padding: .4rem .5rem; text-align: center;
+            font-size: .75rem; font-weight: 700; color: $rr-muted; white-space: nowrap;
+        }
+        thead th.o_fw_rr_today { color: $rr-brand; box-shadow: inset 0 -2px 0 $rr-brand; }
+        thead th.o_fw_rr_off { color: #9ca3af; }
+        .o_fw_rr_dayl { display: block; }
+        .o_fw_rr_daym { display: block; font-weight: 500; font-size: .65rem; }
+        .o_fw_rr_corner { position: sticky; left: 0; top: 0; z-index: 3; text-align: left; }
+    }
+    .o_fw_rr_rowh {
+        position: sticky; left: 0; z-index: 1; background: $rr-card; min-width: 150px; max-width: 220px;
+        padding: .45rem .6rem; text-align: left; font-weight: 600; font-size: .8rem;
+        border-left: 4px solid var(--fw-rc, $rr-line);
+        display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .4rem;
+    }
+    .o_fw_rr_rowh_person { border-left-color: transparent; flex-wrap: nowrap; }
+    .o_fw_rr_rdot { width: 8px; height: 8px; border-radius: 50%; background: var(--fw-rc, $rr-muted); flex: 0 0 auto; }
+    .o_fw_rr_rname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .o_fw_rr_rsub { flex-basis: 100%; font-size: .68rem; font-weight: 500; color: $rr-muted; }
+    .o_fw_rr_rsub_warn { color: $rr-warn; }
+    .o_fw_rr_pav {
+        width: 26px; height: 26px; border-radius: 50%; border: 2px solid $rr-line; overflow: hidden; flex: 0 0 auto; background: $rr-bg;
+        img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    }
+
+    .o_fw_rr_cell { position: relative; min-width: 110px; padding: .3rem .35rem; transition: background-color .12s ease; }
+    .o_fw_rr_cell.o_fw_rr_today { background: rgba($rr-brand, .04); }
+    .o_fw_rr_cell.o_fw_rr_off { background: repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(0, 0, 0, .025) 6px, rgba(0, 0, 0, .025) 7px); }
+    .o_fw_rr_cell.o_fw_rr_past { opacity: .75; }
+    .o_fw_rr_cell.o_fw_rr_uncovered { background: rgba($rr-warn, .12); box-shadow: inset 0 0 0 1px rgba($rr-warn, .35); }
+    .o_fw_rr_cell.o_fw_rr_heavy { background: rgba($rr-danger, .08); box-shadow: inset 0 0 0 1px rgba($rr-danger, .3); }
+    .o_fw_rr_cell.o_fw_rr_dropping { outline: 1px dashed rgba($rr-brand, .4); outline-offset: -3px; }
+    .o_fw_rr_chips { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; min-height: 30px; }
+    .o_fw_rr_chip {
+        display: inline-flex; align-items: center; gap: .3rem; max-width: 100%; height: 26px; padding: 0 .45rem 0 .15rem;
+        border-radius: 999px; border: 1px solid $rr-line; background: $rr-card; color: $rr-ink; font-size: .72rem; font-weight: 600;
+        cursor: grab; white-space: nowrap;
+        img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; background: $rr-bg; }
+        &:hover { border-color: #cbd5e1; box-shadow: 0 1px 3px rgba(16, 24, 40, .12); }
+        &:active { cursor: grabbing; }
+    }
+    .o_fw_rr_chip_name { overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+    .o_fw_rr_chip_k { font-size: .62rem; color: $rr-muted; }
+    .o_fw_rr_chip_standing { background: $rr-bg; color: #4b5563; .o_fw_rr_chip_k { color: #9ca3af; font-size: .4rem; } }
+    .o_fw_rr_chip_regular { border-color: rgba($rr-regular, .5); background: rgba($rr-regular, .08); .o_fw_rr_chip_k { color: $rr-regular; } }
+    .o_fw_rr_chip_cover { border-color: rgba($rr-cover, .6); background: rgba($rr-cover, .12); .o_fw_rr_chip_k { color: $rr-cover; } }
+    .o_fw_rr_chip_assist { border-color: rgba($rr-assist, .6); background: rgba($rr-assist, .1); .o_fw_rr_chip_k { color: $rr-assist; } }
+    .o_fw_rr_chip_pending { border-style: dashed; background: $rr-card; }
+    .o_fw_rr_chip_away { text-decoration: line-through; opacity: .6; }
+    .o_fw_rr_chip_focus { box-shadow: 0 0 0 2px rgba($rr-brand, .35); }
+    .o_fw_rr_chip_route { padding-left: .45rem; .o_fw_rr_rdot { margin-right: .1rem; } }
+    .o_fw_rr_add {
+        width: 24px; height: 24px; border-radius: 50%; border: 1px dashed #cbd5e1; background: transparent; color: #9ca3af;
+        font-size: .7rem; opacity: 0; transition: opacity .12s ease; cursor: pointer;
+        &:hover { color: $rr-brand; border-color: $rr-brand; }
+    }
+    .o_fw_rr_cell:hover .o_fw_rr_add { opacity: 1; }
+    .o_fw_rr_empty { padding: 1rem; color: $rr-muted; text-align: center; }
+
+    // the tapped chip
+    .o_fw_rr_pop {
+        position: absolute; z-index: 5; left: .25rem; top: calc(100% - .25rem); width: 280px; max-width: 80vw;
+        padding: .6rem .7rem; border-radius: 10px; background: $rr-card; border: 1px solid $rr-line;
+        box-shadow: 0 8px 24px rgba(16, 24, 40, .18); text-align: left; font-weight: 400; white-space: normal;
+    }
+    .o_fw_rr_pop_head { display: flex; gap: .5rem; align-items: flex-start; img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; } }
+    .o_fw_rr_pop_name { font-weight: 700; }
+    .o_fw_rr_pop_sub { font-size: .75rem; color: $rr-muted; }
+    .o_fw_rr_pop_wait { color: $rr-cover; font-weight: 600; }
+    .o_fw_rr_pop_note { font-size: .75rem; color: $rr-ink; margin-top: .15rem; }
+    .o_fw_rr_pop_x { margin-left: auto; border: 0; background: transparent; color: $rr-muted; width: 28px; height: 28px; border-radius: 50%; &:hover { background: $rr-bg; } }
+    .o_fw_rr_pop_actions { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
+    .o_fw_rr_small {
+        display: inline-flex; align-items: center; gap: .3rem; height: 28px; padding: 0 .55rem; border-radius: 999px;
+        border: 1px solid $rr-line; background: $rr-card; color: $rr-ink; font-size: .72rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        &:hover { border-color: #cbd5e1; }
+    }
+    .o_fw_rr_small_ok { background: $rr-ok; border-color: $rr-ok; color: #fff; }
+    .o_fw_rr_small_danger { color: $rr-danger; }
+
+    .o_fw_rr_legend {
+        display: flex; flex-wrap: wrap; gap: .4rem 1rem; padding: .4rem 1rem; font-size: .72rem; color: $rr-muted;
+        background: $rr-card; border-top: 1px solid $rr-line;
+        .o_fw_rr_lg_standing { color: #9ca3af; font-size: .45rem; vertical-align: middle; }
+        .o_fw_rr_lg_regular { color: $rr-regular; }
+        .o_fw_rr_lg_cover { color: $rr-cover; }
+        .o_fw_rr_lg_assist { color: $rr-assist; }
+        .o_fw_rr_lg_dash { display: inline-block; width: 22px; height: 12px; border: 1px dashed $rr-muted; border-radius: 999px; vertical-align: middle; }
+        .o_fw_rr_lg_warn { display: inline-block; width: 22px; height: 12px; background: rgba($rr-warn, .25); border-radius: 3px; vertical-align: middle; }
+        .o_fw_rr_legend_hint { margin-left: auto; }
+    }
+
+    // ------------------------------------------------------------- the rail
+    .o_fw_rr_rail {
+        flex: 0 0 300px; display: flex; flex-direction: column; min-height: 0; background: $rr-card; border-left: 1px solid $rr-line;
+    }
+    .o_fw_rr_rail_tabs {
+        display: flex; border-bottom: 1px solid $rr-line;
+        button {
+            flex: 1 1 0; border: 0; background: transparent; padding: .5rem .3rem; font-size: .78rem; font-weight: 600; color: $rr-muted; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: .3rem;
+        }
+        .o_fw_rr_tab_on { color: $rr-ink; box-shadow: inset 0 -2px 0 $rr-brand; }
+    }
+    .o_fw_rr_badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 .3rem; border-radius: 999px; background: $rr-cover; color: #fff; font-size: .68rem; }
+    .o_fw_rr_badge_quiet { background: $rr-assist; }
+    .o_fw_rr_rail_body { flex: 1 1 auto; overflow: auto; padding: .5rem; min-height: 0; }
+    .o_fw_rr_rail_empty, .o_fw_rr_rail_hint { font-size: .78rem; color: $rr-muted; padding: .4rem .3rem; }
+    .o_fw_rr_req { padding: .5rem .55rem; border: 1px solid $rr-line; border-radius: 8px; margin-bottom: .4rem; background: $rr-card; }
+    .o_fw_rr_req_text { font-size: .8rem; line-height: 1.4; }
+    .o_fw_rr_req_actions { display: flex; gap: .3rem; margin-top: .4rem; flex-wrap: wrap; }
+    .o_fw_rr_pill { display: inline-block; padding: 0 .35rem; border-radius: .3rem; background: var(--fw-rc, $rr-muted); color: #fff; font-weight: 700; font-size: .75rem; }
+    .o_fw_rr_person {
+        display: flex; align-items: center; gap: .5rem; padding: .3rem .4rem; border-radius: 8px; cursor: grab; border: 1px solid transparent;
+        &:hover { background: $rr-bg; border-color: $rr-line; }
+        &:active { cursor: grabbing; }
+        .o_fw_rr_small { margin-left: auto; opacity: .7; }
+    }
+    .o_fw_rr_person_name { font-size: .8rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_fw_rr_rail_foot { padding: .4rem .6rem; border-top: 1px solid $rr-line; }
+    .o_fw_rr_link { border: 0; background: transparent; color: $rr-brand; font-weight: 600; font-size: .78rem; padding: .2rem 0; cursor: pointer; }
+}
+
+// On a phone the rail drops under the grid and the grid scrolls sideways.
+@media (max-width: 767.98px) {
+    .o_fw_rr {
+        .o_fw_rr_body { flex-direction: column; }
+        .o_fw_rr_rail { flex: 0 0 auto; max-height: 40vh; border-left: 0; border-top: 1px solid $rr-line; }
+        .o_fw_rr_rowh { min-width: 110px; max-width: 140px; }
+        .o_fw_rr_cell { min-width: 96px; }
+        .o_fw_rr_add { opacity: 1; }
+        .o_fw_rr_legend_hint { display: none; }
+    }
+}

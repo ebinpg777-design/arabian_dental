@@ -1,0 +1,172 @@
+// Route duties (2026-11-07): the My Day card and the hand-over / assign dialog.
+// Sized like the rest of My Day: 44px targets, one column, thumbs on the right.
+$rd-violet: #6d28d9;
+$rd-ink: #111827;
+$rd-muted: #6b7280;
+$rd-line: #e5e7eb;
+$rd-bg: #f3f4f6;
+$rd-ok: #059669;
+$rd-warn: #d97706;
+$rd-cover: #d97706;
+$rd-assist: #0d7c8a;
+$rd-regular: #3730a3;
+
+// ------------------------------------------------------------------ the card
+.o_fw_day .o_fw_routes {
+    flex: 0 0 auto;
+    margin-bottom: .75rem;
+    padding: .875rem 1rem;
+    border: 1px solid $rd-line;
+    border-radius: .625rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba($rd-ink, .04);
+
+    .o_fw_routes_head {
+        display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap;
+    }
+    .o_fw_routes_title { font-weight: 700; color: $rd-ink; }
+    .o_fw_routes_actions { display: flex; gap: .4rem; }
+    .o_fw_routes_btn {
+        min-height: 36px; padding: .3rem .7rem; border-radius: 999px; border: 1px solid $rd-violet;
+        background: $rd-violet; color: #fff; font-size: .8125rem; font-weight: 600; white-space: nowrap;
+        &:hover { filter: brightness(1.08); }
+    }
+    .o_fw_routes_btn_ghost { background: #fff; color: $rd-violet; }
+    .o_fw_routes_empty { margin-top: .5rem; font-size: .875rem; color: $rd-muted; }
+
+    .o_fw_routes_chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+    .o_fw_route_chip {
+        display: inline-flex; align-items: center; gap: .55rem; max-width: 100%;
+        min-height: 44px; padding: .35rem .75rem .35rem .6rem; border-radius: .625rem;
+        border: 1px solid $rd-line; border-left: 4px solid var(--fw-rc, $rd-muted);
+        background: #fff; color: $rd-ink; text-align: left; cursor: pointer;
+        transition: box-shadow .12s ease, transform .12s ease;
+        &:hover { box-shadow: 0 .25rem .75rem rgba($rd-ink, .10); transform: translateY(-1px); }
+    }
+    .o_fw_route_chip_cover { background: rgba($rd-cover, .06); }
+    .o_fw_route_chip_assist { background: rgba($rd-assist, .06); }
+    .o_fw_route_chip_regular { background: rgba($rd-regular, .05); }
+    .o_fw_route_dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fw-rc, $rd-muted); flex: 0 0 auto; }
+    .o_fw_route_body { display: flex; flex-direction: column; min-width: 0; }
+    .o_fw_route_name { font-weight: 700; font-size: .9375rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_fw_route_sub { font-size: .75rem; color: $rd-muted; .fa { font-size: .7rem; } }
+    .o_fw_route_with {
+        display: inline-flex; align-items: center; margin-left: .25rem;
+        img { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; object-fit: cover; background: $rd-bg; }
+        img:first-child { margin-left: 0; }
+    }
+    .o_fw_route_more { font-size: .7rem; color: $rd-muted; margin-left: .2rem; }
+
+    // asked of me
+    .o_fw_route_req {
+        display: flex; gap: .6rem; align-items: flex-start; margin-top: .6rem; padding: .6rem .7rem;
+        border-radius: .625rem; background: rgba($rd-warn, .08); border: 1px solid rgba($rd-warn, .35);
+    }
+    .o_fw_route_req_avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: $rd-bg; }
+    .o_fw_route_req_body { flex: 1 1 auto; min-width: 0; }
+    .o_fw_route_req_text { font-size: .875rem; color: $rd-ink; line-height: 1.35; }
+    .o_fw_route_req_route {
+        display: inline-block; padding: 0 .4rem; border-radius: .35rem; font-weight: 700;
+        background: var(--fw-rc, $rd-muted); color: #fff; font-size: .8125rem;
+    }
+    .o_fw_route_req_actions { display: flex; gap: .4rem; margin-top: .45rem; }
+    .o_fw_route_req_btn {
+        min-height: 36px; padding: .3rem .8rem; border-radius: 999px; border: 1px solid $rd-line;
+        background: #fff; color: $rd-ink; font-size: .8125rem; font-weight: 600;
+    }
+    .o_fw_route_req_yes { background: $rd-ok; border-color: $rd-ok; color: #fff; }
+
+    // asked of others
+    .o_fw_route_out {
+        display: flex; gap: .5rem; align-items: center; margin-top: .5rem; font-size: .8125rem; color: $rd-ink;
+        .o_fw_route_req_avatar { width: 26px; height: 26px; }
+    }
+    .o_fw_route_out_text { flex: 1 1 auto; min-width: 0; line-height: 1.35; }
+    .o_fw_route_out_wait { color: $rd-warn; font-weight: 600; margin-left: .25rem; }
+    .o_fw_route_out_ok { color: $rd-ok; font-weight: 600; margin-left: .25rem; }
+    .o_fw_route_out_x {
+        width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: $rd-muted;
+        &:hover { background: $rd-bg; color: $rd-ink; }
+    }
+
+    // coming
+    .o_fw_route_up { margin-top: .6rem; font-size: .8125rem; color: $rd-muted; display: flex; flex-wrap: wrap; gap: .35rem .75rem; align-items: center; }
+    .o_fw_route_up_title { font-weight: 700; color: $rd-ink; }
+    .o_fw_route_up_item { display: inline-flex; align-items: center; gap: .3rem; }
+}
+
+// the clinics panel, narrowed to one route
+.o_fw_day .o_fw_routes_filter {
+    display: flex; align-items: center; gap: .5rem; margin: .4rem 0 .2rem; font-size: .8125rem; color: $rd-muted;
+    .o_fw_route_req_route { display: inline-block; padding: 0 .4rem; border-radius: .35rem; font-weight: 700; background: var(--fw-rc, $rd-muted); color: #fff; }
+    button { border: 0; background: transparent; color: $rd-violet; font-weight: 600; padding: .2rem .4rem; }
+}
+
+// ---------------------------------------------------------------- the dialog
+.o_fw_rd {
+    .modal-body { background: $rd-bg; }
+    .o_fw_rd_kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .5rem; margin-bottom: .75rem; }
+    .o_fw_rd_kind {
+        display: flex; flex-direction: column; align-items: flex-start; gap: .1rem;
+        padding: .6rem .75rem; border-radius: .625rem; border: 1px solid $rd-line; background: #fff;
+        color: $rd-ink; text-align: left; cursor: pointer;
+        .fa { color: $rd-muted; margin-bottom: .2rem; }
+        &:hover { border-color: #cbd5e1; }
+    }
+    .o_fw_rd_kind_on { border-color: $rd-violet; box-shadow: 0 0 0 2px rgba($rd-violet, .2); .fa { color: $rd-violet; } }
+    .o_fw_rd_kind_t { font-weight: 700; font-size: .9rem; }
+    .o_fw_rd_kind_s { font-size: .75rem; color: $rd-muted; }
+
+    .o_fw_rd_sec { margin-bottom: .75rem; padding: .6rem .75rem; border-radius: .625rem; background: #fff; border: 1px solid $rd-line; }
+    .o_fw_rd_label {
+        display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+        font-weight: 700; font-size: .8125rem; color: $rd-ink; margin-bottom: .45rem;
+    }
+    .o_fw_rd_link { border: 0; background: transparent; color: $rd-violet; font-weight: 600; font-size: .8125rem; padding: 0 .25rem; }
+    .o_fw_rd_empty { font-size: .8125rem; color: $rd-muted; }
+    .o_fw_rd_span { font-weight: 600; color: $rd-violet; }
+
+    .o_fw_rd_chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .o_fw_rd_chip {
+        display: inline-flex; align-items: center; gap: .4rem; min-height: 38px; padding: .3rem .7rem .3rem .55rem;
+        border-radius: 999px; border: 1px solid $rd-line; background: #fff; color: $rd-ink; font-size: .8125rem; font-weight: 600;
+        cursor: pointer;
+        &:hover { border-color: #cbd5e1; }
+    }
+    .o_fw_rd_chip_on { border-color: var(--fw-rc, $rd-violet); background: rgba(0, 0, 0, .03); box-shadow: inset 0 0 0 1px var(--fw-rc, $rd-violet); }
+    .o_fw_rd_dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fw-rc, $rd-muted); }
+    .o_fw_rd_chip_n { color: $rd-muted; font-weight: 500; }
+
+    .o_fw_rd_search {
+        display: inline-flex; align-items: center; gap: .35rem; margin: 0; padding: .1rem .55rem;
+        border: 1px solid $rd-line; border-radius: 999px; background: $rd-bg; font-weight: 500;
+        .fa { color: $rd-muted; font-size: .8rem; }
+        input { border: 0; background: transparent; outline: none; width: 120px; font-size: .8rem; min-width: 0; }
+    }
+    .o_fw_rd_people { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .4rem; max-height: 260px; overflow: auto; }
+    .o_fw_rd_person {
+        display: flex; align-items: center; gap: .5rem; min-height: 48px; padding: .35rem .5rem;
+        border-radius: .625rem; border: 1px solid $rd-line; background: #fff; color: $rd-ink; text-align: left; cursor: pointer;
+        &:hover { border-color: #cbd5e1; }
+    }
+    .o_fw_rd_person_on { border-color: $rd-violet; box-shadow: 0 0 0 2px rgba($rd-violet, .2); }
+    .o_fw_rd_avatar {
+        width: 32px; height: 32px; border-radius: 50%; border: 2px solid $rd-line; overflow: hidden; flex: 0 0 auto; background: $rd-bg;
+        img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    }
+    .o_fw_rd_person_body { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+    .o_fw_rd_person_name { font-weight: 600; font-size: .875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_fw_rd_person_sub { font-size: .72rem; color: $rd-muted; }
+    .o_fw_rd_tick { color: $rd-violet; }
+    .o_fw_rd_select { width: 100%; min-height: 40px; border: 1px solid $rd-line; border-radius: .5rem; padding: .3rem .5rem; background: #fff; }
+
+    .o_fw_rd_quick { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .5rem; }
+    .o_fw_rd_q { min-height: 34px; padding: .25rem .65rem; border-radius: 999px; border: 1px solid $rd-line; background: $rd-bg; font-size: .78rem; font-weight: 600; color: $rd-ink; }
+    .o_fw_rd_dates {
+        display: flex; gap: .75rem; flex-wrap: wrap;
+        label { display: flex; flex-direction: column; font-size: .75rem; color: $rd-muted; font-weight: 600; flex: 1 1 140px; }
+        input { min-height: 40px; border: 1px solid $rd-line; border-radius: .5rem; padding: .3rem .5rem; font-size: .9rem; color: $rd-ink; }
+    }
+    .o_fw_rd_note { width: 100%; min-height: 40px; border: 1px solid $rd-line; border-radius: .5rem; padding: .3rem .6rem; font-size: .9rem; }
+    .o_fw_rd_summary { font-size: .875rem; color: $rd-ink; padding: .5rem .75rem; border-radius: .5rem; background: rgba($rd-violet, .08); }
+}

@@ -314,6 +314,11 @@
                 </div>
             </t>
 
+            <!-- The routes this person is on today, who else is on them, the
+                 requests waiting for them, what they asked of others. Hand over
+                 and Ask for help live here. (lab.route.duty, 2026-11-07) -->
+            <t t-call="lab_fieldwork.MyDayRoutes"/>
+
             <!-- Two kinds of button, kept apart because they are used at different
                  moments. DO is the doorstep: things done without opening a record -
                  travel, scan, hand over, collect, a quick note, a search. MINE is the
@@ -417,6 +422,11 @@
                     <button class="o_fw_track_close" t-on-click="() => this.toggleClinics()">
                         <i class="fa fa-times" title="Close"/>
                     </button>
+                </div>
+                <!-- one route of theirs, when its card was tapped -->
+                <div t-if="this.state.clinics.teamId" class="o_fw_routes_filter">
+                    Showing <span class="o_fw_route_req_route" t-attf-style="--fw-rc: {{ this.routeColour(this.state.clinics.teamColor) }}" t-out="this.state.clinics.teamName"/>
+                    <button type="button" t-on-click="() => this.clearRouteFilter()">all my routes</button>
                 </div>
 
                 <div t-if="this.state.clinics.busy" class="o_fw_track_busy">

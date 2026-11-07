@@ -103,7 +103,7 @@ class LabFieldLive(models.AbstractModel):
             row = rows.get(user.id, {})
             trip = trips.get(user.id)
             sheet = sheets.get(user.id)
-            ex['route'] = self._route_of(user)
+            ex['route'] = self._route_of(user, day)
             ex['avatar'] = '/web/image/res.users/%d/avatar_128' % user.id
             ex['facts'] = {
                 'planned': row.get('planned', 0), 'done': row.get('done', 0),
@@ -150,7 +150,13 @@ class LabFieldLive(models.AbstractModel):
 
     # ------------------------------------------------------------------ per person
     @api.model
-    def _route_of(self, user):
+    def _route_of(self, user, day=None):
+        """The routes this person works on `day`: standing membership and the
+        day's duties (lab.route.duty), joined; the default sales team when they
+        have neither."""
+        teams = self.env['lab.route.duty']._routes_on(user, day)
+        if teams:
+            return ' · '.join(teams.sorted('name').mapped('name'))
         team = user.sale_team_id if 'sale_team_id' in user._fields else None
         return team.name if team else ''
 

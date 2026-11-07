@@ -11,6 +11,7 @@ import { user } from "@web/core/user";
 import { formatMonetary } from "@web/views/fields/formatters";
 import { clearPositionWarning, locate, warnNoPosition } from "@lab_fieldwork/js/position";
 import { MyTrail } from "@lab_fieldwork/js/my_trail";
+import { RouteDutyDialog, routeColour } from "@lab_fieldwork/js/route_duty_dialog";
 
 /** "1.2.10" is newer than "1.2.9": compared part by part, as numbers. */
 function newerVersion(candidate, current) {
@@ -58,7 +59,8 @@ export class LabMyDay extends Component {
                      refreshing: null },
             clinics: { open: false, rows: [], busy: false, query: "",
                        more: false, favouritesOnly: false, favourites: 0,
-                       noRoute: false, loaded: false },
+                       noRoute: false, loaded: false,
+                       teamId: null, teamName: "", teamColor: 0 },
             day: null, data: null, loading: true, busy: 0,
             // The "Where I am" card: the recorder's own numbers (status), the
             // server's answer to tracking_state (km, nudges), whether the trail map
@@ -820,6 +822,78 @@ export class LabMyDay extends Component {
     // executive cannot read, and the four facts that decide whether to knock -
     // where it is, what it owes, what is still open, is it a favourite - fit on
     // a card. (client, 2026-09-02)
+    // ------------------------------------------------------------ my routes
+    // The routes this person is on today (lab.route.duty, 2026-11-07): a chip
+    // each, tapped to see its doctors; Hand over / Ask for help open the dialog
+    // whose request the colleague answers on their own My Day; a request made
+    // of this person is answered here, with two buttons.
+    routeColour(index) {
+        return routeColour(index);
+    }
+
+    /** The doctors on one route of theirs: the clinics panel, narrowed. */
+    openRouteClinics(route) {
+        const c = this.state.clinics;
+        c.teamId = route.id;
+        c.teamName = route.name;
+        c.teamColor = route.color || 0;
+        c.open = true;
+        this.loadClinics("");
+        this._scrollToClinics = true;
+    }
+
+    clearRouteFilter() {
+        const c = this.state.clinics;
+        c.teamId = null;
+        c.teamName = "";
+        c.teamColor = 0;
+        this.loadClinics();
+    }
+
+    askRoute(kind) {
+        this.dialog.add(RouteDutyDialog, {
+            mode: "handover",
+            presets: { kind },
+            onDone: (result) => {
+                const n = (result && result.count) || 0;
+                this.notification.add(
+                    n > 1 ? _t("%s requests sent. They answer on their My Day.", n)
+                          : _t("Request sent. They answer on their My Day."),
+                    { type: "success" });
+                this.load();
+            },
+        });
+    }
+
+    async answerRequest(req, accept) {
+        this.state.busy = "req" + req.id;
+        try {
+            await this.orm.call(
+                "lab.route.duty", accept ? "action_accept" : "action_decline", [[req.id]]);
+            this.notification.add(
+                accept ? _t("%s is on your day now.", req.route) : _t("Declined."),
+                { type: accept ? "success" : "info" });
+        } finally {
+            this.state.busy = 0;
+        }
+        this.load();
+    }
+
+    withdrawRequest(row) {
+        this.dialog.add(ConfirmationDialog, {
+            title: _t("Withdraw?"),
+            body: row.kind === "cover"
+                ? _t("%s stops covering %s, %s, and your planned visits come back to you.", row.to, row.route, row.span)
+                : _t("%s no longer comes along on %s, %s.", row.to, row.route, row.span),
+            confirmLabel: _t("Withdraw"),
+            confirm: async () => {
+                await this.orm.call("lab.route.duty", "action_cancel", [[row.id]]);
+                this.load();
+            },
+            cancel: () => {},
+        });
+    }
+
     toggleClinics() {
         this.state.clinics.open = !this.state.clinics.open;
         if (this.state.clinics.open) {
@@ -849,6 +923,7 @@ export class LabMyDay extends Component {
             const data = await this.orm.call("lab.my.day", "get_clinics", [
                 c.query || "",
                 c.favouritesOnly,
+                c.teamId || false,
             ]);
             if (token !== this._clinicToken) {
                 return;

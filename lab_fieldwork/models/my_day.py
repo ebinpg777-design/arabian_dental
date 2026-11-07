@@ -216,6 +216,10 @@ class LabMyDay(models.AbstractModel):
             # reads as "no days back" and takes the control away from the one person
             # who can use all of them. (client, 2026-08-27)
             'any_day': limit is None,
+            # The routes this person is on today - their own, and the ones they
+            # cover, assist or were put on for a spell - with who else is on them,
+            # the requests waiting for an answer and what is coming. (2026-11-07)
+            'routes': self.env['lab.route.duty'].get_my_routes(today),
         }
 
     @api.model
@@ -580,7 +584,7 @@ class LabMyDay(models.AbstractModel):
     CLINIC_LIMIT = 2000
 
     @api.model
-    def get_clinics(self, query='', favourites_only=False):
+    def get_clinics(self, query='', favourites_only=False, team_id=None):
         """Everyone on this person's routes, favourites first.
 
         Money is read through the Collections countback for the clinics on the
@@ -601,6 +605,9 @@ class LabMyDay(models.AbstractModel):
         # not ordered yet was missing: PLKD has 238 partners and Field Work showed
         # 101. (client, 2026-09-17)
         domain = [('team_id', 'in', routes)]
+        # One route of theirs, when the card for that route was tapped.
+        if team_id and int(team_id) in routes:
+            domain = [('team_id', '=', int(team_id))]
         if favourites_only:
             domain.append(('id', 'in', favourite_ids or [0]))
         if query:

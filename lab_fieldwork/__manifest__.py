@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.8.6.2',
+    'version': '20.0.9.0.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -32,6 +32,14 @@ there, leave — and everything else is derived from it or generated for them.
   fortnight's visits, cases, money and km, day by day and person by person, and the
   month so far. The three role desks it replaced (Ops Desk, Marketing Desk, Command
   Center) were removed on 2026-10-20.
+
+* **Route Roster** — who is on which sales route, day by day, beyond the standing
+  membership. A manager puts people on routes for a day or a spell (many people,
+  many routes, in one go), an executive hands a round to a colleague when away or
+  asks one to come along, and the colleague accepts on My Day. A cover takes the
+  absent person's planned visits with it and gives them back if cancelled; the
+  roster shows the routes nobody is on and the people with a heavy day before the
+  day comes.
 
 * **Day Sheets** — each executive's day assembles itself at day close from the visits,
   travel, cases and attendance it produced, and crosses two desks in order: the
@@ -93,6 +101,8 @@ in the server, not merely in the form.
         'views/field_live_views.xml',
         # After the menus: its menuitem hangs off menu_fw_approvals.
         'views/desk_cover_views.xml',
+        # After the menus too: the roster and the duties hang off menu_fw_plan.
+        'views/route_duty_views.xml',
         # After the menus too: it hangs off menu_fw_ops and the Petty Cash app.
         'views/cash_handover_views.xml',
         'security/ir.access.csv',
@@ -142,6 +152,14 @@ in the server, not merely in the form.
             'lab_fieldwork/static/src/scss/my_trail.scss',
             'lab_fieldwork/static/src/js/my_trail.js',
             'lab_fieldwork/static/src/xml/my_trail.xml',
+            # Route duties (2026-11-07): the hand-over / assign dialog (My Day and
+            # the roster share it), the My Day card, the manager's Route Roster.
+            'lab_fieldwork/static/src/scss/route_duty.scss',
+            'lab_fieldwork/static/src/js/route_duty_dialog.js',
+            'lab_fieldwork/static/src/xml/route_duty_dialog.xml',
+            'lab_fieldwork/static/src/scss/route_roster.scss',
+            'lab_fieldwork/static/src/js/route_roster.js',
+            'lab_fieldwork/static/src/xml/route_roster.xml',
         ],
     },
     'installable': True,

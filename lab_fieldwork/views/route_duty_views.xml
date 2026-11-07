@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Route duties (2026-11-07): who works which sales route on which days, beyond
+     the standing membership. The manager's screen is the Route Roster (a client
+     action); these are the records behind it, for the list, the calendar and the
+     form a manager opens from a chip. -->
+<odoo>
+
+    <record id="view_route_duty_list" model="ir.ui.view">
+        <field name="name">lab.route.duty.list</field>
+        <field name="model">lab.route.duty</field>
+        <field name="arch" type="xml">
+            <list string="Route Duties" sample="1"
+                  decoration-muted="state in ('declined', 'cancelled')"
+                  decoration-warning="state == 'pending'">
+                <field name="team_id"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="kind"/>
+                <field name="origin_user_id" optional="show"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="days" optional="hide"/>
+                <field name="phase" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-success="state == 'active'"/>
+                <field name="requester_id" optional="hide"/>
+                <field name="note" optional="show"/>
+                <field name="company_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_route_duty_form" model="ir.ui.view">
+        <field name="name">lab.route.duty.form</field>
+        <field name="model">lab.route.duty</field>
+        <field name="arch" type="xml">
+            <form string="Route Duty">
+                <header>
+                    <button name="action_accept" type="object" string="Accept"
+                            class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_decline" type="object" string="Decline"
+                            invisible="state != 'pending'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state not in ('pending', 'active')"
+                            confirm="End this duty? A cover hands its planned visits back."/>
+                    <button name="action_reopen" type="object" string="Ask Again"
+                            invisible="state not in ('declined', 'cancelled')"
+                            groups="lab_fieldwork.group_fieldwork_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,active"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_visits" type="object" class="oe_stat_button"
+                                icon="fa-map-marker" invisible="not moved_visit_count">
+                            <field name="moved_visit_count" widget="statinfo" string="Visits handed over"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="team_id" placeholder="Sales Route"
+                                   options="{'no_create': True}"/></h1>
+                    </div>
+                    <group>
+                        <group string="Who">
+                            <field name="user_id" widget="many2one_avatar_user"
+                                   options="{'no_create': True}"/>
+                            <field name="kind" widget="radio"/>
+                            <field name="origin_user_id" invisible="kind == 'regular'"
+                                   required="kind != 'regular'" options="{'no_create': True}"/>
+                        </group>
+                        <group string="When">
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="days"/>
+                            <field name="phase"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="note" placeholder="Leave, a wedding, learning the round…"/>
+                        <field name="requester_id"/>
+                        <field name="answered_at" invisible="not answered_at"/>
+                        <field name="company_id" invisible="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_route_duty_calendar" model="ir.ui.view">
+        <field name="name">lab.route.duty.calendar</field>
+        <field name="model">lab.route.duty</field>
+        <field name="arch" type="xml">
+            <calendar string="Route Duties" date_start="date_from" date_stop="date_to"
+                      color="team_id" mode="week" quick_create="0" event_open_popup="1">
+                <field name="user_id" avatar_field="avatar_128"/>
+                <field name="team_id"/>
+                <field name="kind"/>
+                <field name="origin_user_id"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_route_duty_search" model="ir.ui.view">
+        <field name="name">lab.route.duty.search</field>
+        <field name="model">lab.route.duty</field>
+        <field name="arch" type="xml">
+            <search string="Route Duties">
+                <field name="team_id"/>
+                <field name="user_id"/>
+                <field name="origin_user_id"/>
+                <field name="note"/>
+                <filter name="f_open" string="Open" domain="[('state', 'in', ('pending', 'active')), ('phase', '!=', 'over')]"/>
+                <filter name="f_running" string="Running today" domain="[('phase', '=', 'running'), ('state', '=', 'active')]"/>
+                <filter name="f_coming" string="Coming" domain="[('phase', '=', 'scheduled'), ('state', '=', 'active')]"/>
+                <filter name="f_pending" string="Waiting for an answer" domain="[('state', '=', 'pending')]"/>
+                <separator/>
+                <filter name="f_cover" string="Covering" domain="[('kind', '=', 'cover')]"/>
+                <filter name="f_assist" string="Assisting" domain="[('kind', '=', 'assist')]"/>
+                <filter name="f_regular" string="Assigned" domain="[('kind', '=', 'regular')]"/>
+                <separator/>
+                <filter name="f_closed" string="Declined or cancelled" domain="[('state', 'in', ('declined', 'cancelled'))]"/>
+                <group>
+                    <filter name="g_route" string="Sales Route" context="{'group_by': 'team_id'}"/>
+                    <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"/>
+                    <filter name="g_kind" string="Kind" context="{'group_by': 'kind'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_route_duty" model="ir.actions.act_window">
+        <field name="name">Route Duties</field>
+        <field name="res_model">lab.route.duty</field>
+        <field name="view_mode">list,calendar,form</field>
+        <field name="search_view_id" ref="view_route_duty_search"/>
+        <field name="context">{'search_default_f_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nobody is on a route beyond their own yet</p>
+            <p>A duty puts an executive on a sales route for a day or a spell:
+               assigned by you, covering a colleague who is away, or assisting one.
+               The Route Roster is the easier place to arrange it.</p>
+        </field>
+    </record>
+
+    <record id="action_route_roster" model="ir.actions.client">
+        <field name="name">Route Roster</field>
+        <field name="tag">lab_route_roster</field>
+    </record>
+
+    <!-- Under Planning: the roster first, the records behind it next. Both desks
+         arrange cover; the base manager group covers both. -->
+    <menuitem id="menu_fw_plan_roster" name="Route Roster"
+              parent="menu_fw_plan" sequence="1" action="action_route_roster"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+    <menuitem id="menu_fw_plan_duties" name="Route Duties"
+              parent="menu_fw_plan" sequence="2" action="action_route_duty"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
+</odoo>
