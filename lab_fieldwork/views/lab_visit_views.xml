@@ -33,8 +33,7 @@
                             class="btn-secondary" invisible="state not in ('open', 'done')"/>
                     <button name="action_cash_to_float" type="object"
                             string="Cash into My Float" class="btn-secondary"
-                            invisible="pay_mode != 'cash' or collected &lt;= 0
-                                       or cash_banked"/>
+                            invisible="collected_cash &lt;= 0 or cash_banked"/>
                     <button name="action_view_cash_txn" type="object"
                             string="View Cash Movement" class="btn-secondary"
                             invisible="not cash_banked"/>
@@ -127,7 +126,7 @@
                                 class="oe_stat_button" icon="fa-money"
                                 invisible="not cash_banked">
                             <div class="o_stat_info">
-                                <field name="collected" widget="monetary"
+                                <field name="collected_cash" widget="monetary"
                                        class="o_stat_value"/>
                                 <span class="o_stat_text">In Float</span>
                             </div>
@@ -296,12 +295,17 @@
                                    invisible="order_count == 0"/>
                         </group>
                         <group>
+                            <!-- Under "Split" the amount is the sum of its parts,
+                                 typed in the box below it. (client, 2026-11-09) -->
                             <field name="collected" widget="fw_amount"
-                                   readonly="state == 'cancel'"/>
-                            <field name="pay_mode" widget="fw_choice"
+                                   readonly="state == 'cancel' or pay_mode == 'mixed'"/>
+                            <field name="pay_mode" widget="fw_pay_mode"
                                    readonly="state == 'cancel'"
                                    required="collected &gt; 0"
-                                   invisible="collected &lt;= 0"/>
+                                   invisible="collected &lt;= 0 and pay_mode != 'mixed'"/>
+                            <field name="collected_cash" invisible="1"/>
+                            <field name="collected_cheque" invisible="1"/>
+                            <field name="collected_online" invisible="1"/>
                             <field name="cash_banked" invisible="1"/>
                             <field name="cash_txn_id" readonly="1"
                                    invisible="not cash_banked"
@@ -427,6 +431,10 @@
                 <field name="reworks_collected" optional="hide" sum="Reworks"/>
                 <field name="order_value" sum="Case Value"/>
                 <field name="collected" sum="Collected" optional="hide"/>
+                <field name="pay_split_text" optional="hide"/>
+                <field name="collected_cash" sum="Cash" optional="hide"/>
+                <field name="collected_cheque" sum="Cheque" optional="hide"/>
+                <field name="collected_online" sum="UPI / Online" optional="hide"/>
                 <field name="gps_state" widget="badge" optional="hide"
                        decoration-success="gps_state == 'ok'"
                        decoration-danger="gps_state == 'far'"/>
@@ -457,6 +465,17 @@
                         domain="[('gps_state', '=', 'far')]"/>
                 <filter name="with_cases" string="Brought Cases"
                         domain="[('order_count', '&gt;', 0)]"/>
+                <separator/>
+                <filter name="paid" string="Payment Collected"
+                        domain="[('collected', '&gt;', 0)]"/>
+                <filter name="paid_cash" string="Cash Taken"
+                        domain="[('collected_cash', '&gt;', 0)]"/>
+                <filter name="paid_cheque" string="Cheque Taken"
+                        domain="[('collected_cheque', '&gt;', 0)]"/>
+                <filter name="paid_online" string="UPI / Online"
+                        domain="[('collected_online', '&gt;', 0)]"/>
+                <filter name="paid_split" string="Split Payments"
+                        domain="[('pay_mode', '=', 'mixed')]"/>
                 <group>
                     <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
                     <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"

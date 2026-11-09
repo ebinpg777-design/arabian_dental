@@ -16,6 +16,53 @@
     </div>
 </t>
 
+<!-- How the money came: the same chips, and under "Split" an amount for each way
+     it came, with their total. (client, 2026-11-09) -->
+<t t-name="lab_fieldwork.FwPayMode">
+    <div class="o_fw_pay">
+        <div class="o_fw_choice" t-att-class="this.props.readonly ? 'o_fw_choice_ro' : ''">
+            <button t-foreach="this.choices" t-as="c" t-key="c[0]" type="button"
+                    class="o_fw_choice_chip"
+                    t-att-class="this.value === c[0] ? 'o_fw_choice_on' : ''"
+                    t-att-aria-pressed="this.value === c[0] ? 'true' : 'false'"
+                    t-att-disabled="this.props.readonly"
+                    t-on-click="() => this.onPick(c[0])">
+                <i t-if="this.value === c[0]" class="fa fa-check me-1" title="Chosen"/>
+                <t t-out="c[1]"/>
+            </button>
+        </div>
+        <div t-if="this.isSplit" class="o_fw_pay_split">
+            <div t-foreach="this.rows" t-as="row" t-key="row.mode" class="o_fw_pay_row"
+                 t-att-class="row.amount ? 'o_fw_pay_row_on' : ''">
+                <span class="o_fw_pay_label">
+                    <i t-attf-class="fa {{ row.icon }} fa-fw me-2" t-att-title="row.label"/>
+                    <t t-out="row.label"/>
+                </span>
+                <b t-if="this.props.readonly" class="o_fw_pay_amount" t-out="this.money(row.amount)"/>
+                <!-- inputmode gives the phone a number pad instead of a full keyboard. -->
+                <input t-else="" type="text" inputmode="decimal" class="o_fw_pay_input"
+                       placeholder="0" t-att-aria-label="row.label"
+                       t-att-value="row.amount or ''"
+                       t-on-change="(ev) => this.onInput(row.mode, ev)"/>
+            </div>
+            <div t-if="this.remaining and !this.props.readonly" class="o_fw_pay_left">
+                <span>
+                    <b t-out="this.money(this.remaining)"/> of
+                    <t t-out="this.money(this.state.target)"/> is not placed yet. Put it on
+                </span>
+                <button t-foreach="this.rows" t-as="row" t-key="row.mode" type="button"
+                        class="o_fw_pay_put" t-on-click="() => this.putRemaining(row.mode)">
+                    <t t-out="row.label"/>
+                </button>
+            </div>
+            <div class="o_fw_pay_total">
+                <span>Total received</span>
+                <b t-out="this.money(this.total)"/>
+            </div>
+        </div>
+    </div>
+</t>
+
 <!-- The multi-select twin: several can be on at once, so the check mark is a real
      state per chip rather than "the one chip that differs from the rest". -->
 <t t-name="lab_fieldwork.FwChoiceMulti">

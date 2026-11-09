@@ -364,6 +364,35 @@ setting would look saved and ignored.
 * **Clinic Coverage** — clinics banded by how long they have gone unvisited, with a
   *Rescue List* filter: still ordering, ordering less, and nobody has been to see.
 
+## A payment that came two ways (2026-11-09)
+
+A doctor pays part in cash and the rest by cheque or UPI at the same counter. A
+visit used to hold one amount and one "Received As", so the second part went
+unrecorded or the whole lot was called cash - and cash is what the executive is
+held to.
+
+* **On the visit** - Received As has a fourth chip, **Split**. It opens an amount
+  for each way the money came (Cash, Cheque, UPI / Online) with their total. The
+  amount already typed stays where it was said to be; what is taken off one way is
+  offered to the others with one tap ("₹10,000 of ₹15,000 is not placed yet").
+* **One total, three parts** - `collected` is still the whole payment, which every
+  figure reads (day total, day sheet, target, performance, Field Live).
+  `collected_cash` / `collected_cheque` / `collected_online` say how it came;
+  `pay_mode` is the one way, or `mixed`. `write()`/`create()` keep them in step
+  (`_fw_payment_vals`), so a caller that only knows the amount and one mode is
+  still right. A split nobody gave the parts of is refused, never guessed.
+* **Only the cash part is held** as field cash, at check-out as before. If the
+  payment is put right after check-out - the whole amount entered as cash, then
+  split - the cash held follows the cash part, with a note on the visit.
+* **Without a visit** - Cash In takes the same split and records one collection
+  for each way, so a collection is still one amount received one way.
+* **Where it shows** - My Day's visit card and the day sheet say the parts beside
+  the total; the visit list has the three columns and filters (Cash Taken, Cheque
+  Taken, UPI / Online, Split Payments).
+
+Visits already on file get their part from the mode they were recorded with
+(`migrations/20.0.9.1.0`).
+
 ## Cash the executive is carrying
 
 A cash collection on a visit goes into that executive's petty cash float with one button.

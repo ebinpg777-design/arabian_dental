@@ -184,8 +184,10 @@ class LabMyDay(models.AbstractModel):
                 'collected': v.collected,
                 'gps': v.gps_state or '',
                 'pinned': clinic.is_geolocated,
-                'unbanked': bool(v.state == 'done' and v.pay_mode == 'cash'
-                                 and v.collected and not v.cash_banked),
+                'unbanked': bool(v.state == 'done' and v.collected_cash > 0
+                                 and not v.cash_banked),
+                # "Cash ₹5,000 + Cheque ₹10,000" under a split payment's total
+                'split': v.pay_split_text if v.pay_mode == 'mixed' else '',
                 # Offered on every visit not yet completed; one with work on it is
                 # refused by the server, which says what is on it - a button that
                 # simply vanished would not. (client, 2026-10-26)

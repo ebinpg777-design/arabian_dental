@@ -414,7 +414,7 @@ class LabDesk(models.AbstractModel):
         out = []
         done = visits.filtered(lambda v: v.state == 'done')
         unbanked = done.filtered(
-            lambda v: v.pay_mode == 'cash' and v.collected and not v.cash_banked)
+            lambda v: v.collected_cash > 0 and not v.cash_banked)
         if unbanked:
             out.append({
                 'key': 'unbanked', 'level': 'danger', 'icon': 'fa-money',
@@ -636,7 +636,7 @@ class LabDesk(models.AbstractModel):
                 [('state', '=', 'closed')]),
             'cash': lambda: (
                 'lab.visit', self.env._('Cash still held'),
-                [('pay_mode', '=', 'cash'), ('collected', '>', 0),
+                [('collected_cash', '>', 0),
                  ('cash_banked', '=', False), ('state', '=', 'done')]),
             'sent_back': lambda: (
                 'lab.daily.update', self.env._('Sent back, being fixed'),
@@ -818,8 +818,8 @@ class LabDesk(models.AbstractModel):
         policy = Handover._cash_policy()
         pocket = defaultdict(list)
         for visit in self.env['lab.visit'].sudo().search(
-                [('user_id', 'in', users.ids), ('pay_mode', '=', 'cash'),
-                 ('collected', '>', 0), ('cash_banked', '=', False),
+                [('user_id', 'in', users.ids), ('collected_cash', '>', 0),
+                 ('cash_banked', '=', False),
                  ('state', '=', 'done')]):
             pocket[visit.user_id.id].append(visit.id)
         out = []

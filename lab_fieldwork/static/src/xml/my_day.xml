@@ -803,6 +803,7 @@
                         <span t-if="v.collected">
                             <i class="fa fa-money me-1" title="Collected"/>
                             <t t-out="this.money(v.collected)"/>
+                            <small t-if="v.split" class="text-muted ms-1">(<t t-out="v.split"/>)</small>
                         </span>
                     </div>
 

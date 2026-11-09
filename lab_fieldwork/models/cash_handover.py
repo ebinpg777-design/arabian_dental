@@ -372,8 +372,7 @@ class CashHandover(models.Model):
         Loose = self.env['lab.cash.collection'].sudo()
         held = Visit.search([
             ('user_id', '=', user.id), ('state', '=', 'done'),
-            ('pay_mode', '=', 'cash'), ('collected', '>', 0),
-            ('cash_banked', '=', False)])
+            ('collected_cash', '>', 0), ('cash_banked', '=', False)])
         loose = Loose.search([
             ('user_id', '=', user.id), ('pay_mode', '=', 'cash'),
             ('cash_banked', '=', False)])
@@ -422,9 +421,9 @@ class CashHandover(models.Model):
         Visit = self.env['lab.visit'].sudo()
         for visit in Visit.search([
                 ('user_id', 'in', users.ids), ('state', '=', 'done'),
-                ('pay_mode', '=', 'cash'), ('collected', '>', 0),
-                ('cash_banked', '=', False)]):
-            held.append((visit.user_id.id, 'pocket', visit.partner_id, visit.collected, visit.date))
+                ('collected_cash', '>', 0), ('cash_banked', '=', False)]):
+            # of a split payment only the cash part is in the pocket
+            held.append((visit.user_id.id, 'pocket', visit.partner_id, visit.collected_cash, visit.date))
         for loose in self.env['lab.cash.collection'].sudo().search([
                 ('user_id', 'in', users.ids), ('pay_mode', '=', 'cash'),
                 ('cash_banked', '=', False)]):

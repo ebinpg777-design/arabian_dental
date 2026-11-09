@@ -39,8 +39,15 @@ class CollectCash(models.TransientModel):
         string='Collected on', required=True,
         default=lambda self: fields.Date.context_today(self))
     pay_mode = fields.Selection(
-        [('cash', 'Cash'), ('cheque', 'Cheque'), ('online', 'UPI / Online')],
+        [('cash', 'Cash'), ('cheque', 'Cheque'), ('online', 'UPI / Online'),
+         ('mixed', 'Split')],
         string='Received As', required=True, default='cash')
+    # Part cash, part cheque or UPI in one envelope (client, 2026-11-09): the parts
+    # are typed here and recorded as one collection each, so every collection is
+    # still one amount received one way and only the cash one is held.
+    amount_cash = fields.Monetary('Cash', currency_field='currency_id')
+    amount_cheque = fields.Monetary('Cheque', currency_field='currency_id')
+    amount_online = fields.Monetary('UPI / Online', currency_field='currency_id')
     note = fields.Char(
         string='Note',
         help="What this payment was for, if it is worth saying.")
@@ -65,26 +72,44 @@ class CollectCash(models.TransientModel):
                 'lab_fieldwork.group_fieldwork_manager'):
             raise UserError(_(
                 "You can only record cash you collected yourself."))
-        if not self.amount or self.amount <= 0:
-            raise UserError(_("Enter how much was collected."))
-        collection = self.env['lab.cash.collection'].create({
-            'user_id': self.user_id.id,
-            'partner_id': self.partner_id.id,
-            'amount': self.amount,
-            'date': self.date,
-            'pay_mode': self.pay_mode,
-            'note': self.note,
-        })
-        # Held by the same path a visit's cash takes; a failure is written on the
-        # collection rather than raised - the money is recorded either way, which
-        # is the point of this screen. (client, 2026-09-12 / 2026-09-18)
-        if self.pay_mode == 'cash':
-            try:
-                with self.env.cr.savepoint():
-                    collection.action_cash_to_float()
-            except UserError as exc:
-                collection.message_post(body=_(
-                    "The cash was not taken in by itself: %s Use "
-                    "\"Into my float\" once that is sorted.",
-                    exc.args[0] if exc.args else exc))
+        for mode, amount in self._parts():
+            collection = self.env['lab.cash.collection'].create({
+                'user_id': self.user_id.id,
+                'partner_id': self.partner_id.id,
+                'amount': amount,
+                'date': self.date,
+                'pay_mode': mode,
+                'note': self.note,
+            })
+            # Held by the same path a visit's cash takes; a failure is written on
+            # the collection rather than raised - the money is recorded either way,
+            # which is the point of this screen. (client, 2026-09-12 / 2026-09-18)
+            if mode == 'cash':
+                try:
+                    with self.env.cr.savepoint():
+                        collection.action_cash_to_float()
+                except UserError as exc:
+                    collection.message_post(body=_(
+                        "The cash was not taken in by itself: %s Use "
+                        "\"Into my float\" once that is sorted.",
+                        exc.args[0] if exc.args else exc))
         return {'type': 'ir.actions.act_window_close'}
+
+    def _parts(self):
+        """[(mode, amount)] to record: the one amount, or each part of a split."""
+        self.ensure_one()
+        if self.pay_mode != 'mixed':
+            if not self.amount or self.amount <= 0:
+                raise UserError(_("Enter how much was collected."))
+            return [(self.pay_mode, self.amount)]
+        parts = [(mode, amount) for mode, amount in (
+            ('cash', self.amount_cash), ('cheque', self.amount_cheque),
+            ('online', self.amount_online)) if amount and amount > 0]
+        if any(amount and amount < 0 for amount in (
+                self.amount_cash, self.amount_cheque, self.amount_online)):
+            raise UserError(_("A part of a payment cannot be less than nothing."))
+        if not parts:
+            raise UserError(_(
+                "Say how much of it was cash, how much a cheque and how much "
+                "UPI / online."))
+        return parts

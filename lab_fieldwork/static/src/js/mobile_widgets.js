@@ -181,6 +181,153 @@ export const fwAmount = {
 registry.category("fields").add("fw_amount", fwAmount);
 
 // ---------------------------------------------------------------------------
+// How the money came. The same chips as FwChoice, plus "Split": a doctor pays
+// part in cash and the rest by cheque or UPI at one counter, and one amount with
+// one mode could only say one of them (client, 2026-11-09). Split opens an amount
+// per way; the total above it is their sum, and only the cash part is held as
+// field cash. The amount already typed stays where it was said to be, and what
+// is taken off one way is offered to the others with one tap.
+// ---------------------------------------------------------------------------
+const PAY_ROWS = [
+    { mode: "cash", icon: "fa-money" },
+    { mode: "cheque", icon: "fa-pencil-square-o" },
+    { mode: "online", icon: "fa-mobile" },
+];
+
+export class FwPayMode extends Component {
+    static template = "lab_fieldwork.FwPayMode";
+    props = useProps({
+        ...standardFieldProps,
+        partFields: t.object(),
+        totalField: t.string(),
+    });
+
+    setup() {
+        // The whole payment as it stood when Split was chosen: what the parts
+        // are expected to add up to, until they add up to more.
+        this.state = proxy({ target: 0 });
+    }
+
+    get record() {
+        return this.props.record;
+    }
+
+    get choices() {
+        return this.record.fields[this.props.name].selection.filter(([value]) => value);
+    }
+
+    get value() {
+        return this.record.data[this.props.name];
+    }
+
+    get isSplit() {
+        return this.value === "mixed";
+    }
+
+    get currencyId() {
+        const currency = this.record.data.currency_id;
+        return currency && (currency.id || currency[0]);
+    }
+
+    money(amount) {
+        return formatMonetary(amount || 0, { currencyId: this.currencyId });
+    }
+
+    amount(mode) {
+        return this.record.data[this.props.partFields[mode]] || 0;
+    }
+
+    get total() {
+        return PAY_ROWS.reduce((sum, row) => sum + this.amount(row.mode), 0);
+    }
+
+    get rows() {
+        const labels = Object.fromEntries(this.choices);
+        return PAY_ROWS.map((row) => ({
+            ...row,
+            label: labels[row.mode] || row.mode,
+            amount: this.amount(row.mode),
+        }));
+    }
+
+    /** What was taken off one way and not yet put on another. */
+    get remaining() {
+        const left = Math.round((this.state.target - this.total) * 100) / 100;
+        return left > 0 ? left : 0;
+    }
+
+    onPick(value) {
+        if (this.props.readonly) {
+            return;
+        }
+        const was = this.value;
+        const next = was === value ? false : value;
+        const whole = this.record.data[this.props.totalField] || 0;
+        const changes = { [this.props.name]: next };
+        if (next === "mixed") {
+            // The parts are kept when they already say the amount (a split looked
+            // at again); else all of it starts where it was said to be - cash, if
+            // nothing was said - and the person moves the rest.
+            if (!this.total || Math.abs(this.total - whole) > 0.005) {
+                const home = PAY_ROWS.some((row) => row.mode === was) ? was : "cash";
+                for (const row of PAY_ROWS) {
+                    changes[this.props.partFields[row.mode]] = row.mode === home ? whole : 0;
+                }
+            }
+            this.state.target = whole;
+        } else {
+            // One way, or none said: the whole amount is that way's.
+            for (const row of PAY_ROWS) {
+                changes[this.props.partFields[row.mode]] = row.mode === next ? whole : 0;
+            }
+            this.state.target = 0;
+        }
+        this.record.update(changes);
+    }
+
+    setPart(mode, amount) {
+        let total = 0;
+        for (const row of PAY_ROWS) {
+            total += row.mode === mode ? amount : this.amount(row.mode);
+        }
+        if (total > this.state.target) {
+            this.state.target = total;
+        }
+        this.record.update({
+            [this.props.partFields[mode]]: amount,
+            [this.props.totalField]: total,
+        });
+    }
+
+    onInput(mode, ev) {
+        const parsed = parseFloat(ev.target.value.replace(/[^0-9.]/g, ""));
+        this.setPart(mode, Number.isFinite(parsed) && parsed > 0 ? parsed : 0);
+    }
+
+    putRemaining(mode) {
+        this.setPart(mode, this.amount(mode) + this.remaining);
+    }
+}
+
+export const fwPayMode = {
+    component: FwPayMode,
+    displayName: _t("Touch payment mode, with a split"),
+    supportedTypes: ["selection"],
+    isEmpty: (record, fieldName) => record.data[fieldName] === false,
+    // The visit's own field names unless the view says otherwise (the no-visit
+    // collection calls them amount_*).
+    extractProps: ({ options }) => ({
+        partFields: {
+            cash: (options && options.cash) || "collected_cash",
+            cheque: (options && options.cheque) || "collected_cheque",
+            online: (options && options.online) || "collected_online",
+        },
+        totalField: (options && options.total) || "collected",
+    }),
+};
+registry.category("fields").add("fw_pay_mode", fwPayMode);
+
+// ---------------------------------------------------------------------------
 // A photo, straight from the rear camera.
 // ---------------------------------------------------------------------------
 export class FwCamera extends Component {

@@ -268,6 +268,8 @@ class LabFieldLive(models.AbstractModel):
                     bits.append(_('%s case(s)') % visit.order_count)
                 if visit.outcome:
                     bits.append(outcomes.get(visit.outcome, visit.outcome))
+                if visit.pay_mode == 'mixed':
+                    bits.append(visit.pay_split_text)
                 events.append({
                     'kind': 'visit_out', 'epoch': epoch(visit.check_out), 'visit_id': visit.id,
                     'title': _('Left %s') % clinic, 'detail': ' · '.join(bits),

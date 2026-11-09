@@ -5,7 +5,13 @@ from urllib.parse import quote_plus
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import float_compare
 from odoo.tools.misc import format_datetime, formatLang
+
+# How a payment came: the mode, and the field holding that part of it.
+PAY_PARTS = {'cash': 'collected_cash', 'cheque': 'collected_cheque',
+             'online': 'collected_online'}
+PAY_FIELDS = frozenset(PAY_PARTS.values()) | {'collected', 'pay_mode'}
 
 EARTH_M = 6371000.0
 COORD_EPSILON = 1e-6
@@ -159,7 +165,8 @@ class LabVisit(models.Model):
     # COMPLETED visit; a cancelled one stays frozen, because nothing happened
     # at a visit that did not happen. (client, 2026-09-12)
     _LOCK_DONE_EXEMPT = ('outcome', 'outcome_ids', 'cases_counted',
-                         'reworks_collected', 'collected', 'pay_mode')
+                         'reworks_collected', 'collected', 'pay_mode',
+                         'collected_cash', 'collected_cheque', 'collected_online')
     _lock_bypass_groups = ('lab_fieldwork.group_fieldwork_manager',)
 
     def _lock_exempt_fields_for(self, state):
@@ -317,8 +324,25 @@ class LabVisit(models.Model):
     collected = fields.Monetary('Payment Collected', currency_field='currency_id',
                                 tracking=True)
     pay_mode = fields.Selection(
-        [('cash', 'Cash'), ('cheque', 'Cheque'), ('online', 'UPI / Online')],
+        [('cash', 'Cash'), ('cheque', 'Cheque'), ('online', 'UPI / Online'),
+         ('mixed', 'Split')],
         string='Received As')
+    # A doctor pays part in cash and the rest by cheque or UPI at the same counter
+    # (client, 2026-11-09). One amount and one "received as" could only say one of
+    # them, so the rest went unrecorded or the whole lot was called cash - and cash
+    # is what the executive is held to. `collected` stays THE total every figure
+    # reads; these three say how it came, and only the cash part is ever held as
+    # field cash. write()/create() keep the five in step (_fw_payment_vals), so a
+    # caller that only knows `collected` + `pay_mode` is still right.
+    collected_cash = fields.Monetary('Cash', currency_field='currency_id',
+                                     tracking=True, copy=False)
+    collected_cheque = fields.Monetary('Cheque', currency_field='currency_id',
+                                       tracking=True, copy=False)
+    collected_online = fields.Monetary('UPI / Online', currency_field='currency_id',
+                                       tracking=True, copy=False)
+    pay_split_text = fields.Char(
+        'Received', compute='_compute_pay_split_text',
+        help="How the payment came, in words: one mode, or each part of a split.")
 
     # --- what a phone needs to act on this visit
     # Computed on the server rather than assembled in the browser: a wrong number or a
@@ -338,6 +362,10 @@ class LabVisit(models.Model):
     currency_id = fields.Many2one(related='company_id.currency_id', readonly=True)
 
     _name_uniq = models.Constraint('unique(name)', 'Visit reference must be unique.')
+    _pay_parts_not_negative = models.Constraint(
+        'CHECK(COALESCE(collected_cash, 0) >= 0 AND COALESCE(collected_cheque, 0) >= 0'
+        ' AND COALESCE(collected_online, 0) >= 0)',
+        'A part of a payment cannot be less than nothing.')
 
     @api.model
     def _expand_states(self, states, domain):
@@ -473,9 +501,73 @@ class LabVisit(models.Model):
             v.order_count = len(live)
             v.order_value = sum(live.mapped('amount_untaxed'))
 
+    # ----------------------------------------------------------- the payment
+    @api.depends('pay_mode', 'collected', 'collected_cash', 'collected_cheque',
+                 'collected_online')
+    def _compute_pay_split_text(self):
+        labels = dict(self._fields['pay_mode']._description_selection(self.env))
+        for v in self:
+            if v.pay_mode == 'mixed':
+                v.pay_split_text = ' + '.join(
+                    '%s %s' % (labels[mode], formatLang(
+                        self.env, v[fname], currency_obj=v.currency_id))
+                    for mode, fname in PAY_PARTS.items() if v[fname] > 0)
+            else:
+                v.pay_split_text = labels.get(v.pay_mode, '') if v.collected else ''
+
+    @api.model
+    def _fw_payment_vals(self, vals, visit=None):
+        """`vals` with the total, the mode and the three parts made to agree.
+
+        Two kinds of caller write a payment. The split box writes the parts; then
+        the total is their sum and the mode is the one that has money, or 'mixed'.
+        Everything older - the plain amount and mode, an import, a test - writes
+        `collected` and `pay_mode`; then the whole amount sits under that mode.
+        A split nobody gave the parts of cannot be guessed and is refused.
+        """
+        touched = PAY_FIELDS.intersection(vals)
+        if not touched:
+            return vals
+        vals = dict(vals)
+        now = {f: (vals[f] if f in vals else (visit[f] if visit else False))
+               for f in PAY_FIELDS}
+        parts = {mode: now[fname] or 0.0 for mode, fname in PAY_PARTS.items()}
+        mode = now['pay_mode'] or False
+        gave_parts = bool(touched.intersection(PAY_PARTS.values()))
+        by_parts = mode == 'mixed' or (
+            gave_parts and 'pay_mode' not in vals and 'collected' not in vals)
+        if by_parts:
+            total = sum(parts.values())
+            if mode == 'mixed' and not gave_parts and 'collected' in vals:
+                wanted = vals['collected'] or 0.0
+                if not wanted:
+                    parts = dict.fromkeys(parts, 0.0)
+                    total = 0.0
+                elif float_compare(wanted, total, precision_digits=2):
+                    raise UserError(_(
+                        "This payment is split. Say how much of it was cash, how much "
+                        "a cheque and how much UPI / online."))
+            paid = [m for m, amount in parts.items() if amount > 0]
+            mode = paid[0] if len(paid) == 1 else ('mixed' if paid else False)
+        else:
+            total = now['collected'] or 0.0
+            parts = {m: (total if m == mode else 0.0) for m in parts}
+        vals.update(collected=total, pay_mode=mode,
+                    **{fname: parts[m] for m, fname in PAY_PARTS.items()})
+        return vals
+
+    def write(self, vals):
+        if not PAY_FIELDS.intersection(vals):
+            return super().write(vals)
+        # what the parts become depends on what each visit already says
+        for visit in self:
+            super(LabVisit, visit).write(self._fw_payment_vals(vals, visit))
+        return True
+
     # ------------------------------------------------------------------ create
     @api.model_create_multi
     def create(self, vals_list):
+        vals_list = [self._fw_payment_vals(vals) for vals in vals_list]
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code(

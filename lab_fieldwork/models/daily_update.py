@@ -706,7 +706,10 @@ class LabDailyUpdate(models.Model):
                         html_escape(outcome_labels.get(visit.outcome, _('no outcome'))),
                         sheet._cases_text(visit),
                         (' · ' + format_amount(self.env, visit.collected,
-                                               sheet.currency_id))
+                                               sheet.currency_id)
+                         # a split payment says its parts: the cash is what is held
+                         + (' (%s)' % html_escape(visit.pay_split_text)
+                            if visit.pay_mode == 'mixed' else ''))
                         if visit.collected else ''))
             if sheet.attendance_out:
                 rows.append('<div style="color:#6c757d;">%s &#8212; %s%s</div>' % (

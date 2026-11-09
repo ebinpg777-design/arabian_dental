@@ -13,13 +13,19 @@
                         <field name="partner_id"
                                options="{'no_create': True}"
                                placeholder="Which doctor or clinic?"/>
-                        <field name="amount"/>
+                        <field name="amount" readonly="pay_mode == 'mixed'"/>
                         <!-- Cash, cheque or UPI: without this every payment
                              would default to cash and a cheque would be swept
                              into the float, counting the same money twice.
-                             (client, 2026-09-12) -->
-                        <field name="pay_mode" widget="radio"
-                               options="{'horizontal': true}"/>
+                             (client, 2026-09-12) Split: part one way, part
+                             another, each recorded as its own collection.
+                             (client, 2026-11-09) -->
+                        <field name="pay_mode" widget="fw_pay_mode"
+                               options="{'cash': 'amount_cash', 'cheque': 'amount_cheque',
+                                         'online': 'amount_online', 'total': 'amount'}"/>
+                        <field name="amount_cash" invisible="1"/>
+                        <field name="amount_cheque" invisible="1"/>
+                        <field name="amount_online" invisible="1"/>
                         <field name="date"/>
                     </group>
                     <group>

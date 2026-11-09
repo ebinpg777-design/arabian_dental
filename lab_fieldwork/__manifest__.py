@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.9.0.2',
+    'version': '20.0.9.1.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -32,6 +32,10 @@ there, leave — and everything else is derived from it or generated for them.
   fortnight's visits, cases, money and km, day by day and person by person, and the
   month so far. The three role desks it replaced (Ops Desk, Marketing Desk, Command
   Center) were removed on 2026-10-20.
+
+* **Split payments** — a payment that came two ways at one counter (part cash,
+  part cheque or UPI) is entered on the visit as one total with its parts; only
+  the cash part is held as the executive's field cash.
 
 * **Route Roster** — who is on which sales route, day by day, beyond the standing
   membership. A manager puts people on routes for a day or a spell (many people,

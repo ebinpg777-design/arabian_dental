@@ -24,3 +24,4 @@ from . import test_field_live
 from . import test_desk_access
 from . import test_visit_remove
 from . import test_route_duty
+from . import test_split_payment

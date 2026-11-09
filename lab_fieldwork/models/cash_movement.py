@@ -13,6 +13,10 @@ cash module at all; lab_petty_cash joins the two where the lab wants them joined
 """
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import float_compare
+from odoo.tools.misc import formatLang
+
+from .lab_visit import PAY_FIELDS
 
 KINDS = [('collection', 'Collected'), ('handover', 'Handed to Office')]
 
@@ -219,7 +223,7 @@ class LabVisit(models.Model):
         # the visit is closed and the person has left the counter; the button is
         # still there for once it is fixed. (client, 2026-09-18)
         for visit in self:
-            if visit.pay_mode != 'cash' or visit.collected <= 0 or visit.cash_banked:
+            if visit.collected_cash <= 0 or visit.cash_banked:
                 continue
             try:
                 with self.env.cr.savepoint():
@@ -236,15 +240,17 @@ class LabVisit(models.Model):
         self.ensure_one()
         if self.cash_banked:
             return self.action_view_cash_txn()
-        if self.pay_mode != 'cash':
+        if not self.collected:
+            raise UserError(_("No money was collected on this visit."))
+        # Of a split payment only the cash part: the cheque and the UPI transfer
+        # never pass through the executive's hands. (client, 2026-11-09)
+        if self.collected_cash <= 0:
             raise UserError(_(
                 "Only cash is held. A cheque or online payment reaches the bank "
                 "directly and is reconciled there — recording it here would count "
                 "the same money twice."))
-        if not self.collected:
-            raise UserError(_("No money was collected on this visit."))
         move = self.env['lab.cash.movement']._collect(
-            self.user_id, self.partner_id, self.collected, visit=self,
+            self.user_id, self.partner_id, self.collected_cash, visit=self,
             note=_("Collected at %(clinic)s on visit %(visit)s",
                    clinic=self.partner_id.display_name, visit=self.name))
         # sudo for the same reason the case slip stamps its order id that way:
@@ -257,8 +263,38 @@ class LabVisit(models.Model):
         self.sudo().cash_txn_id = move
         self.message_post(body=_(
             "%(amount)s held by %(who)s as field cash.",
-            amount=self.collected, who=self.user_id.name))
+            amount=self.collected_cash, who=self.user_id.name))
         return self.action_view_cash_txn()
+
+    def write(self, vals):
+        """The cash held follows the cash part.
+
+        The cash is taken in at check-out, and the money is often put right a
+        minute later - the whole amount entered as cash, then split into the cash
+        and the cheque it really was. The movement used to keep the first figure,
+        so the executive was held to cash they never had. While the visit's own
+        collection is what holds it, it is brought to the cash part now, and
+        cancelled when no cash is left. (client, 2026-11-09)
+        """
+        if not PAY_FIELDS.intersection(vals):
+            return super().write(vals)
+        before = {v.id: v.collected_cash for v in self if v.cash_banked}
+        res = super().write(vals)
+        for visit in self:
+            was = before.get(visit.id)
+            if was is None or not float_compare(was, visit.collected_cash, precision_digits=2):
+                continue
+            move = visit.cash_txn_id.sudo()
+            if visit.collected_cash > 0:
+                move.amount = visit.collected_cash
+            else:
+                move.state = 'cancelled'
+            visit.sudo().message_post(body=_(
+                "Cash held as field cash corrected from %(was)s to %(now)s with the "
+                "payment.", was=formatLang(self.env, was, currency_obj=visit.currency_id),
+                now=formatLang(self.env, visit.collected_cash,
+                               currency_obj=visit.currency_id)))
+        return res
 
     def action_view_cash_txn(self):
         self.ensure_one()
