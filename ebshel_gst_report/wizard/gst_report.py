@@ -293,19 +293,27 @@ class GstReportWizard(models.TransientModel):
 
     def _tax_check(self, rows):
         """Documents whose tax does not fit their place of supply: IGST charged inside
-        the seller's state, or CGST/SGST charged outside it. One row per document."""
+        the seller's state, CGST/SGST charged outside it, or a line worth something that
+        carries no tax at all (neither GST nor a nil-rated / exempt / non-GST tax), which
+        the other sheets would show as a supply at 0 %. One row per document and kind."""
         out = OrderedDict()
         for r in rows:
-            if r['treatment'] in EXPORTS or not (r['igst'] or r['cgst'] or r['sgst']):
+            if r['treatment'] in EXPORTS:
                 continue
-            kind = 'IGST' if r['igst'] else 'CGST + SGST'
-            wrong = (kind == 'IGST') == r['intra']
-            if not wrong:
+            expected = 'CGST + SGST' if r['intra'] else 'IGST'
+            if r['igst'] or r['cgst'] or r['sgst']:
+                kind = 'IGST' if r['igst'] else 'CGST + SGST'
+                if (kind == 'IGST') != r['intra']:
+                    continue
+            elif r['nil'] or not r['taxable']:
                 continue
-            g = out.setdefault(r['move'].id, {
+            else:
+                kind = 'No tax'
+                expected += ' or a nil-rated tax'
+            g = out.setdefault((r['move'].id, kind), {
                 'date': r['date'], 'name': r['name'], 'partner': r['partner'], 'vat': r['vat'],
                 'pos': r['pos'], 'kind': kind, 'taxable': 0.0, 'tax': 0.0, 'total': 0.0,
-                'expected': 'CGST + SGST' if r['intra'] else 'IGST'})
+                'expected': expected})
             self._add(g, r, ('taxable', 'tax', 'total'))
         return list(out.values())
 
@@ -472,7 +480,7 @@ class GstReportWizard(models.TransientModel):
                       + ['Invoice \n Amount'],
                       ['date', 'partner', 'kind', 'name', 'rate'] + TAX_KEYS + ['total'],
                       TAX_KEYS + ['total'], []),
-            'tax_check': ('Tax Check', 'GSTR-1  -  Tax Check', 'Tax charged against the place of supply',
+            'tax_check': ('Tax Check', 'GSTR-1  -  Tax Check', 'Tax charged against the place of supply, and lines with no tax',
                           ['Date', 'Vch No.', 'Particulars', 'GSTIN/UIN', 'Place Of Supply', 'Tax Charged',
                            'Tax Expected', 'Taxable \n Amount', 'Total Tax \n Amount', 'Invoice \n Amount'],
                           ['date', 'name', 'partner', 'vat', 'pos', 'kind', 'expected', 'taxable', 'tax', 'total'],

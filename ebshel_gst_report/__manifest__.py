@@ -1,7 +1,7 @@
 # Part of ebshel_gst_report. See LICENSE file for full copyright and licensing details.
 {
     "name": "GSTR-1 Excel Register",
-    "version": "20.0.1.1.0",
+    "version": "20.0.1.1.1",
     "category": "Accounting/Localizations/Reporting",
     "summary": "The GSTR-1 voucher register of a period as one Excel workbook: B2B, B2CS, "
     "HSN summary, exports, credit notes, document series and nil-rated supplies, with the "
@@ -25,7 +25,8 @@ working register as an Excel workbook, one sheet per section, or any single sect
   unregistered.
 * **HSN Wise INV-CR** - invoices and credit notes side by side per HSN.
 * **Tax Check** - documents whose tax does not fit their place of supply (IGST inside
-  the seller's state, CGST/SGST outside it), to put right before filing.
+  the seller's state, CGST/SGST outside it) and lines worth something that carry no tax
+  at all, to put right before filing.
 
 The tax split is Odoo's own (the l10n_in tax tags), so the figures are the ones Odoo's
 GST filing would carry, in the company currency.

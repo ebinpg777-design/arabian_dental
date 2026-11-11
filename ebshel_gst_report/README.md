@@ -19,7 +19,7 @@ column headers, the rows and a Grand Total line. Numbers are numbers, so Excel a
 | DOCS | the document series per journal: first and last number, issued, cancelled, net | journal |
 | Nil Rated | nil-rated, exempt and non-GST supplies, inter / intra × registered / unregistered | the 4 × 3 matrix |
 | HSN INV-CR | invoices and credit notes side by side per HSN | HSN, UQC, rate, class |
-| Tax Check | documents whose tax does not fit their place of supply: IGST inside the seller's state, CGST/SGST outside it | document |
+| Tax Check | documents whose tax does not fit their place of supply (IGST inside the seller's state, CGST/SGST outside it), and lines worth something with no tax at all, which the other sheets would count as a supply at 0 % | document, kind |
 
 ## Where the figures come from
 
@@ -37,6 +37,10 @@ ones Odoo's own GST filing would carry, and no two sheets can disagree.
   separate billing name can override.
 * **Nil Rated** reads the taxes' *Indian Tax Type* (nil rated / exempt / non-GST).
 * **DOCS** counts posted and cancelled documents that carry a number.
+* **Tax Check** lists a line with no tax only when it is worth something: free-of-charge
+  lines and lines with a nil-rated, exempt or non-GST tax are not mistakes. A charge that
+  is no supply at all (a cheque-return charge recovered from a customer, say) belongs on
+  a nil-rated or non-GST tax, so that it lands on the Nil Rated sheet instead of B2CS.
 
 ## Compared with the register the lab used before (Odoo 17)
 

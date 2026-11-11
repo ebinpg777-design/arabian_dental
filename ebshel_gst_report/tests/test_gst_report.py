@@ -158,6 +158,26 @@ class TestGstReport(L10nInTestInvoicingCommon):
                          ('IGST', 'CGST + SGST', 18.0))
         self.assertEqual((rows[wrong_cgst.name]['kind'], rows[wrong_cgst.name]['expected']), ('CGST + SGST', 'IGST'))
 
+    def test_the_tax_check_names_the_line_with_no_tax(self):
+        """A charge with no tax at all is listed; a free line and a nil-rated line are not."""
+        untaxed = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.consumer.id, 'invoice_date': self.day,
+            'invoice_line_ids': [
+                Command.create({'name': 'Cheque return charge', 'quantity': 1.0, 'price_unit': 150.0,
+                                'tax_ids': [Command.clear()]}),
+                Command.create({'product_id': self.product_a.id, 'quantity': 1.0, 'price_unit': 0.0,
+                                'tax_ids': [Command.clear()]}),
+                Command.create({'product_id': self.product_a.id, 'quantity': 1.0, 'price_unit': 100.0,
+                                'tax_ids': [Command.set(self.sgst_sale_5.ids)]}),
+            ]})
+        untaxed.action_post()
+        rows = [r for r in self._sections()['tax_check']]
+        self.assertEqual([(r['name'], r['kind'], r['expected'], r['taxable'], r['tax']) for r in rows],
+                         [(untaxed.name, 'No tax', 'CGST + SGST or a nil-rated tax', 150.0, 0.0)],
+                         "only the untaxed 150: not the free line, not the taxed line, not the nil-rated one")
+        b2cs = [(r['rate'], r['taxable']) for r in self._sections()['b2cs']]
+        self.assertIn((0.0, 190.0), b2cs, "B2CS still shows it at 0 % with the nil-rated 40, as before")
+
     def test_a_register_needs_one_state(self):
         other = self.env['res.company'].create({'name': 'Elsewhere', 'country_id': self.country_in.id})
         with self.assertRaises(UserError):
