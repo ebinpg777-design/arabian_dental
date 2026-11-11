@@ -10,4 +10,36 @@
             </field>
         </field>
     </record>
+
+    <!-- Place of supply on the route (client, 2026-11-11) -->
+<record id="crm_team_view_form_place_of_supply" model="ir.ui.view">
+        <field name="name">crm.team.form.sale.custom.place.of.supply</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='left']" position="inside">
+                <field name="place_of_supply_id" options="{'no_create': True}"/>
+                <field name="place_of_supply_missing_count" invisible="1"/>
+                <label for="place_of_supply_id" string="" invisible="not place_of_supply_id"/>
+                <div invisible="not place_of_supply_id" class="o_row">
+                    <button name="action_apply_place_of_supply" type="object"
+                            string="Apply to Customers" class="btn-link p-0" icon="fa-map-marker"/>
+                    <span class="text-muted" invisible="place_of_supply_missing_count == 0">
+                        <field name="place_of_supply_missing_count" class="d-inline"/> without a state
+                    </span>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="crm_team_view_tree_place_of_supply" model="ir.ui.view">
+        <field name="name">crm.team.list.sale.custom.place.of.supply</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="place_of_supply_id" optional="show"/>
+            </field>
+        </field>
+    </record>
 </odoo>

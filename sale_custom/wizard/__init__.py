@@ -7,3 +7,4 @@ from . import change_customer
 from . import auth_card_wizard
 from . import einvoice_report
 from . import salesperson_summary
+from . import apply_place_of_supply

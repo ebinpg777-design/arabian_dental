@@ -14,3 +14,4 @@ from . import district
 from . import material
 from . import technician
 from . import sales_route_labels
+from . import route_place_of_supply

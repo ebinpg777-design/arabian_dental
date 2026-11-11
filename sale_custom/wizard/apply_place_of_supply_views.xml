@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="apply_place_of_supply_form" model="ir.ui.view">
+        <field name="name">team.place.of.supply.apply.form</field>
+        <field name="model">team.place.of.supply.apply</field>
+        <field name="arch" type="xml">
+            <form string="Apply the Place of Supply">
+                <group>
+                    <field name="team_id"/>
+                    <field name="state_id"/>
+                    <field name="mode" widget="radio"/>
+                </group>
+                <div class="alert alert-info mb-0" role="status">
+                    <field name="summary" nolabel="1" class="d-inline"/>
+                </div>
+                <footer>
+                    <button name="action_apply" string="Apply" type="object" class="btn-primary"
+                            data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
