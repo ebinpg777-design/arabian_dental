@@ -172,11 +172,61 @@ class TestGstReport(L10nInTestInvoicingCommon):
             ]})
         untaxed.action_post()
         rows = [r for r in self._sections()['tax_check']]
-        self.assertEqual([(r['name'], r['kind'], r['expected'], r['taxable'], r['tax']) for r in rows],
-                         [(untaxed.name, 'No tax', 'CGST + SGST or a nil-rated tax', 150.0, 0.0)],
-                         "only the untaxed 150: not the free line, not the taxed line, not the nil-rated one")
+        self.assertEqual({(r['name'], r['kind'], r['expected'], r['taxable'], r['tax']) for r in rows},
+                         {(untaxed.name, 'No tax', 'CGST + SGST or a nil-rated tax', 150.0, 0.0),
+                          (untaxed.name, 'No HSN', 'HSN/SAC code', 150.0, 0.0)},
+                         "only the untaxed 150, which has no HSN either: not the free line, not the "
+                         "taxed line, not the nil-rated one")
         b2cs = [(r['rate'], r['taxable']) for r in self._sections()['b2cs']]
         self.assertIn((0.0, 190.0), b2cs, "B2CS still shows it at 0 % with the nil-rated 40, as before")
+
+    def test_b2cs_is_net_of_its_credit_notes(self):
+        """A credit note to a consumer comes off table 7; it is not a 9B voucher."""
+        note = self.env['account.move'].create({
+            'move_type': 'out_refund', 'partner_id': self.consumer.id, 'invoice_date': self.day,
+            'invoice_line_ids': [Command.create({'product_id': self.product_a.id, 'quantity': 1.0,
+                                                 'price_unit': 100.0, 'tax_ids': [Command.set(self.sgst_sale_5.ids)]})]})
+        note.action_post()
+        sections = self._sections()
+        self.assertEqual([(r['rate'], r['taxable'], r['cgst'], r['sgst'], r['tax']) for r in sections['b2cs']],
+                         [(0.0, 40.0, 0.0, 0.0, 0.0), (5.0, 200.0, 5.0, 5.0, 10.0)], "300 less the note's 100")
+        detailed = {(r['name'], r['rate']): r for r in sections['b2cs_detailed']}
+        self.assertEqual((detailed[(note.name, 5.0)]['taxable'], detailed[(note.name, 5.0)]['total']), (-100.0, -105.0))
+        self.assertEqual(round(sum(r['taxable'] for r in sections['b2cs_detailed']), 2),
+                         round(sum(r['taxable'] for r in sections['b2cs']), 2), "the two sheets add up alike")
+        self.assertEqual(sections['cdnur'], [], "deducted in B2CS, so not listed again under 9B")
+        self.assertEqual([r['name'] for r in sections['cdnr']], [self.refund.name], "the registered one stays in 9B")
+        hsn = {(g['hsn'], g['rate']): g for g in sections['hsn']}
+        b2b = sum(g['taxable'] for g in sections['b2b'])
+        b2cs = sum(g['taxable'] for g in sections['b2cs'])
+        cdnr = sum(g['taxable'] for g in sections['cdnr'])
+        self.assertEqual(round(sum(g['taxable'] for g in hsn.values()), 2), round(b2b + b2cs - cdnr, 2),
+                         "the HSN summary is B2B + B2CS less the registered credit notes")
+
+    def test_hsn_keeps_a_free_line_in_its_rate_and_shows_a_line_without_hsn(self):
+        free = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.consumer.id, 'invoice_date': self.day,
+            'invoice_line_ids': [
+                Command.create({'product_id': self.product_a.id, 'quantity': 2.0, 'price_unit': 0.0,
+                                'tax_ids': [Command.set(self.sgst_sale_5.ids)]}),
+                Command.create({'name': 'Aligner set', 'quantity': 1.0, 'price_unit': 500.0,
+                                'tax_ids': [Command.set(self.sgst_sale_5.ids)]}),
+                Command.create({'name': '/', 'quantity': 1.0, 'price_unit': 0.0, 'tax_ids': [Command.clear()]}),
+            ]})
+        free.action_post()
+        sections = self._sections()
+        hsn = {(g['hsn'], g['rate']): g for g in sections['hsn']}
+        self.assertEqual((hsn[('90212100', 5.0)]['quantity'], hsn[('90212100', 5.0)]['taxable']), (5.0, 2000.0),
+                         "the two free pieces count in the 5 % row, with no value")
+        self.assertEqual(hsn[('90212100', 0.0)]['quantity'], 1.0, "the 0 % row is the nil-rated line alone")
+        self.assertEqual((hsn[('', 5.0)]['quantity'], hsn[('', 5.0)]['taxable']), (1.0, 500.0),
+                         "a line worth something is in the summary even without an HSN")
+        self.assertNotIn(('', 0.0), hsn, "an empty line is not")
+        split = {(g['klass'], g['hsn'], g['rate']) for g in sections['hsn_gst']}
+        self.assertIn(('B2C', '', 5.0), split)
+        checks = {(r['name'], r['kind']): r for r in sections['tax_check']}
+        self.assertEqual((checks[(free.name, 'No HSN')]['expected'], checks[(free.name, 'No HSN')]['taxable']),
+                         ('HSN/SAC code', 500.0))
 
     def test_a_register_needs_one_state(self):
         other = self.env['res.company'].create({'name': 'Elsewhere', 'country_id': self.country_in.id})

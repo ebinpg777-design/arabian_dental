@@ -143,14 +143,29 @@ class GstReportWizard(models.TransientModel):
             return ''
         return '-'.join(part for part in (state.l10n_in_tin or '', state.name or '') if part)
 
+    def _gst_tags(self):
+        xmlid_to_res_id = self.env['ir.model.data']._xmlid_to_res_id
+        return {xmlid_to_res_id('l10n_in.tax_tag_%s' % gst) for gst in ('igst', 'cgst', 'sgst')} - {False}
+
+    def _rate_of(self, line, gst_tags):
+        """The GST rate the line's own taxes carry. Core names a tax IGST / CGST / SGST
+        only once it has an amount, so a free line (price 0) comes back with no rate at
+        all and would stand apart from its HSN's row at 0 %."""
+        return sum(tax.amount for tax in self._taxes_of(line)
+                   if tax.amount_type == 'percent'
+                   and gst_tags & set(tax.invoice_repartition_line_ids.tag_ids.ids))
+
     def _lines(self):
         """One dict per product line of the period's documents, taxes split."""
         home = self._home_state()
+        gst_tags = self._gst_tags()
         rows = []
         for move in self._moves():
             details = move._l10n_in_prepare_tax_details()
             per_line = details['tax_details_per_record']
             refund = move.move_type == 'out_refund'
+            # a credit note is small or large (B2CS / B2CL) as the invoice it corrects is
+            origin = move.reversed_entry_id if refund and move.reversed_entry_id else move
             treatment = move.l10n_in_gst_treatment or 'consumer'
             partner = move.partner_id.commercial_partner_id
             pos_state = self._supply_state(move)
@@ -171,6 +186,8 @@ class GstReportWizard(models.TransientModel):
                             + (codes.get('sgst_rate') or codes.get('sgst_rc_rate') or 0.0)))
                 taxable = abs(line.balance)                   # company currency, after discount
                 tax = igst + cgst + sgst + cess
+                if not rate and not tax and line.tax_ids:
+                    rate = self._rate_of(line, gst_tags)
                 nil = next((t.l10n_in_tax_type for t in self._taxes_of(line)
                             if t.l10n_in_tax_type in NIL_TYPES), False)
                 hsn = line.l10n_in_hsn_code or line.product_id.l10n_in_hsn_code or ''
@@ -183,7 +200,7 @@ class GstReportWizard(models.TransientModel):
                     'pos': self._place_of_supply(move), 'pos_state': pos_state.name or '',
                     'intra': bool(pos_state) and pos_state == home,
                     'journal': move.journal_id,
-                    'amount_total': abs(move.amount_total_signed),
+                    'amount_total': abs(origin.amount_total_signed),
                     'hsn': move._l10n_in_extract_digits(hsn) if hsn else '',
                     'description': line.product_id.product_tmpl_id.name or (line.name or '').split('\n')[0],
                     'uqc': (uom.l10n_in_code or '').split('-')[0] or uom.name or '',
@@ -228,22 +245,40 @@ class GstReportWizard(models.TransientModel):
             'vat': r['vat'], 'partner': r['partner'], 'pos': r['pos'], 'name': r['name'],
             'date': r['date'], 'rate': r['rate']})
 
+    @staticmethod
+    def _is_b2cs(r):
+        """Table 7: unregistered customers, every intra-state document and the
+        inter-state ones up to the B2CL limit - invoices and their credit notes alike."""
+        return r['treatment'] in UNREGISTERED and (r['intra'] or r['amount_total'] <= B2CL_LIMIT)
+
     def _b2cs_rows(self, rows):
-        return [r for r in rows if not r['refund'] and r['treatment'] in UNREGISTERED
-                and (r['intra'] or r['amount_total'] <= B2CL_LIMIT)]
+        return [r for r in rows if self._is_b2cs(r)]
 
     def _b2cs(self, rows):
+        """By place of supply and rate, NET of the credit notes: table 7 takes one net
+        figure per state and rate, and a credit note to a small unregistered customer
+        has no line of its own in table 9B."""
         out = self._grouped(self._b2cs_rows(rows), lambda r: (r['pos_state'], r['rate']),
-                            lambda r: {'pos_state': r['pos_state'], 'rate': r['rate']})
+                            lambda r: {'pos_state': r['pos_state'], 'rate': r['rate']},
+                            sign_of=lambda r: -1 if r['refund'] else 1)
         return sorted(out, key=lambda g: (g['pos_state'], g['rate']))
 
     def _b2cs_detailed(self, rows):
+        """One row per document and rate; a credit note is a row of negative amounts,
+        so the sheet adds up to B2CS."""
         return self._grouped(self._b2cs_rows(rows), lambda r: (r['move'].id, r['rate']), lambda r: {
             'pos': r['pos'], 'partner': r['partner'], 'name': r['name'], 'date': r['date'],
-            'rate': r['rate']})
+            'rate': r['rate']}, sign_of=lambda r: -1 if r['refund'] else 1)
+
+    @staticmethod
+    def _hsn_rows(rows):
+        """The lines of the HSN summary: everything worth something - with or without
+        an HSN, so that the summary adds up to B2B + B2CS + exports less credit notes -
+        and the free lines that have an HSN and a rate, for their quantity."""
+        return [r for r in rows if r['taxable'] or r['tax'] or (r['hsn'] and r['rate'])]
 
     def _hsn(self, rows):
-        rows = [r for r in rows if r['hsn']]
+        rows = self._hsn_rows(rows)
         out = self._grouped(rows, lambda r: (r['hsn'], r['uqc'], r['rate']), lambda r: {
             'hsn': r['hsn'], 'description': r['description'], 'uqc': r['uqc'], 'rate': r['rate'],
             'quantity': 0.0}, keys=TAX_KEYS + ['total', 'quantity'],
@@ -251,7 +286,7 @@ class GstReportWizard(models.TransientModel):
         return sorted(out, key=lambda g: (g['hsn'], g['uqc'], g['rate']))
 
     def _hsn_gst(self, rows):
-        rows = [r for r in rows if r['hsn']]
+        rows = self._hsn_rows(rows)
         out = self._grouped(rows, lambda r: (r['hsn'], r['uqc'], r['rate'], r['klass']), lambda r: {
             'hsn': r['hsn'], 'uqc': r['uqc'], 'rate': r['rate'], 'klass': r['klass'], 'quantity': 0.0},
             keys=TAX_KEYS + ['total', 'quantity'], sign_of=lambda r: -1 if r['refund'] else 1)
@@ -275,10 +310,12 @@ class GstReportWizard(models.TransientModel):
         return self._cdn(rows, REGISTERED)
 
     def _cdnur(self, rows):
-        return self._cdn(rows, UNREGISTERED + ('overseas',))
+        """Table 9B, unregistered: credit notes against exports and against large
+        inter-state invoices (B2CL). The small ones are deducted in B2CS instead."""
+        return self._cdn([r for r in rows if not self._is_b2cs(r)], UNREGISTERED + ('overseas',))
 
     def _invcr(self, rows):
-        rows = [r for r in rows if r['hsn']]
+        rows = self._hsn_rows(rows)
         groups = OrderedDict()
         for r in rows:
             key = (r['hsn'], r['uqc'], r['rate'], r['klass'])
@@ -293,28 +330,31 @@ class GstReportWizard(models.TransientModel):
 
     def _tax_check(self, rows):
         """Documents whose tax does not fit their place of supply: IGST charged inside
-        the seller's state, CGST/SGST charged outside it, or a line worth something that
+        the seller's state, CGST/SGST charged outside it, a line worth something that
         carries no tax at all (neither GST nor a nil-rated / exempt / non-GST tax), which
-        the other sheets would show as a supply at 0 %. One row per document and kind."""
+        the other sheets would show as a supply at 0 %, or a line worth something with
+        no HSN/SAC code. One row per document and kind."""
         out = OrderedDict()
-        for r in rows:
-            if r['treatment'] in EXPORTS:
-                continue
-            expected = 'CGST + SGST' if r['intra'] else 'IGST'
-            if r['igst'] or r['cgst'] or r['sgst']:
-                kind = 'IGST' if r['igst'] else 'CGST + SGST'
-                if (kind == 'IGST') != r['intra']:
-                    continue
-            elif r['nil'] or not r['taxable']:
-                continue
-            else:
-                kind = 'No tax'
-                expected += ' or a nil-rated tax'
+
+        def flag(r, kind, expected):
             g = out.setdefault((r['move'].id, kind), {
                 'date': r['date'], 'name': r['name'], 'partner': r['partner'], 'vat': r['vat'],
                 'pos': r['pos'], 'kind': kind, 'taxable': 0.0, 'tax': 0.0, 'total': 0.0,
                 'expected': expected})
             self._add(g, r, ('taxable', 'tax', 'total'))
+
+        for r in rows:
+            if not r['hsn'] and (r['taxable'] or r['tax']):
+                flag(r, 'No HSN', 'HSN/SAC code')
+            if r['treatment'] in EXPORTS:
+                continue
+            expected = 'CGST + SGST' if r['intra'] else 'IGST'
+            if r['igst'] or r['cgst'] or r['sgst']:
+                kind = 'IGST' if r['igst'] else 'CGST + SGST'
+                if (kind == 'IGST') == r['intra']:
+                    flag(r, kind, expected)
+            elif not r['nil'] and r['taxable']:
+                flag(r, 'No tax', expected + ' or a nil-rated tax')
         return list(out.values())
 
     def _nil_rated(self, rows):
@@ -370,7 +410,7 @@ class GstReportWizard(models.TransientModel):
         out = OrderedDict()
         for code in wanted:
             out[code] = self._docs() if code == 'docs' else builders[code](rows)
-        out['_vouchers'] = len({r['name'] for r in rows if r['hsn']})
+        out['_vouchers'] = len({r['name'] for r in self._hsn_rows(rows)})
         return out
 
     # ------------------------------------------------------------------ the download
@@ -445,12 +485,12 @@ class GstReportWizard(models.TransientModel):
                               'Invoice Date', 'Tax Rate'] + TAX_HEADERS + ['Invoice \n Amount'],
                              ['vat', 'partner', 'pos', 'name', 'date', 'rate'] + TAX_KEYS + ['total'],
                              TAX_KEYS + ['total'], []),
-            'b2cs': ('B2CS', register, 'B2C(Small) Invoices - 7',
+            'b2cs': ('B2CS', register, 'B2C(Small) Invoices - 7, less credit notes',
                      ['Particulars', 'Taxable \n Amount', 'Rate Of \n Tax', 'Integrated Tax \n Amount',
                       'Central Tax \n Amount', 'State Tax \n Amount', 'Cess \n Amount', 'Total Tax \n Amount'],
                      ['pos_state', 'taxable', 'rate', 'igst', 'cgst', 'sgst', 'cess', 'tax'],
                      ['taxable', 'igst', 'cgst', 'sgst', 'cess', 'tax'], []),
-            'b2cs_detailed': ('B2CS Detailed', register, 'B2C(Small) Invoices - 7',
+            'b2cs_detailed': ('B2CS Detailed', register, 'B2C(Small) Invoices - 7, less credit notes',
                               ['Place Of Supply', 'Particulars', 'Invoice Number', 'Invoice Date', 'Tax Rate']
                               + TAX_HEADERS + ['Invoice \n Amount'],
                               ['pos', 'partner', 'name', 'date', 'rate'] + TAX_KEYS + ['total'],
@@ -480,9 +520,9 @@ class GstReportWizard(models.TransientModel):
                       + ['Invoice \n Amount'],
                       ['date', 'partner', 'kind', 'name', 'rate'] + TAX_KEYS + ['total'],
                       TAX_KEYS + ['total'], []),
-            'tax_check': ('Tax Check', 'GSTR-1  -  Tax Check', 'Tax charged against the place of supply, and lines with no tax',
-                          ['Date', 'Vch No.', 'Particulars', 'GSTIN/UIN', 'Place Of Supply', 'Tax Charged',
-                           'Tax Expected', 'Taxable \n Amount', 'Total Tax \n Amount', 'Invoice \n Amount'],
+            'tax_check': ('Tax Check', 'GSTR-1  -  Tax Check', 'Tax against the place of supply, lines with no tax, lines with no HSN',
+                          ['Date', 'Vch No.', 'Particulars', 'GSTIN/UIN', 'Place Of Supply', 'Found',
+                           'Expected', 'Taxable \n Amount', 'Total Tax \n Amount', 'Invoice \n Amount'],
                           ['date', 'name', 'partner', 'vat', 'pos', 'kind', 'expected', 'taxable', 'tax', 'total'],
                           ['taxable', 'tax', 'total'], []),
             'invcr': ('HSN INV-CR', 'GSTR-1  -  HSN Wise INV-CR', 'Invoices and Credit Notes',
