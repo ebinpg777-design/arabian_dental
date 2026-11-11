@@ -36,6 +36,7 @@ REPORT_TYPES = [
     ('hsn', 'HSN'), ('hsn_gst', 'HSN B2C-B2B'),
     ('exp', 'EXP'), ('cdnr', 'CDNR'), ('cdnur', 'CDNUR'),
     ('docs', 'Docs'), ('nil_rated', 'Nil Rated'), ('invcr', 'HSN Wise INV-CR'),
+    ('tax_check', 'Tax Check'),
     ('all', 'All in one'),
 ]
 ALL_SECTIONS = [code for code, _label in REPORT_TYPES if code != 'all']
@@ -131,9 +132,9 @@ class GstReportWizard(models.TransientModel):
 
     @api.model
     def _supply_state(self, move):
-        """The place of supply: the customer's own state, as the register always read
-        it, else the state Odoo put on the invoice."""
-        return move.partner_id.commercial_partner_id.state_id or move.l10n_in_state_id
+        """The place of supply: the one on the invoice (Odoo sets it from the customer's
+        state), else the customer's state for a document that has none."""
+        return move.l10n_in_state_id or move.partner_id.commercial_partner_id.state_id
 
     @api.model
     def _place_of_supply(self, move):
@@ -290,6 +291,24 @@ class GstReportWizard(models.TransientModel):
                 g[prefix + key_] = round(g[prefix + key_] + r[key_], 2)
         return sorted(groups.values(), key=lambda g: (g['klass'], g['hsn'], g['uqc'], g['rate']))
 
+    def _tax_check(self, rows):
+        """Documents whose tax does not fit their place of supply: IGST charged inside
+        the seller's state, or CGST/SGST charged outside it. One row per document."""
+        out = OrderedDict()
+        for r in rows:
+            if r['treatment'] in EXPORTS or not (r['igst'] or r['cgst'] or r['sgst']):
+                continue
+            kind = 'IGST' if r['igst'] else 'CGST + SGST'
+            wrong = (kind == 'IGST') == r['intra']
+            if not wrong:
+                continue
+            g = out.setdefault(r['move'].id, {
+                'date': r['date'], 'name': r['name'], 'partner': r['partner'], 'vat': r['vat'],
+                'pos': r['pos'], 'kind': kind, 'taxable': 0.0, 'tax': 0.0, 'total': 0.0,
+                'expected': 'CGST + SGST' if r['intra'] else 'IGST'})
+            self._add(g, r, ('taxable', 'tax', 'total'))
+        return list(out.values())
+
     def _nil_rated(self, rows):
         """The 4 x 3 matrix: inter / intra x registered / unregistered, by nil-rated,
         exempt and non-GST supplies (invoices less credit notes)."""
@@ -338,7 +357,7 @@ class GstReportWizard(models.TransientModel):
             'b2b': self._b2b, 'b2b_detailed': self._b2b_detailed, 'b2cs': self._b2cs,
             'b2cs_detailed': self._b2cs_detailed, 'hsn': self._hsn, 'hsn_gst': self._hsn_gst,
             'exp': self._exp, 'cdnr': self._cdnr, 'cdnur': self._cdnur, 'invcr': self._invcr,
-            'nil_rated': self._nil_rated,
+            'nil_rated': self._nil_rated, 'tax_check': self._tax_check,
         }
         out = OrderedDict()
         for code in wanted:
@@ -453,6 +472,11 @@ class GstReportWizard(models.TransientModel):
                       + ['Invoice \n Amount'],
                       ['date', 'partner', 'kind', 'name', 'rate'] + TAX_KEYS + ['total'],
                       TAX_KEYS + ['total'], []),
+            'tax_check': ('Tax Check', 'GSTR-1  -  Tax Check', 'Tax charged against the place of supply',
+                          ['Date', 'Vch No.', 'Particulars', 'GSTIN/UIN', 'Place Of Supply', 'Tax Charged',
+                           'Tax Expected', 'Taxable \n Amount', 'Total Tax \n Amount', 'Invoice \n Amount'],
+                          ['date', 'name', 'partner', 'vat', 'pos', 'kind', 'expected', 'taxable', 'tax', 'total'],
+                          ['taxable', 'tax', 'total'], []),
             'invcr': ('HSN INV-CR', 'GSTR-1  -  HSN Wise INV-CR', 'Invoices and Credit Notes',
                       ['HSN/SAC', 'UQC', 'Total \n Quantity', 'Total \n Value', 'Tax Rate',
                        'Taxable \n Amount', 'Total Tax \n Amount', 'Total \n Quantity(CR)',
@@ -507,7 +531,7 @@ class GstReportWizard(models.TransientModel):
                         sheet.write_datetime(row, col, fields.Date.to_date(value), styles['date'])
                     else:
                         sheet.write_blank(row, col, None, styles['center'])
-                elif key in ('vat', 'hsn', 'uqc', 'name', 'pos', 'klass', 'kind', 'port'):
+                elif key in ('vat', 'hsn', 'uqc', 'name', 'pos', 'klass', 'kind', 'port', 'expected'):
                     # codes stay text: an HSN or a GSTIN must not turn into a number
                     sheet.write_string(row, col, str(value or ''), styles['center'])
                 else:

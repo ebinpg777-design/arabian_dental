@@ -19,6 +19,7 @@ column headers, the rows and a Grand Total line. Numbers are numbers, so Excel a
 | DOCS | the document series per journal: first and last number, issued, cancelled, net | journal |
 | Nil Rated | nil-rated, exempt and non-GST supplies, inter / intra × registered / unregistered | the 4 × 3 matrix |
 | HSN INV-CR | invoices and credit notes side by side per HSN | HSN, UQC, rate, class |
+| Tax Check | documents whose tax does not fit their place of supply: IGST inside the seller's state, CGST/SGST outside it | document |
 
 ## Where the figures come from
 
@@ -30,8 +31,8 @@ sorts each tax by its GST tax tag into IGST / CGST / SGST / cess. So the figures
 ones Odoo's own GST filing would carry, and no two sheets can disagree.
 
 * Intra-state versus inter-state is judged against the **seller's** state: the companies
-  chosen must share one state. The place of supply is the invoice's GST state (`l10n_in_state_id`),
-  else the customer's.
+  chosen must share one state. The place of supply is the invoice's GST state (`l10n_in_state_id`,
+  which Odoo sets from the customer's state), else the customer's state.
 * The **customer's name** comes from `_customer_name(move)`, a hook a database with a
   separate billing name can override.
 * **Nil Rated** reads the taxes' *Indian Tax Type* (nil rated / exempt / non-GST).

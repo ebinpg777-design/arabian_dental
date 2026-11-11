@@ -130,7 +130,7 @@ class TestGstReport(L10nInTestInvoicingCommon):
         self.assertIn('3 invoice(s) and 1 credit note(s)', wizard.summary)
         book = openpyxl.load_workbook(io.BytesIO(wizard._xlsx()), read_only=True)
         self.assertEqual(book.sheetnames, ['B2B', 'B2B Detailed', 'B2CS', 'B2CS Detailed', 'HSN', 'HSN B2C-B2B',
-                                           'EXP', 'CDNR', 'CDNUR', 'DOCS', 'Nil Rated', 'HSN INV-CR'])
+                                           'EXP', 'CDNR', 'CDNUR', 'DOCS', 'Nil Rated', 'HSN INV-CR', 'Tax Check'])
         rows = list(book['B2B'].iter_rows(values_only=True))
         self.assertEqual(rows[3][1], 'GSTR-1  -  Voucher Register')
         self.assertEqual(rows[6][1], 'Particulars')
@@ -139,6 +139,24 @@ class TestGstReport(L10nInTestInvoicingCommon):
         self.assertEqual(wizard._filename(), 'GST Report 20-05-2023.xlsx')
         single = self._wizard(report_type='hsn')
         self.assertEqual(openpyxl.load_workbook(io.BytesIO(single._xlsx()), read_only=True).sheetnames, ['HSN'])
+
+    def test_the_tax_check_names_the_wrong_tax(self):
+        """An intra-state customer charged IGST, and an inter-state one charged CGST + SGST."""
+        wrong_igst = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.partner_a.id, 'invoice_date': self.day,
+            'invoice_line_ids': [Command.create({'product_id': self.product_a.id, 'quantity': 1.0,
+                                                 'price_unit': 100.0, 'tax_ids': [Command.set(self.igst_sale_18.ids)]})]})
+        wrong_igst.action_post()
+        wrong_cgst = self.env['account.move'].create({
+            'move_type': 'out_invoice', 'partner_id': self.partner_b.id, 'invoice_date': self.day,
+            'invoice_line_ids': [Command.create({'product_id': self.product_a.id, 'quantity': 1.0,
+                                                 'price_unit': 50.0, 'tax_ids': [Command.set(self.sgst_sale_5.ids)]})]})
+        wrong_cgst.action_post()
+        rows = {r['name']: r for r in self._sections()['tax_check']}
+        self.assertEqual(set(rows), {wrong_igst.name, wrong_cgst.name}, "the right ones are not listed")
+        self.assertEqual((rows[wrong_igst.name]['kind'], rows[wrong_igst.name]['expected'], rows[wrong_igst.name]['tax']),
+                         ('IGST', 'CGST + SGST', 18.0))
+        self.assertEqual((rows[wrong_cgst.name]['kind'], rows[wrong_cgst.name]['expected']), ('CGST + SGST', 'IGST'))
 
     def test_a_register_needs_one_state(self):
         other = self.env['res.company'].create({'name': 'Elsewhere', 'country_id': self.country_in.id})
