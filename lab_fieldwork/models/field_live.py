@@ -168,11 +168,19 @@ class LabFieldLive(models.AbstractModel):
         silent = bool(ex.get('on_duty')) and (age is None or age >= offline_s)
         now = fields.Datetime.now()
         heard = user.sudo().fw_last_heard_at
+        source = last.get('source') or ''
         return {
             'on_app': bool(user.fw_native_app),
             'app_version': user.fw_native_app_version or '',
             'traccar': bool(user.fw_gps_app),
-            'source': last.get('source') or '',
+            'source': source,
+            # ADL Pro is on this phone and the day runs in a browser all the same
+            # (2026-11-12: four days in a row in Chrome, a third of each day's km
+            # missing, and the board said "ADL Pro" in green all the while): the
+            # day's latest position came from a browser, and the app has not
+            # reported in since.
+            'in_browser': bool(user.fw_native_app) and source == 'browser'
+            and not (heard and last.get('epoch') and epoch(heard) >= last['epoch']),
             'battery': last.get('battery'),
             'last_age_s': age,
             'silent': silent,
@@ -371,6 +379,17 @@ class LabFieldLive(models.AbstractModel):
                   "them to turn battery saver off")
                 % fields.Datetime.context_timestamp(self.with_context(tz=tz_name(self.env, user)),
                                                     saver_since).strftime('%H:%M'))
+        in_browser = bool(ex.get('on_duty') and phone.get('in_browser'))
+        if in_browser:
+            # A browser records only while its page is in front with the screen on: the
+            # phone in a pocket between two clinics records nothing, and no rule on the
+            # server can measure a road nobody recorded. The person has the app; the
+            # desk is told to send them back to it. (client, 2026-11-12: "GPS has some
+            # issues in the map and KM")
+            add('browser', 'danger', _('In a browser, not in ADL Pro'),
+                _("today's positions come from a browser, which records only while My Day is "
+                  "open with the screen on - the map has gaps and the km come out short. Ask "
+                  "them to open ADL Pro and start from there"))
         if ex.get('on_duty') and (age is None or age >= offline_s):
             detail = _('on duty, no position for %s min') % (age // 60) if age is not None \
                 else _('on duty, no position yet today')
@@ -379,7 +398,9 @@ class LabFieldLive(models.AbstractModel):
                             'off, or ADL Pro held back from it')
                 add('silent', 'danger', _('No GPS fix'), detail)
             else:
-                if phone.get('on_app'):
+                if in_browser:
+                    detail += _(' · a browser records nothing while the phone is locked')
+                elif phone.get('on_app'):
                     detail += _(' · not heard from: no network, or ADL Pro was stopped by '
                                 'battery saving')
                 add('silent', 'danger', _('No signal'), detail)

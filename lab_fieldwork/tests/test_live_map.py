@@ -555,6 +555,90 @@ class TestLiveLayer(LiveTrackCase):
         self.assertEqual({(round(p[0], 6), round(p[1], 6)) for leg in ex['legs'] for p in leg}, {(10.0, 76.0)})
         self.assertEqual(ex['km'], 0.0)
 
+    def test_a_browsers_heartbeat_on_waking_is_not_where_the_phone_is(self):
+        """A phone's browser, locked in a pocket between two clinics (2026-11-09 to
+        11): on waking, its recorder's heartbeat repeats the place the page went
+        dark at, stamped now, and the true fix follows a second later, kilometres on.
+        The heartbeat is dropped and the true fix follows the one before the silence;
+        the app, a still phone whose position jumped out and back, and a heartbeat
+        with nothing yet to contradict it are left alone."""
+        t0 = fields.Datetime.now() - timedelta(hours=2)
+        drop = location_live.drop_stale
+
+        def web(point):
+            return point[:7] + ('browser',) + point[8:]
+
+        def derived(point, prev):
+            # as location_ping.record stores a fix that came with no speed of its own
+            return point[:3] + (round(location_live._step(prev, point)[2], 1),) + point[4:]
+
+        before = web(at(t0, 0, 0))
+        beat = web(at(t0, 842, 4, speed=2.0, heading=313.0))        # the place of `before`, 14 min on
+        true = derived(web(at(t0, 843, 4600)), beat)                # 4.6 km on, one second later
+        again = web(at(t0, 1700, 4610))                             # the next waking's heartbeat: there
+        self.assertGreater(true[3], 10000, "the server read the jump as a speed")
+        kept = drop([before, beat, true, again])
+        self.assertEqual([p[0] for p in kept], [before[0], true[0], again[0]])
+        self.assertEqual(kept[1][3], round(location_live._step(before, true)[2], 1),
+                         "the speed is worked out from the fix before the silence")
+        self.assertEqual(kept[1][:3] + kept[1][4:], true[:3] + true[4:])
+        # through the rest of the rules: the true fix stays, a stretch nobody recorded
+        points = location_live.drop_impossible(kept)
+        self.assertEqual(len(points), 3)
+        self.assertEqual(letters(location_live.classify_modes(points)), '.B.')
+        self.assertAlmostEqual(location_live.mode_km(points)['travel'], 4.6, places=1)
+        # ...where before the heartbeat stood and the true fix went as an impossible jump
+        self.assertEqual(len(location_live.drop_impossible([before, beat, true])), 2)
+        # the same fixes from the app: its fixes carry the time the phone took them
+        app = [at(t0, 0, 0), at(t0, 842, 4), at(t0, 843, 4600), at(t0, 1700, 4610)]
+        self.assertEqual(drop(app), app)
+        # a phone standing still whose position jumped out and came back
+        jumped = [before, beat, true, web(at(t0, 900, 2))]
+        self.assertEqual(drop(jumped), jumped)
+        # the fix after it not borne out: somewhere else again, faster than any road
+        wild = [before, beat, true, web(at(t0, 850, 9000))]
+        self.assertEqual(drop(wild), wild)
+        # the latest fixes: a silence longer than a page awake leaves decides...
+        self.assertEqual([p[0] for p in drop([before, beat, true])], [before[0], true[0]])
+        # ...and a heartbeat on time (the page was awake) is believed until there is more
+        on_time = web(at(t0, 320, 4))
+        self.assertEqual(drop([before, on_time, derived(web(at(t0, 321, 4600)), on_time)])[1], on_time)
+        # a real fix some way on, at a pace a road allows, is a ride
+        ride = [before, beat, web(at(t0, 902, 800)), web(at(t0, 960, 1600))]
+        self.assertEqual(drop(ride), ride)
+        near = [before, beat, web(at(t0, 843, 70)), web(at(t0, 1700, 75))]
+        self.assertEqual(drop(near), near, "70 m in a second is the GPS settling, not a journey")
+
+    def test_the_map_goes_where_a_browser_woke_up(self):
+        """The same through the map: a clinic 7 km off the line between the fix before
+        the silence and the one after the visit is on the trail and in the km."""
+        user = self.exec_user
+        start = fields.Datetime.now() - timedelta(hours=3)
+        self._start_day(user, start - timedelta(minutes=5))
+        north = lambda metres: 10.0 + metres / 111_320.0        # noqa: E731
+        east = lambda metres: 76.0 + metres / 109_640.0         # noqa: E731
+        fixes = [(north(0), east(0), 0, None),
+                 # the page asleep 23 min; the heartbeat, then the clinic 7 km south-west
+                 (north(30), east(0), 1391, None), (north(-5800), east(-4200), 1587, None),
+                 (north(-5745), east(-4215), 1808, 3.9),
+                 # asleep again; on waking at the next clinic the page is reloaded: no heartbeat
+                 (north(-2500), east(-4800), 3380, None), (north(-2500), east(-4800), 3700, None)]
+        Ping = self.env['lab.location.ping']
+        Ping.with_user(user).record([
+            {'latitude': lat, 'longitude': lon, 'accuracy_m': 12,
+             'ts': fields.Datetime.to_string(start + timedelta(seconds=seconds)),
+             **({'speed_kmh': speed} if speed is not None else {})}
+            for lat, lon, seconds, speed in fixes])
+        self.assertEqual(Ping.sudo().search_count([('user_id', '=', user.id), ('source', '=', 'browser')]), 6)
+        [ex] = Ping.with_user(user).get_live_map()['executives']
+        drawn = {(round(p[0], 4), round(p[1], 4)) for leg in ex['legs'] for p in leg}
+        self.assertIn((round(north(-5800), 4), round(east(-4200), 4)), drawn, "the clinic is on the map")
+        there = location_live.metres_between(north(30), east(0), north(-5800), east(-4200))
+        on = location_live.metres_between(north(-5745), east(-4215), north(-2500), east(-4800))
+        self.assertAlmostEqual(ex['km'], (there + on) / 1000.0, delta=0.2)
+        straight = location_live.metres_between(north(30), east(0), north(-2500), east(-4800))
+        self.assertGreater(ex['km'], straight / 1000.0 + 4.0, "not the line that cut straight past it")
+
     def test_a_batch_writes_the_last_fix_forward_only(self):
         user = self.exec_user
         now = fields.Datetime.now() - timedelta(minutes=10)

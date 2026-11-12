@@ -178,6 +178,10 @@ class TestFieldLive(TransactionCase):
         self.assertTrue(self._me(board)['phone_app']['silent'])
         self.assertEqual(board['kpis']['silent'], 1)
         self.env['lab.my.day'].with_user(self.exec_user).tracking_state(client='app', app_version='1.0.0')
+        self.env['lab.location.ping'].with_user(self.exec_user).with_context(fw_ping_source='app').record([{
+            'latitude': 11.1, 'longitude': 76.1,
+            'ts': fields.Datetime.to_string(fields.Datetime.now() - timedelta(minutes=38))}])
+        self.exec_user.sudo().fw_last_heard_at = False
         board = self._board()
         self.assertIn('ADL Pro', self._alerts(board, 'silent', self.exec_user)[0]['detail'])
         # which silence (2026-10-24): not heard from at all - no network, or the app
@@ -196,6 +200,48 @@ class TestFieldLive(TransactionCase):
         self.env['hr.attendance'].sudo().search([('employee_id', '=', self.employee.id)]).write(
             {'check_out': fields.Datetime.now()})
         self.assertFalse(self._alerts(self._board(), 'silent', self.exec_user))
+
+    def test_the_app_on_the_phone_and_a_browser_recording_is_an_alert(self):
+        """ADL Pro is on the phone and the day runs in a browser all the same
+        (2026-11-12): the board says so - the chip, an alert the desk can act on -
+        instead of "ADL Pro" in green and a silence blamed on battery saving."""
+        self._on_duty(hours_ago=2)
+        self.env['lab.my.day'].with_user(self.exec_user).tracking_state(client='app', app_version='1.0.17')
+        self._ping(3)                                   # from a browser: no app context
+        board = self._board()
+        phone = self._me(board)['phone_app']
+        self.assertTrue(phone['on_app'])
+        self.assertEqual(phone['source'], 'browser')
+        self.assertTrue(phone['in_browser'])
+        [alert] = self._alerts(board, 'browser', self.exec_user)
+        self.assertEqual(alert['level'], 'danger')
+        self.assertIn('ADL Pro', alert['title'])
+        self.assertIn('screen on', alert['detail'])
+        self.assertFalse(self._alerts(board, 'silent', self.exec_user), "a position three minutes old")
+        # gone quiet: the silence is not blamed on the app's battery saving
+        self.env['lab.location.ping'].sudo().search([('user_id', '=', self.exec_user.id)]).write(
+            {'ts': fields.Datetime.now() - timedelta(minutes=50)})
+        board = self._board()
+        [silent] = self._alerts(board, 'silent', self.exec_user)
+        self.assertIn('while the phone is locked', silent['detail'])
+        self.assertNotIn('battery saving', silent['detail'])
+        self.assertTrue(self._alerts(board, 'browser', self.exec_user))
+        # the app reports in after that: it runs now, whatever recorded before
+        self.env['lab.location.ping'].sudo()._heard(self.exec_user)
+        board = self._board()
+        self.assertFalse(self._me(board)['phone_app']['in_browser'])
+        self.assertFalse(self._alerts(board, 'browser', self.exec_user))
+        # a phone that never had the app is a browser phone, not a person to chase
+        self.exec_user.sudo().write({'fw_native_app': False})
+        board = self._board()
+        self.assertFalse(self._me(board)['phone_app']['in_browser'])
+        self.assertFalse(self._alerts(board, 'browser', self.exec_user))
+        # ...and off duty nobody is chased
+        self.exec_user.sudo().write({'fw_native_app': True, 'fw_last_heard_at': False})
+        self.assertTrue(self._alerts(self._board(), 'browser', self.exec_user))
+        self.env['hr.attendance'].sudo().search([('employee_id', '=', self.employee.id)]).write(
+            {'check_out': fields.Datetime.now()})
+        self.assertFalse(self._alerts(self._board(), 'browser', self.exec_user))
 
     def test_a_dying_battery_and_a_long_open_visit_are_alerts(self):
         self._on_duty()

@@ -128,6 +128,8 @@ export class LiveTracker {
         }
         this.hiddenSince = null;       // when the page went to the background
         this.lastGap = null;           // { seconds, at }: the last silence worth naming
+        this.seenStale = false;        // the page slept since `seen`: no longer where the phone is
+        this.beatAt = null;            // when the heartbeat timer last ticked
         // Whatever a previous page left behind is ours to deliver, recording or not:
         // the server files each fix against the attendance window it was taken in.
         this.restoreQueue();
@@ -283,6 +285,7 @@ export class LiveTracker {
         this.restartedAfterTimeout = false;
         this.watch();
         this.armFlush();
+        this.beatAt = Date.now();
         this.heartbeatTimer = setInterval(() => this.heartbeat(), HEARTBEAT_CHECK_MS);
         this.requestWakeLock();
         this.watchBattery();
@@ -316,12 +319,17 @@ export class LiveTracker {
         this.seen = null;
         this.lastGap = null;
         this.hiddenSince = null;
+        this.seenStale = false;
+        this.beatAt = null;
         this.restartedAfterTimeout = false;
     }
 
     // ------------------------------------------------------------- the background
     wentBackground() {
         this.hiddenSince = Date.now();
+        // From here the watch is suspended: the last fix seen is where the phone
+        // WAS, until the hardware says something again (see heartbeat).
+        this.seenStale = true;
     }
 
     /**
@@ -464,6 +472,7 @@ export class LiveTracker {
             at: when.getTime(),
         };
         this.seen = fix;
+        this.seenStale = false;
         if (this.last) {
             const moved = metres(this.last.latitude, this.last.longitude,
                                  fix.latitude, fix.longitude);
@@ -502,9 +511,30 @@ export class LiveTracker {
      * face-down on a desk - the last position it gave is sent again with a fresh
      * time, once per heartbeat length. The server dedupes on the time, never on the
      * place, so this lands as the "still here" row its own heartbeat rule exists for.
+     *
+     * Only while this page was watching, though. Locked in a pocket the page sleeps,
+     * and this timer with it; unlocked at the next clinic the overdue tick fired
+     * before the hardware had said anything, and "still here" went out for the place
+     * the phone had left an hour before, stamped now - the true fix a second later,
+     * kilometres on, then read as an impossible jump and thrown away with the ones
+     * after it (2026-11-09 to 11: clinics the phone woke at missing from the map,
+     * the km short by the way to them). A fix seen before the page went to the
+     * background, or before this timer stalled, is not where the phone is: nothing
+     * is repeated until the hardware has given one since.
      */
     heartbeat() {
-        if (!this.recording || !this.seen || !this.last) {
+        const tick = Date.now();
+        const stalled = this.beatAt !== null && tick - this.beatAt > 2 * HEARTBEAT_CHECK_MS;
+        this.beatAt = tick;
+        const front = typeof document === "undefined" || document.visibilityState === "visible";
+        if (stalled) {
+            // The timer slept, so the page did, whatever it was told about it.
+            this.seenStale = true;
+            if (front) {
+                this.fixNow();
+            }
+        }
+        if (!this.recording || !this.seen || !this.last || this.seenStale || !front) {
             return;
         }
         const now = new Date();

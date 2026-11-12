@@ -238,6 +238,8 @@ $fl-info: #2563eb;
         font-size: .68rem; white-space: nowrap;
     }
     .o_fw_fl_app_on { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; font-weight: 600; }
+    // has the app, records by browser: the chip says so in the colour of a warning
+    .o_fw_fl_app_warn { background: #fffbeb; border-color: #fcd34d; color: #92400e; font-weight: 700; }
     .o_fw_fl_tel { color: $fl-ink; text-decoration: none; padding: .1rem .3rem; &:hover { color: $fl-brand; } }
     .o_fw_fl_card_alerts { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
     .o_fw_fl_pill {

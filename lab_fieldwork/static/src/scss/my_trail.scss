@@ -227,3 +227,10 @@
         &:hover, &:focus-visible { color: #fff; filter: brightness(.95); }
     }
 }
+
+// The same strip in red: ADL Pro is on this phone and the browser is in use (2026-11-12)
+.o_fw_app_update.o_fw_app_missing {
+    border-color: rgba($danger, .45);
+    background-color: rgba($danger, .08);
+    .o_fw_app_update_icon { color: $danger; }
+}

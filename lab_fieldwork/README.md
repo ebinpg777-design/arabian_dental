@@ -393,6 +393,32 @@ held to.
 Visits already on file get their part from the mode they were recorded with
 (`migrations/20.0.9.1.0`).
 
+## A phone with the app, recording in a browser (2026-11-12)
+
+A browser records only while My Day is in front with the screen on; ADL Pro records
+in the pocket. An executive who has the app and runs the day from Chrome leaves a
+trail of the places the phone was unlocked at and nothing between them - a third of
+the day's km missing - and no rule on the server can measure a road nobody
+recorded. Three things, so that it is seen and so that what was recorded is
+read right:
+
+* **The executive is told** - My Day, opened in a phone's browser by somebody whose
+  phone has ADL Pro, carries a red strip at the top, before the day starts and all
+  through it: open ADL Pro, this is the browser (`openTheApp`).
+* **The desk is told** - Field Live's chip reads "browser, not ADL Pro" in amber
+  instead of "ADL Pro" in green, the Phones tab counts such phones, and an
+  alert names the person (`in_browser`: the day's latest position came from a browser
+  and the app has not reported in since). A silence on such a phone is no longer
+  blamed on battery saving.
+* **What a browser did record is read right** - on waking, the page's recorder
+  repeated the place it went dark at, stamped now, a second before the true fix:
+  read as a jump of thousands of km/h, and the true fixes were thrown away. The
+  recorder no longer repeats a place it has not seen since the page slept
+  (`live_track.js` heartbeat), and the trail drops such a repeat where it was
+  already stored (`location_live.drop_stale`), so the clinic the phone woke at is on
+  the map and in the km. `migrations/20.0.9.2.0` reads the last week's
+  browser-recorded days again.
+
 ## Cash the executive is carrying
 
 A cash collection on a visit goes into that executive's petty cash float with one button.

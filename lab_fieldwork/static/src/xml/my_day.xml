@@ -17,6 +17,21 @@
             </a>
         </div>
 
+        <!-- ADL Pro is on this phone and My Day is open in its browser instead (client,
+             2026-11-12, "GPS has some issues in the map and KM"): said before the day
+             starts and all through it, in the place nobody can miss. -->
+        <div t-if="this.openTheApp" class="o_fw_app_update o_fw_app_missing">
+            <i class="fa fa-exclamation-triangle o_fw_app_update_icon" title="Not in the app"/>
+            <div class="o_fw_app_update_text">
+                <strong>Open ADL Pro: this is the browser</strong>
+                <span>Here your route is recorded only while this page is open with the screen on, so your map has gaps and your km come out short. Close this page and use the ADL Pro app on your phone.</span>
+            </div>
+            <!-- a new phone, the app not on it yet: the same page the card's small print offers -->
+            <a t-if="this.appOffer" class="o_fw_app_update_btn" href="/lab_fieldwork/app">
+                <i class="fa fa-download me-1" title="Download"/>Get ADL Pro
+            </a>
+        </div>
+
         <!-- Header: what today amounts to, in four numbers and a progress ring. -->
         <div class="o_fw_hero">
             <div class="o_fw_hero_top">

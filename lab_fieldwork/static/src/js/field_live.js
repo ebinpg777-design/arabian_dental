@@ -209,6 +209,9 @@ export class FieldLive extends LiveMap {
             }
             if (payload.source) {
                 ex.phone_app.source = payload.source;
+                // has the app and this position came from a browser: said at once,
+                // the board's own reading follows on the reload
+                ex.phone_app.in_browser = Boolean(ex.phone_app.on_app) && payload.source === "browser";
             }
         }
         this.state.pushes++;
@@ -407,6 +410,18 @@ export class FieldLive extends LiveMap {
 
     get onAppPhones() {
         return this.phones.filter((p) => p.on_app).length;
+    }
+
+    get browserPhones() {
+        return this.phones.filter((p) => p.in_browser && p.on_duty).length;
+    }
+
+    /** The app's chip: green on the app, amber where the app is there and a browser records. */
+    appClass(phone) {
+        return {
+            o_fw_fl_app_on: Boolean(phone.on_app) && !phone.in_browser,
+            o_fw_fl_app_warn: Boolean(phone.in_browser),
+        };
     }
 
     /** Everyone's events in one stream, newest first: what is happening. */
@@ -796,6 +811,10 @@ export class FieldLive extends LiveMap {
     }
 
     phoneWord(phone) {
+        if (phone.in_browser) {
+            // ADL Pro is on the phone, and the day is running in a browser
+            return _t("browser, not ADL Pro");
+        }
         if (phone.on_app) {
             return phone.app_version ? _t("ADL Pro %s", phone.app_version) : _t("ADL Pro");
         }

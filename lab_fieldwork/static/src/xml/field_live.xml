@@ -253,7 +253,7 @@
                             <span t-att-class="{ 'o_fw_fl_silent': ex.phone_app.silent }" title="Last position">
                                 <i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.lastSeen(ex)"/>
                             </span>
-                            <span class="o_fw_fl_app" t-att-class="{ 'o_fw_fl_app_on': ex.phone_app.on_app }" t-out="this.phoneWord(ex.phone_app)"/>
+                            <span class="o_fw_fl_app" t-att-class="this.appClass(ex.phone_app)" t-out="this.phoneWord(ex.phone_app)"/>
                             <a t-if="ex.phone" t-attf-href="tel:{{ ex.phone }}" class="o_fw_fl_tel ms-auto"
                                t-att-title="ex.phone" t-on-click.stop=""><i class="fa fa-phone" aria-hidden="true"/></a>
                         </div>
@@ -292,13 +292,14 @@
                     <div class="o_fw_fl_phones_sum">
                         <b t-out="this.onAppPhones"/> of <t t-out="this.phones.length"/> on ADL Pro
                         <span t-if="this.silentPhones" class="o_fw_fl_silent"> · <b t-out="this.silentPhones"/> silent on duty</span>
+                        <span t-if="this.browserPhones" class="o_fw_fl_silent"> · <b t-out="this.browserPhones"/> in a browser, not in the app</span>
                     </div>
                     <div t-if="!this.phones.length" class="o_fw_fl_empty"><i class="fa fa-mobile" aria-hidden="true"/><b>No phone to show.</b></div>
                     <div t-foreach="this.phones" t-as="phone" t-key="phone.user_id"
                          class="o_fw_fl_phone" t-att-class="{ 'o_fw_fl_phone_silent': phone.silent, 'o_fw_fl_phone_off': !phone.on_duty }"
                          t-on-click="() => this.focusUser(phone.user_id)">
                         <span class="o_fw_fl_phone_name" t-out="phone.name"/>
-                        <span class="o_fw_fl_app" t-att-class="{ 'o_fw_fl_app_on': phone.on_app }" t-out="this.phoneWord(phone)"/>
+                        <span class="o_fw_fl_app" t-att-class="this.appClass(phone)" t-out="this.phoneWord(phone)"/>
                         <span t-att-class="this.batteryClass(phone.battery)">
                             <i t-attf-class="fa {{ this.batteryIcon(phone.battery) }}" aria-hidden="true"/>
                             <t t-if="phone.battery !== null and phone.battery !== undefined"> <t t-out="this.round(phone.battery)"/>%</t>
@@ -307,13 +308,16 @@
                             <i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.ageLabel(phone.last_age_s)"/>
                             <t t-if="phone.silent"> · silent<t t-if="phone.reason === 'gps'"> — phone online, no GPS fix</t><t t-elif="phone.reason === 'network'"> — not reached: no network, or the app stopped</t></t>
                             <t t-elif="!phone.on_duty"> · off duty</t>
+                            <t t-if="phone.in_browser and phone.on_duty"> · recording in a browser: only while the screen is on</t>
                             <t t-if="phone.device"> · <span class="o_fw_fl_muted" t-out="phone.device"/></t>
                         </span>
                     </div>
                     <div class="o_fw_fl_phones_note">
-                        A phone on ADL Pro records with the screen off. One still on the browser
-                        records only while My Day is in front; a silent phone on the app is usually
-                        battery saving — the app's My Day shows a Battery settings button.
+                        A phone on ADL Pro records with the screen off. One on the browser records
+                        only while My Day is in front with the screen on, so its map has gaps and its
+                        km come out short: "browser, not ADL Pro" is somebody who has the app and did
+                        not open it. A silent phone on the app is usually battery saving — the app's
+                        My Day shows a Battery settings button.
                     </div>
                 </div>
 
@@ -650,7 +654,7 @@
                     </div>
                 </div>
                 <div t-if="ex.phone_app" class="o_fw_fl_story_phone">
-                    <span class="o_fw_fl_app" t-att-class="{ 'o_fw_fl_app_on': ex.phone_app.on_app }" t-out="this.phoneWord(ex.phone_app)"/>
+                    <span class="o_fw_fl_app" t-att-class="this.appClass(ex.phone_app)" t-out="this.phoneWord(ex.phone_app)"/>
                     <span t-att-class="this.batteryClass(ex.phone_app.battery)">
                         <i t-attf-class="fa {{ this.batteryIcon(ex.phone_app.battery) }}" aria-hidden="true"/>
                         <t t-if="ex.phone_app.battery !== null and ex.phone_app.battery !== undefined"> <t t-out="this.round(ex.phone_app.battery)"/>%</t>

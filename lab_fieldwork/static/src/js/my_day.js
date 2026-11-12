@@ -587,6 +587,23 @@ export class LabMyDay extends Component {
         return { latest: info.version, current, url: info.download_url || "/lab_fieldwork/app/download" };
     }
 
+    /**
+     * ADL Pro is on this person's phone, and My Day is open in the phone's browser
+     * instead (2026-11-12: four days in a row run from Chrome, a third of each
+     * day's km missing from the trail, and nothing on this screen that said why but
+     * a line of small print under the card). A browser records only while this
+     * page is in front with the screen on; the app records in the pocket. Said at
+     * the top, before the day starts and all through it - before Start my day is
+     * when it can still be put right for the whole day. Not while the app is
+     * evidently posting (then this page is only being read), and not on a desk.
+     */
+    get openTheApp() {
+        const server = this.state.where.server;
+        const agent = navigator.userAgent || "";
+        return Boolean(server && server.native_app && !this.tracker.native && !this.appLive
+            && !/ADLField\//.test(agent) && /Android|iPhone|iPad|iPod/i.test(agent));
+    }
+
     /** The app, offered on a phone that is not running it: the APK on Android, the
      *  iPhone build (or its TestFlight link) on an iPhone, once there is one. */
     get appOffer() {

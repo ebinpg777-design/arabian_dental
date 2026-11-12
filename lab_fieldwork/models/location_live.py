@@ -37,7 +37,7 @@ from odoo.exceptions import AccessError, UserError
 
 from .lab_visit import has_fix, metres_between
 from .local_day import local_midnight_utc, tz_name
-from .location_ping import JUMP_KMH
+from .location_ping import HEARTBEAT_SECONDS, JUMP_KMH
 
 _logger = logging.getLogger(__name__)
 
@@ -151,6 +151,87 @@ def _motion(point):
 def _heading(point):
     """The phone's own heading at this fix, in degrees; 0.0 where it gave none."""
     return (point[9] or 0.0) if len(point) > 9 else 0.0
+
+
+def _source(point):
+    """Who recorded this fix: 'app' (the phone's app, a tracking app) or 'browser'."""
+    return point[7] if len(point) > 7 else None
+
+
+STALE_AWAKE_SECONDS = 420  # a browser page in front sends a fix or a heartbeat every five to six
+                           # minutes: a silence longer than this is the page asleep
+STALE_OUT_M = 100.0        # the fix after a stale heartbeat is at least this far from it
+
+
+def drop_stale(points):
+    """The trail without the place a browser repeated on waking.
+
+    A phone's browser records only while My Day is in front with the screen on.
+    Locked in a pocket, the page sleeps; unlocked at the next clinic, the recorder's
+    own heartbeat - the last position it saw, sent again with a fresh time once the
+    hardware has been quiet five minutes (live_track.js) - went out before the
+    hardware had said anything: the place the phone was when the page went dark,
+    stamped NOW, and the true fix a second or a minute after it, kilometres away
+    (2026-11-11: one fix where the phone had been half an hour before, the next a
+    second later at the clinic 8.7 km on - "31,229 km/h"). The speed rules took the
+    heartbeat for where the phone was and the true fixes for impossible, and dropped
+    them one after another until the pace from the wrong place fell under the limit:
+    the clinic the phone woke at never on the trail, the km short by the way there
+    (a visit 7 km off the line, 10 km the trail cut straight past).
+
+    A fix is such a heartbeat, and is dropped, when
+      * a browser sent it, HEARTBEAT_SECONDS or more after the fix before it and
+        under STAY_M from it - a heartbeat by its shape;
+      * the fix after it follows within HEARTBEAT_SECONDS - sooner than the page,
+        awake, would have sent another - STALE_OUT_M or more away and faster than
+        JUMP_KMH from it: the phone was not where the heartbeat said;
+      * that fix is borne out by the one after it - reached at no more than
+        JUMP_KMH, and not back where the heartbeat was: a phone standing still
+        whose position jumped out and came back is where it stood (drop_impossible,
+        drop_excursions). Where it is the latest fix there is nothing yet to bear
+        it out, and the silence before the heartbeat decides: longer than
+        STALE_AWAKE_SECONDS, the page was asleep and the heartbeat is no evidence.
+    The fix after it then follows the one before the silence - a stretch the phone
+    did not record, measured along its road (classify_modes: blind) - and a speed
+    the server worked out for it from the heartbeat (location_ping record) is worked
+    out from that fix instead. The app stamps a fix with the time the phone took it
+    and is never judged here; the page itself stopped sending such heartbeats with
+    this rule (20.0.9.2.0), which is for the days and the pages from before it.
+    """
+    n = len(points)
+    if n < 3:
+        return list(points)
+    out, i = [points[0]], 1
+    while i < n:
+        point = points[i]
+        if i + 1 < n and _stale_beat(out[-1], point, points[i + 1], points[i + 2] if i + 2 < n else None):
+            after = points[i + 1]
+            if abs((after[3] or 0.0) - round(_step(point, after)[2], 1)) < 0.11:
+                # no reading of the phone's own: the jump from the heartbeat, worked out on arrival
+                after = after[:3] + (round(_step(out[-1], after)[2], 1),) + after[4:]
+            out.append(after)
+            i += 2
+            continue
+        out.append(point)
+        i += 1
+    return out
+
+
+def _stale_beat(before, beat, after, later):
+    """Whether `beat` is a browser's heartbeat sent on waking (see drop_stale): the
+    place of `before`, a silence after it, and `after` - borne out by `later`, or by
+    the length of the silence where there is no `later` yet - somewhere else."""
+    if _source(beat) != 'browser':
+        return False
+    quiet = (beat[0] - before[0]).total_seconds()
+    if quiet < HEARTBEAT_SECONDS or _metres(before, beat) >= STAY_M:
+        return False
+    metres, secs, kmh = _step(beat, after)
+    if secs >= HEARTBEAT_SECONDS or metres < STALE_OUT_M or kmh <= JUMP_KMH:
+        return False
+    if later is None:
+        return quiet > STALE_AWAKE_SECONDS
+    return _metres(beat, later) > EXCURSION_BACK_M and _step(after, later)[2] <= JUMP_KMH
 
 
 HEADLESS_SECONDS = 300     # a fix with no heading between two with one this close in time
@@ -864,10 +945,12 @@ class LabLocationPingLive(models.Model):
     @api.model
     def _trail_points(self, fixes):
         """The fixes worth drawing and measuring: accurate enough to sit on a road,
-        satellite ones where the phone had them (drop_headless), and only where the
-        phone went (drop_detours, drop_wander, drop_excursions)."""
+        taken where they say (drop_stale), satellite ones where the phone had them
+        (drop_headless), and only where the phone went (drop_detours, drop_wander,
+        drop_excursions)."""
         limit = self._trail_accuracy()
         points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
+        points = drop_stale(points)
         return drop_spikes(drop_excursions(drop_impossible(drop_wander(drop_detours(drop_headless(points))))))
 
     @api.model
