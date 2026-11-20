@@ -1475,9 +1475,13 @@ class ResUsersLive(models.Model):
     # tracks with the screen off; the browser cannot. The identifier is the phone's
     # password to the endpoint - whoever holds it can post positions as this person -
     # so it is long, random, unique, and only an administrator sees or changes it.
+    # Settings administrators read the switch as well: the Device ID and the help box
+    # beside it hide on it, and both are on the user form for them, so with the
+    # manager group alone the form broke for an administrator outside field work -
+    # '"res.users"."fw_gps_app" field is undefined' (2026-11-20).
     fw_gps_app = fields.Boolean(
         'Tracked by the Traccar app', readonly=True, copy=False,
-        groups='lab_fieldwork.group_fieldwork_manager',
+        groups='lab_fieldwork.group_fieldwork_manager,base.group_system',
         help="This person's phone runs the free Traccar Client app, which sends positions "
              "with the screen off. The browser then stops asking for one.")
     fw_gps_device_id = fields.Char(

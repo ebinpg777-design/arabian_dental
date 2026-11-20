@@ -155,20 +155,23 @@ def track_interval(env):
 class ResUsersFieldApp(models.Model):
     _inherit = 'res.users'
 
+    # Read by Settings administrators too: the Field Work box of the user form shows
+    # them these and hides parts of it on them - with the manager group alone the form
+    # names fields the administrator cannot read and will not open (2026-11-20).
     fw_native_app = fields.Boolean(
         'Uses ADL Pro', readonly=True, copy=False,
-        groups='lab_fieldwork.group_fieldwork_manager',
+        groups='lab_fieldwork.group_fieldwork_manager,base.group_system',
         help="This person's phone runs ADL Pro, the lab's app, which records the "
              "route with the screen off. The app sets this itself the first time it is "
              "opened; browsers then stop asking for a position while it is posting.")
     fw_native_app_version = fields.Char(
         'ADL Pro Version', readonly=True, copy=False, size=VERSION_MAX,
-        groups='lab_fieldwork.group_fieldwork_manager')
+        groups='lab_fieldwork.group_fieldwork_manager,base.group_system')
     # Make, model and Android version, as the app reports them (1.0.8): which phones
     # go blind on the road is a question of make (2026-10-24).
     fw_native_device = fields.Char(
         'Phone', readonly=True, copy=False, size=DEVICE_MAX,
-        groups='lab_fieldwork.group_fieldwork_manager')
+        groups='lab_fieldwork.group_fieldwork_manager,base.group_system')
 
     def _fw_native_config(self, version=None, device=None):
         """The settings the app's tracking service runs on, provisioning the phone on

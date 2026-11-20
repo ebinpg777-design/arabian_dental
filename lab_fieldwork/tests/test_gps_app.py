@@ -9,6 +9,8 @@ from odoo.exceptions import AccessError
 import gzip
 import json
 
+from lxml import etree
+
 from odoo.tests import HttpCase, tagged
 
 from ..controllers import gps
@@ -46,6 +48,32 @@ class TestGpsApp(HttpCase):
     def _pings(self):
         return self.env['lab.location.ping'].sudo().search(
             [('user_id', '=', self.exec_user.id)], order='ts')
+
+    def test_a_settings_administrator_outside_field_work_opens_a_user(self):
+        # Settings > Users > a user, as a Settings administrator with no field-work
+        # role (2026-11-20): '"res.users"."fw_gps_app" field is undefined'. The
+        # browser stops on any field a form names that its reader's field list
+        # leaves out. Same for a user who only manages access rights.
+        env = self.env(su=True)
+        readers = env['res.users'].create([
+            {'login': 'gps_app_settings', 'name': 'GPS App Settings Admin',
+             'group_ids': [(4, env.ref('base.group_system').id)]},
+            {'login': 'gps_app_access', 'name': 'GPS App Access Rights',
+             'group_ids': [(4, env.ref('base.group_erp_manager').id)]},
+        ])
+        for reader in readers:
+            Users = self.env['res.users'].with_user(reader)
+            for xmlid in ('base.view_users_form', 'base.view_users_simple_form'):
+                views = Users.get_views([(self.env.ref(xmlid).id, 'form')])
+                arch = etree.fromstring(views['views']['form']['arch'])
+                named = {node.get('name') for node in arch.iter('field')
+                         if not any(parent.tag == 'field' for parent in node.iterancestors())}
+                readable = set(views['models']['res.users']['fields'])
+                self.assertFalse(named - readable, "%s names fields %s cannot read" % (xmlid, reader.login))
+        settings_form = self.env['res.users'].with_user(readers[0]).get_views(
+            [(self.env.ref('base.view_users_form').id, 'form')])
+        self.assertIn('fw_gps_device_id', settings_form['views']['form']['arch'],
+                      "the administrator still sets the app up")
 
     def test_parsers(self):
         when = fields.Datetime.now().replace(microsecond=0)
