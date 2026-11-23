@@ -122,12 +122,16 @@ export class FieldLive extends LiveMap {
                 day: this.state.day || null,
                 user_ids: null,
             });
-            const before = (this.state.data && this.state.data.executives) || [];
+            // What the last load drew is kept only for the same day (2026-11-23: a
+            // person in focus carried the day before's trail - empty after a day off -
+            // onto the next day picked, which then showed its stops but no line).
+            const held = this.state.data;
+            const before = (held && held.day === data.day && held.executives) || [];
             this.state.data = data;
-            this.keepFullTrail(before);
-            this.keepRoads(before);
             this.state.day = data.day;
             this.state.isToday = Boolean(data.is_today);
+            this.keepFullTrail(before);
+            this.keepRoads(before);
             this.state.lost = false;
             this.loadedAt = Date.now();
             this.state.range = this.rangeOf(data);
@@ -250,7 +254,13 @@ export class FieldLive extends LiveMap {
         const prev = before.find((e) => e.user_id === this.state.focusId && e.full_trail);
         const cur = ((this.state.data && this.state.data.executives) || [])
             .find((e) => e.user_id === this.state.focusId);
-        if (!prev || !cur) {
+        if (!cur) {
+            return;
+        }
+        if (!prev) {
+            // another day, or nothing full held yet: the person in focus gets their
+            // own full trail for the day now shown
+            this.loadTrail(cur);
             return;
         }
         Object.assign(cur, {

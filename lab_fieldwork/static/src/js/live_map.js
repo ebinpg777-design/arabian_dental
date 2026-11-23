@@ -173,7 +173,10 @@ export class LiveMap extends Component {
                 day: this.state.day || null,
                 user_ids: null,
             });
-            const before = (this.state.data && this.state.data.executives) || [];
+            // the roads held are the same day's only: stepping back a day kept the
+            // later day's roads for everybody (2026-11-23)
+            const held = this.state.data;
+            const before = (held && held.day === data.day && held.executives) || [];
             this.state.data = data;
             this.keepRoads(before);
             this.state.day = data.day;

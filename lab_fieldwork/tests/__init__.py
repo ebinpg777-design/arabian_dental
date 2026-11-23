@@ -26,3 +26,4 @@ from . import test_visit_remove
 from . import test_route_duty
 from . import test_split_payment
 from . import test_live_track_js
+from . import test_field_live_day_js
