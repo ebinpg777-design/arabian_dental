@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_technician_work_pivot" model="ir.ui.view">
+        <field name="name">sale.technician.work.pivot</field>
+        <field name="model">sale.technician.work</field>
+        <field name="arch" type="xml">
+            <pivot string="Technician Work" sample="1">
+                <field name="technician_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="case_count" type="measure"/>
+                <field name="work_count" type="measure"/>
+                <field name="quantity" type="measure"/>
+                <field name="teeth_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_technician_work_graph" model="ir.ui.view">
+        <field name="name">sale.technician.work.graph</field>
+        <field name="model">sale.technician.work</field>
+        <field name="arch" type="xml">
+            <graph string="Technician Work" type="bar" order="desc" sample="1">
+                <field name="technician_id"/>
+                <field name="work_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_technician_work_list" model="ir.ui.view">
+        <field name="name">sale.technician.work.list</field>
+        <field name="model">sale.technician.work</field>
+        <field name="arch" type="xml">
+            <list string="Technician Work" create="false" edit="false" delete="false"
+                  decoration-muted="is_rework">
+                <field name="technician_id"/>
+                <field name="date"/>
+                <field name="delivered_date" optional="hide"/>
+                <field name="order_id"/>
+                <field name="partner_id" optional="show"/>
+                <field name="product_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="teeth" optional="show"/>
+                <field name="quantity" sum="Total"/>
+                <field name="teeth_count" sum="Total" optional="show"/>
+                <field name="amount" sum="Total" optional="hide"/>
+                <field name="amount_share" sum="Total" optional="show"/>
+                <field name="technician_count" optional="show"/>
+                <field name="is_rework" optional="hide"/>
+                <field name="state" optional="hide"/>
+                <button name="action_open_order" type="object" icon="fa-external-link" title="Open the order"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_technician_work_search" model="ir.ui.view">
+        <field name="name">sale.technician.work.search</field>
+        <field name="model">sale.technician.work</field>
+        <field name="arch" type="xml">
+            <search string="Technician Work">
+                <field name="technician_id"/>
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <field name="department_id"/>
+                <filter name="date" string="Order Date" date="date"/>
+                <filter name="this_year" string="This Year"
+                        domain="[('date', '&gt;=', (context_today() + relativedelta(month=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter name="delivered" string="Delivered On" date="delivered_date"/>
+                <separator/>
+                <filter name="no_rework" string="Excluding Reworks" domain="[('is_rework', '=', False)]"/>
+                <filter name="rework" string="Reworks" domain="[('is_rework', '=', True)]"/>
+                <separator/>
+                <filter name="shared" string="Shared Cases" domain="[('technician_count', '&gt;', 1)]"
+                        help="Cases that name more than one technician"/>
+                <filter name="alone" string="Worked Alone" domain="[('technician_count', '=', 1)]"/>
+                <group>
+                    <filter name="by_technician" string="Technician" context="{'group_by': 'technician_id'}"/>
+                    <filter name="by_department" string="Department" context="{'group_by': 'department_id'}"/>
+                    <filter name="by_category" string="Product Category" context="{'group_by': 'categ_id'}"/>
+                    <filter name="by_product" string="Product" context="{'group_by': 'product_id'}"/>
+                    <filter name="by_clinic" string="Clinic" context="{'group_by': 'partner_id'}"/>
+                    <filter name="by_route" string="Sales Route" context="{'group_by': 'team_id'}"/>
+                    <filter name="by_month" string="Month" context="{'group_by': 'date:month'}"/>
+                    <filter name="by_day" string="Day" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_technician_work" model="ir.actions.act_window">
+        <field name="name">Technician Work</field>
+        <field name="res_model">sale.technician.work</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="view_technician_work_search"/>
+        <field name="context">{'search_default_date': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No technician work in this period</p>
+            <p>Every line of an order counts for each technician named on the order
+               (its Technicians). Cases = orders, Works = order lines.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_technician_work"
+              name="Technician Work"
+              parent="sale.menu_sale_report"
+              action="action_technician_work"
+              sequence="61"/>
+</odoo>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Technician Work Summary: portrait, on the lab letterhead, in the Order Count
+         sheet's own style (sale_custom's occ-* classes). -->
+    <template id="report_technician_work">
+        <t t-call="web.html_container">
+            <t t-call="sale_custom.external_layout_lab"
+                o="wizard"
+                hide_letterhead="True"
+                footer_note.translate="Technician work summary">
+                <div class="page lab-invoice occ">
+                    <t t-call="sale_custom.letterhead_block"/>
+
+                    <table class="occ-title">
+                        <tr>
+                            <td style="vertical-align:bottom;">
+                                <div class="oi-title">TECHNICIAN WORK</div>
+                                <div class="occ-sub">printed <t t-out="printed_on"/></div>
+                            </td>
+                            <td style="text-align:right;vertical-align:bottom;">
+                                <div class="oi-numlabel">Period</div>
+                                <div class="occ-period">
+                                    <span t-field="wizard.date_from"/> — <span t-field="wizard.date_to"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="occ-criteria" t-if="criteria">
+                        <t t-foreach="criteria" t-as="c">
+                            <span class="occ-crit"><span class="occ-crit-k"><t t-out="c[0]"/></span>
+                                <t t-out="c[1]"/></span>
+                        </t>
+                    </div>
+
+                    <table class="occ-summary">
+                        <tr>
+                            <td class="occ-card"><div class="oi-label">Technicians</div>
+                                <div class="occ-card-value" t-out="len(rows)"/></td>
+                            <td class="occ-card"><div class="oi-label">Cases</div>
+                                <div class="occ-card-value" t-out="number(total['cases'])"/></td>
+                            <td class="occ-card occ-card-due"><div class="oi-label">Works (order lines)</div>
+                                <div class="occ-card-value" t-out="number(total['works'])"/></td>
+                            <td class="occ-card"><div class="oi-label">Quantity</div>
+                                <div class="occ-card-value" t-out="number(total['quantity'])"/></td>
+                            <td class="occ-card"><div class="oi-label">Teeth</div>
+                                <div class="occ-card-value" t-out="number(total['teeth'])"/></td>
+                        </tr>
+                    </table>
+                    <p class="occ-sub" style="margin:4px 0 10px;">
+                        A case names its technicians; every line of it counts for each of them. The
+                        totals count a line once per technician.
+                    </p>
+
+                    <p t-if="not rows" class="occ-empty">No technician is named on a case in this period.</p>
+
+                    <table class="occ-lines" t-if="rows">
+                        <thead>
+                            <tr>
+                                <th>Technician</th>
+                                <th style="width:22%"/>
+                                <th class="num" style="width:8%">Cases</th>
+                                <th class="num" style="width:8%">Reworks</th>
+                                <th class="num" style="width:9%">Works</th>
+                                <th class="num" style="width:9%">Quantity</th>
+                                <th class="num" style="width:8%">Teeth</th>
+                                <th class="num" style="width:14%">Value share</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="rows" t-as="r">
+                                <tr class="occ-l0">
+                                    <td t-out="r['technician'].name"/>
+                                    <td>
+                                        <table class="occ-bar" style="margin:0;"><tr>
+                                            <td class="occ-bar-track">
+                                                <div class="occ-bar-fill"
+                                                     t-attf-style="width: {{'{:.1f}'.format(max(pct(r['works'], top), 2))}}%;"/>
+                                            </td>
+                                        </tr></table>
+                                    </td>
+                                    <td class="num" t-out="number(r['cases'])"/>
+                                    <td class="num" t-out="number(r['reworks']) if r['reworks'] else ''"/>
+                                    <td class="num fw-bold" t-out="number(r['works'])"/>
+                                    <td class="num" t-out="number(r['quantity'])"/>
+                                    <td class="num" t-out="number(r['teeth'])"/>
+                                    <td class="num" t-out="money(r['share'])"/>
+                                </tr>
+                                <tr t-foreach="r['products']" t-as="p" class="occ-l1">
+                                    <td colspan="2"><span style="padding-left:16px;" t-out="p['product'].display_name or 'No product'"/></td>
+                                    <td class="num" t-out="number(p['cases'])"/>
+                                    <td class="num" t-out="number(p['reworks']) if p['reworks'] else ''"/>
+                                    <td class="num" t-out="number(p['works'])"/>
+                                    <td class="num" t-out="number(p['quantity'])"/>
+                                    <td class="num" t-out="number(p['teeth'])"/>
+                                    <td class="num" t-out="money(p['share'])"/>
+                                </tr>
+                            </t>
+                            <tr class="occ-total">
+                                <td colspan="2">TOTAL</td>
+                                <td class="num" t-out="number(total['cases'])"/>
+                                <td class="num" t-out="number(total['reworks'])"/>
+                                <td class="num" t-out="number(total['works'])"/>
+                                <td class="num" t-out="number(total['quantity'])"/>
+                                <td class="num" t-out="number(total['teeth'])"/>
+                                <td class="num" t-out="money(total['share'])"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_technician_work" model="ir.actions.report">
+        <field name="name">Technician Work Summary</field>
+        <field name="model">sale.technician.work.summary</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_technician_work.report_technician_work</field>
+        <field name="print_report_name">'Technician Work %s to %s' % (object.date_from or '', object.date_to or '')</field>
+        <field name="paperformat_id" ref="sale_custom.paperformat_lab_invoice"/>
+    </record>
+</odoo>
