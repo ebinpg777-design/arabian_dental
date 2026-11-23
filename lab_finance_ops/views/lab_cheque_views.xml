@@ -39,6 +39,11 @@
                                 icon="fa-university" invisible="not deposit_move_id">
                             <span class="o_stat_text">Bank Entry</span>
                         </button>
+                        <!-- Every entry, the reversals of a bounce included (2026-11-23) -->
+                        <button name="action_view_moves" type="object" class="oe_stat_button"
+                                icon="fa-list" invisible="not move_count">
+                            <field name="move_count" widget="statinfo" string="Journal Entries"/>
+                        </button>
                     </div>
                     <widget name="web_ribbon" title="Post-dated" bg_color="text-bg-warning"
                             invisible="not is_post_dated or state != 'received'"/>

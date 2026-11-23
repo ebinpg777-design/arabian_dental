@@ -156,6 +156,66 @@ class TestLabFinanceOps(TransactionCase):
         invoice.invalidate_recordset()
         self.assertEqual(cheque.state, 'bounced')
         self.assertEqual(invoice.payment_state, 'not_paid')
+        # the bounce is in the books, and the cheque shows where (2026-11-23: "status of
+        # payment and cheque register is updating but nothing happening in journal entry")
+        reversals = cheque.move_ids.filtered('reversed_entry_id')
+        self.assertEqual(reversals.reversed_entry_id, cheque.payment_id.move_id | cheque.deposit_move_id)
+        self.assertEqual(set(reversals.mapped('date')), {self.today})
+        self.assertEqual(cheque.move_count, 4, "receipt, bank entry and the two reversals")
+        self.assertIn(reversals[0].name, cheque.message_ids[0].body)
+        self.assertEqual(cheque.action_view_moves()['domain'], [('id', 'in', cheque.move_ids.ids)])
+
+    def test_a_cheque_recorded_the_old_way_bounces_by_reversal(self):
+        """Its receipt stays in the books with a reversal beside it - it used to be reset to
+        draft and cancelled, which rewrote past books."""
+        invoice = self._invoice(1500.0)
+        old_receipt = self._payment(1500.0)
+        old_receipt.action_post()
+        receivable = old_receipt.move_id.line_ids.filtered(lambda l: l.account_id.account_type == 'asset_receivable')
+        (receivable | invoice.line_ids.filtered(lambda l: l.account_id.account_type == 'asset_receivable')).reconcile()
+        cheque = self._cheque(1500.0)
+        cheque.write({'accounting': 'clearing', 'payment_id': old_receipt.id})
+        cheque.action_deposit()
+        cheque.action_clear()
+        cheque.bounce_reason = 'Account closed'
+        cheque.action_bounce()
+        invoice.invalidate_recordset()
+        self.assertEqual(old_receipt.move_id.state, 'posted', "the old receipt is not touched")
+        self.assertEqual(old_receipt.state, 'rejected')
+        reversal = old_receipt.move_id.reversal_move_ids
+        self.assertEqual((len(reversal), reversal.state, reversal.date), (1, 'posted', self.today))
+        self.assertEqual(invoice.payment_state, 'not_paid')
+        self.assertIn(reversal, cheque.move_ids)
+
+    def test_the_payment_opens_its_cheque(self):
+        invoice, cheque = self._received(days_ago=2)
+        cheque.action_confirm_receipt()
+        payment = cheque.payment_id
+        action = payment.action_view_lab_cheque()
+        self.assertEqual((action['res_model'], action['res_id']), ('lab.cheque', cheque.id))
+        self.assertEqual((payment.lab_cheque_number, payment.lab_cheque_state), (cheque.cheque_number, 'received'))
+        arch = payment.get_view(self.env.ref('account.view_account_payment_form').id, 'form')['arch']
+        self.assertIn('action_view_lab_cheque', arch)
+
+    def test_the_upgrade_links_each_cheque_to_its_entries(self):
+        path = os.path.join(get_module_path('lab_finance_ops'), 'migrations', '20.0.1.3.0', 'post-migrate.py')
+        spec = importlib.util.spec_from_file_location('lab_finance_ops_moves_post_migrate', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _invoice, cheque = self._received(days_ago=3)
+        cheque.action_deposit()
+        cheque.action_clear()
+        cheque.bounce_reason = 'Stopped'
+        cheque.action_bounce()
+        expected = cheque.move_ids
+        self.assertEqual(len(expected), 4)
+        self.env.flush_all()
+        self.env.cr.execute("DELETE FROM lab_cheque_account_move_rel WHERE cheque_id = %s", [cheque.id])
+        self.env.invalidate_all()
+        self.assertFalse(cheque.move_ids)
+        module.migrate(self.env.cr, '20.0.1.2.0')
+        self.env.invalidate_all()
+        self.assertEqual(cheque.move_ids, expected)
 
     def test_post_dated_cheque_is_flagged(self):
         from datetime import timedelta

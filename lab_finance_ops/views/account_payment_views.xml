@@ -16,6 +16,17 @@
                         invisible="approval_state != 'to_approve'"
                         groups="lab_finance_ops.group_lab_payment_approver"/>
             </xpath>
+            <!-- The payment's cheque in the Cheque Register (2026-11-23) -->
+            <div name="button_box" position="inside">
+                <button name="action_view_lab_cheque" type="object" class="oe_stat_button"
+                        icon="fa-money" invisible="not cheque_id"
+                        groups="lab_finance_ops.group_lab_cheque_user">
+                    <div class="o_stat_info">
+                        <span class="o_stat_value"><field name="lab_cheque_number"/></span>
+                        <span class="o_stat_text">Cheque · <field name="lab_cheque_state"/></span>
+                    </div>
+                </button>
+            </div>
             <xpath expr="//sheet" position="before">
                 <div class="alert alert-warning m-0 rounded-0" role="alert"
                      invisible="approval_state != 'to_approve'">

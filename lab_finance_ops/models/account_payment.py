@@ -31,7 +31,23 @@ class AccountPayment(models.Model):
     lab_cheque_holding = fields.Boolean(
         string='Cheque in Hand', readonly=True, copy=False,
         help="Booked when the cheque was received: its money waits in the bank's Cheques "
-             "in Hand (PDC) account until the cheque is deposited.")
+             "in Hand (PDC) account until the cheque clears.")
+    # The smart button's face: which cheque, and where it is now.
+    lab_cheque_number = fields.Char(related='cheque_id.cheque_number', string='Cheque No.')
+    lab_cheque_state = fields.Selection(related='cheque_id.state', string='Cheque Status')
+
+    def action_view_lab_cheque(self):
+        """The payment's cheque in the Cheque Register (client, 2026-11-23: "see the
+        corresponding cheque register from the payment with a smart button")."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Cheque'),
+            'res_model': 'lab.cheque',
+            'res_id': self.cheque_id.id,
+            'view_mode': 'form',
+            'views': [(False, 'form')],
+        }
 
     @api.depends('cheque_id', 'lab_cheque_holding', 'journal_id')
     def _compute_outstanding_account_id(self):

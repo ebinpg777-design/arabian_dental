@@ -1,10 +1,10 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, onWillUnmount, proxy, t, useProps } from "@odoo/owl";
+import { Component, onWillStart, proxy, t, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { user } from "@web/core/user";
-import { useService } from "@web/core/utils/hooks";
+import { useBus, useService } from "@web/core/utils/hooks";
 import { ListController } from "@web/views/list/list_controller";
 import { ListRenderer } from "@web/views/list/list_renderer";
 import { listView } from "@web/views/list/list_view";
@@ -40,9 +40,11 @@ export class ChequeStrip extends Component {
                 await this.load();
             }
         });
-        const reload = () => this.state.allowed && this.load();
-        this.env.bus.addEventListener(CHANGED, reload);
-        onWillUnmount(() => this.env.bus.removeEventListener(CHANGED, reload));
+        // Listening only while on screen: saving a cheque reloads the list, which can
+        // replace this strip before it was ever shown - one that listened from setup()
+        // then kept listening after it was gone, and its load() raised "Component is
+        // destroyed" (2026-11-23).
+        useBus(this.env.bus, CHANGED, () => this.state.allowed && this.load());
     }
 
     async load() {

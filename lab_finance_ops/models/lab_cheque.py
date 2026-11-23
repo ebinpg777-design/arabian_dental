@@ -37,7 +37,9 @@ class LabCheque(models.Model):
     _inherit = ['lab.lock.mixin', 'mail.thread', 'mail.activity.mixin']
     # Locked once closed - enforced in write(), not just the view.
     _lock_states = ('cleared', 'bounced', 'cancel')
-    _lock_exempt_fields = ('note', 'bounce_reason')
+    # move_ids: every entry the cheque made is linked to it, also the reversals a bounce
+    # books on a cleared (locked) cheque.
+    _lock_exempt_fields = ('note', 'bounce_reason', 'move_ids')
     _lock_bypass_groups = ('account.group_account_manager',)
     _order = 'cheque_date desc, id desc'
     _rec_name = 'display_name'
@@ -96,6 +98,12 @@ class LabCheque(models.Model):
     deposit_move_id = fields.Many2one(
         'account.move', string='Bank Entry', copy=False, readonly=True,
         help="PDC account -> bank account, dated the day the cheque cleared.")
+    move_ids = fields.Many2many(
+        'account.move', 'lab_cheque_account_move_rel', 'cheque_id', 'move_id',
+        string='Journal Entries', copy=False, readonly=True,
+        help="Every entry this cheque made: its receipt, its bank entry, and the reversals "
+             "of a bounce or a cancellation - kept when the cheque is presented again.")
+    move_count = fields.Integer(compute='_compute_move_count')
     accounting = fields.Selection(
         [('holding', 'Settled when received, banked when cleared'),
          ('clearing', 'Booked when cleared (recorded before 2026-11-23)')],
@@ -133,6 +141,11 @@ class LabCheque(models.Model):
         for cheque in self:
             cheque.allocated_amount = sum(cheque.allocation_ids.mapped('amount'))
             cheque.unallocated_amount = cheque.amount - cheque.allocated_amount
+
+    @api.depends('move_ids')
+    def _compute_move_count(self):
+        for cheque in self:
+            cheque.move_count = len(cheque.move_ids)
 
     @api.depends('accounting', 'payment_id.state')
     def _compute_receipt_booked(self):
@@ -250,6 +263,7 @@ class LabCheque(models.Model):
         payment = self._create_payment(self.received_date, holding=True)
         self.payment_id = payment
         self._reconcile_allocations(payment)
+        self.move_ids = [Command.link(payment.move_id.id)]
         self.message_post(body=_(
             "Received on %(day)s: %(payment)s settles the allocated invoices; the cheque "
             "waits in %(account)s until it clears.",
@@ -295,15 +309,18 @@ class LabCheque(models.Model):
         payment = self.payment_id
         moves = self.deposit_move_id | payment.move_id
         moves.line_ids.remove_move_reconcile()
+        reversals = self.env['account.move']
         for move in (self.deposit_move_id, payment.move_id):
             if move and move.state == 'posted':
-                move._reverse_moves([{
+                reversals |= move._reverse_moves([{
                     'date': day,
                     'ref': _('Reversal of %(ref)s: %(reason)s',
                              ref=move.ref or move.name, reason=reason),
                 }], cancel=True)
         if payment:
             payment.action_reject()
+        self.move_ids = [Command.link(m.id) for m in (moves | reversals)]
+        return reversals
 
     # ------------------------------------------------------------------ actions
     def action_confirm_receipt(self):
@@ -360,11 +377,12 @@ class LabCheque(models.Model):
                 if not cheque.payment_id:
                     cheque._book_receipt()
                 if not cheque.deposit_move_id:
-                    vals['deposit_move_id'] = cheque._book_clearing(day).id
+                    entry = cheque._book_clearing(day)
+                    vals.update(deposit_move_id=entry.id, move_ids=[Command.link(entry.id)])
             elif not cheque.payment_id:
                 payment = cheque._create_payment(day)
                 cheque._reconcile_allocations(payment)
-                vals['payment_id'] = payment.id
+                vals.update(payment_id=payment.id, move_ids=[Command.link(payment.move_id.id)])
             cheque.write(vals)
         return True
 
@@ -436,18 +454,26 @@ class LabCheque(models.Model):
                 raise UserError(_("Only a banked cheque can bounce."))
             if not cheque.bounce_reason:
                 raise UserError(_("Record why cheque %s bounced.", cheque.cheque_number))
-            if cheque.accounting == 'holding':
-                if cheque.payment_id and cheque.payment_id.state != 'rejected':
-                    cheque._unbook(today, _('bounced, %s', cheque.bounce_reason))
-            elif cheque.payment_id and cheque.payment_id.state != 'canceled':
-                # Unwinding the payment restores the invoices to unpaid, which is
-                # what a bounce means to the ledger. Reconciliation has to come off
-                # first — button_draft refuses nothing but leaves the match behind.
-                cheque.payment_id.move_id.line_ids.remove_move_reconcile()
-                cheque.payment_id.action_draft()
-                cheque.payment_id.action_cancel()
+            # Reversed on the day it bounced, whichever way the cheque was booked: the
+            # receipt (and the bank entry of a cheque that had cleared) stays in the books
+            # with its reversal beside it, and the invoices are open again from that day.
+            # A cheque recorded before 2026-11-23 used to have its receipt reset to draft
+            # and cancelled - which rewrote past books, and failed in a closed period.
+            reversals = self.env['account.move']
+            payment = cheque.payment_id
+            if payment and payment.state not in ('rejected', 'canceled') \
+                    and payment.move_id.state == 'posted':
+                reversals = cheque._unbook(today, _('bounced, %s', cheque.bounce_reason))
             cheque.write({'state': 'bounced'})
-            cheque.message_post(body=_("Cheque bounced: %s", cheque.bounce_reason))
+            if reversals:
+                cheque.message_post(body=_(
+                    "Cheque bounced: %(reason)s. Reversed on %(day)s: %(entries)s - the "
+                    "invoices it settled are open again.",
+                    reason=cheque.bounce_reason, day=today,
+                    entries=", ".join(reversals.mapped('name'))))
+            else:
+                cheque.message_post(body=_(
+                    "Cheque bounced: %s. Nothing was in the books for it.", cheque.bounce_reason))
         return True
 
     def action_cancel(self):
@@ -485,6 +511,19 @@ class LabCheque(models.Model):
             'res_model': 'account.payment',
             'res_id': self.payment_id.id,
             'view_mode': 'form',
+        }
+
+    def action_view_moves(self):
+        """Every entry the cheque made, the reversals of a bounce included."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Entries of cheque %s', self.cheque_number),
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'views': [(self.env.ref('account.view_move_tree').id, 'list'), (False, 'form')],
+            'domain': [('id', 'in', self.move_ids.ids)],
+            'context': {'create': False},
         }
 
     def action_view_deposit(self):
