@@ -147,7 +147,10 @@ def parse_body(body):
 
 
 PHONE_EVENTS = ('location_off', 'location_on', 'permission_off', 'recorder_restarted',
-                'gps_saver_on', 'gps_saver_off', 'gps_silent')   # the last three: ADL Pro 1.0.13
+                'gps_saver_on', 'gps_saver_off', 'gps_silent',   # these three: ADL Pro 1.0.13
+                # ADL Pro 1.0.18: the connection, said when the phone is back online
+                'internet_lost', 'internet_back', 'mobile_data_off', 'mobile_data_on',
+                'airplane_on', 'airplane_off')
 
 
 def parse_events(body):
@@ -230,6 +233,9 @@ class FieldGpsController(http.Controller):
         events = parse_events(body) if body else []
         if events and not user.fw_location_exception:
             request.env['lab.location.event'].sudo()._record(user, events)
+        # the phone's state as it posted (ADL Pro 1.0.18): Wi-Fi, mobile data, airplane
+        if isinstance(body, dict) and body.get('status') and not user.fw_location_exception:
+            request.env['lab.location.event'].sudo()._store_status(user, body['status'])
         # An excused phone is never watched, app or browser; the app is answered
         # OK all the same, or it retries the same positions for ever.
         if pings and not user.fw_location_exception:

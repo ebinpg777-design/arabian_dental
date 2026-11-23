@@ -43,6 +43,10 @@ const EVENT_ICONS = {
     location_off: "fa-ban", location_on: "fa-map-marker", permission_off: "fa-lock",
     recorder_restarted: "fa-refresh",
     gps_saver_on: "fa-battery-quarter", gps_saver_off: "fa-battery-full", gps_silent: "fa-crosshairs",
+    // ADL Pro 1.0.18: the connection, said when the phone is back online (2026-11-23)
+    internet_lost: "fa-chain-broken", internet_back: "fa-link",
+    mobile_data_off: "fa-signal", mobile_data_on: "fa-signal",
+    airplane_on: "fa-plane", airplane_off: "fa-plane", late: "fa-clock-o",
 };
 const LEVEL_ICONS = { danger: "fa-exclamation-circle", warning: "fa-exclamation-triangle", info: "fa-info-circle" };
 const MOBILE = "(max-width: 767.98px)";
@@ -818,6 +822,48 @@ export class FieldLive extends LiveMap {
             return "fa-battery-quarter";
         }
         return "fa-battery-empty";
+    }
+
+    /**
+     * The phone's connection as it said at its last report (ADL Pro 1.0.18; client,
+     * 2026-11-23: "show the info if the user's location is off or mobile data is not
+     * ON or wifi is not connected"). `problems` keeps only what needs a word.
+     */
+    netChips(phone, problems = false) {
+        const net = phone && phone.net;
+        if (!net) {
+            return [];
+        }
+        const chips = [];
+        if (net.airplane) {
+            chips.push({ key: "airplane", level: "danger", icon: "fa-plane", label: _t("Airplane mode") });
+        }
+        if (net.location === false) {
+            chips.push({ key: "location", level: "danger", icon: "fa-map-marker", label: _t("Location OFF") });
+        }
+        if (net.online === false || net.network === "none") {
+            chips.push({ key: "online", level: "danger", icon: "fa-chain-broken", label: _t("No internet") });
+        }
+        if (net.mobile_data === false) {
+            chips.push({ key: "data", level: "warning", icon: "fa-signal", label: _t("Mobile data OFF") });
+        } else if (net.mobile_data === true) {
+            chips.push({ key: "data", level: "ok", icon: "fa-signal", label: _t("Mobile data on") });
+        }
+        if (net.wifi) {
+            chips.push({ key: "wifi", level: "ok", icon: "fa-wifi", label: _t("Wi-Fi") });
+        } else {
+            chips.push({ key: "wifi", level: "muted", icon: "fa-wifi",
+                         label: net.wifi_on === false ? _t("Wi-Fi off") : _t("Wi-Fi not connected") });
+        }
+        return problems ? chips.filter((c) => c.level === "danger" || c.level === "warning") : chips;
+    }
+
+    netTitle(phone) {
+        const net = phone && phone.net;
+        if (!net) {
+            return "";
+        }
+        return _t("As the phone said at its last report, %s ago", this.ageLabel(net.age_s));
     }
 
     phoneWord(phone) {

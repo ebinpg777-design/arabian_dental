@@ -254,6 +254,10 @@
                                 <i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.lastSeen(ex)"/>
                             </span>
                             <span class="o_fw_fl_app" t-att-class="this.appClass(ex.phone_app)" t-out="this.phoneWord(ex.phone_app)"/>
+                            <span t-foreach="this.netChips(ex.phone_app, true)" t-as="chip" t-key="chip.key"
+                                  t-attf-class="o_fw_fl_net o_fw_fl_net_{{ chip.level }}" t-att-title="this.netTitle(ex.phone_app)">
+                                <i t-attf-class="fa {{ chip.icon }}" aria-hidden="true"/> <t t-out="chip.label"/>
+                            </span>
                             <a t-if="ex.phone" t-attf-href="tel:{{ ex.phone }}" class="o_fw_fl_tel ms-auto"
                                t-att-title="ex.phone" t-on-click.stop=""><i class="fa fa-phone" aria-hidden="true"/></a>
                         </div>
@@ -310,6 +314,12 @@
                             <t t-elif="!phone.on_duty"> · off duty</t>
                             <t t-if="phone.in_browser and phone.on_duty"> · recording in a browser: only while the screen is on</t>
                             <t t-if="phone.device"> · <span class="o_fw_fl_muted" t-out="phone.device"/></t>
+                        </span>
+                        <span t-if="phone.net" class="o_fw_fl_net_row" t-att-title="this.netTitle(phone)">
+                            <span t-foreach="this.netChips(phone)" t-as="chip" t-key="chip.key"
+                                  t-attf-class="o_fw_fl_net o_fw_fl_net_{{ chip.level }}">
+                                <i t-attf-class="fa {{ chip.icon }}" aria-hidden="true"/> <t t-out="chip.label"/>
+                            </span>
                         </span>
                     </div>
                     <div class="o_fw_fl_phones_note">
@@ -380,7 +390,7 @@
                 <div t-if="this.state.view === 'timeline'" class="o_fw_fl_report">
                     <div class="o_fw_fl_report_head">
                         <h5>The day on one clock</h5>
-                        <span class="o_fw_fl_muted">on duty · <i class="o_fw_fl_key_i o_fw_fl_band_visit"/> at a clinic · <i class="o_fw_fl_key_i o_fw_fl_band_halt"/> stopped · <i class="o_fw_fl_key_i o_fw_fl_band_locoff"/> location off · <i class="o_fw_fl_key_i o_fw_fl_band_speed"/> over the limit</span>
+                        <span class="o_fw_fl_muted">on duty · <i class="o_fw_fl_key_i o_fw_fl_band_visit"/> at a clinic · <i class="o_fw_fl_key_i o_fw_fl_band_halt"/> stopped · <i class="o_fw_fl_key_i o_fw_fl_band_locoff"/> location off · <i class="o_fw_fl_key_i o_fw_fl_band_nonet"/> no internet · <i class="o_fw_fl_key_i o_fw_fl_band_late"/> sent late · <i class="o_fw_fl_key_i o_fw_fl_band_dataoff"/> mobile data off · <i class="o_fw_fl_key_i o_fw_fl_band_airplane"/> airplane mode · <i class="o_fw_fl_key_i o_fw_fl_band_speed"/> over the limit</span>
                     </div>
                     <div t-if="!this.executives.length" class="o_fw_fl_empty"><i class="fa fa-clock-o" aria-hidden="true"/><b>Nobody to show for this day.</b></div>
                     <div t-else="" class="o_fw_fl_tl">
@@ -661,6 +671,10 @@
                     </span>
                     <span t-att-class="{ 'o_fw_fl_silent': ex.phone_app.silent }"><i class="fa fa-signal" aria-hidden="true"/> <t t-out="this.lastSeen(ex)"/></span>
                     <span t-if="ex.last and ex.last.accuracy_m" class="o_fw_fl_muted">±<t t-out="this.round(ex.last.accuracy_m)"/> m</span>
+                    <span t-foreach="this.netChips(ex.phone_app)" t-as="chip" t-key="chip.key"
+                          t-attf-class="o_fw_fl_net o_fw_fl_net_{{ chip.level }}" t-att-title="this.netTitle(ex.phone_app)">
+                        <i t-attf-class="fa {{ chip.icon }}" aria-hidden="true"/> <t t-out="chip.label"/>
+                    </span>
                     <span t-if="ex.sheet" class="o_fw_fl_muted ms-auto" t-out="ex.sheet.label"/>
                 </div>
                 <div t-if="ex.alerts and ex.alerts.length" class="o_fw_fl_story_alerts">

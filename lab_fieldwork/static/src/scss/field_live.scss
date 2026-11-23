@@ -226,7 +226,7 @@ $fl-info: #2563eb;
         .o_fw_fl_c_speed .fa { color: $fl-danger; }
     }
     .o_fw_fl_card_phone {
-        display: flex; align-items: center; gap: .6rem; margin-top: .35rem; padding-top: .35rem;
+        display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; margin-top: .35rem; padding-top: .35rem;
         border-top: 1px dashed $fl-line; font-size: .72rem; color: $fl-muted;
     }
     .o_fw_fl_bat_ok { color: $fl-moving; }
@@ -240,6 +240,15 @@ $fl-info: #2563eb;
     .o_fw_fl_app_on { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; font-weight: 600; }
     // has the app, records by browser: the chip says so in the colour of a warning
     .o_fw_fl_app_warn { background: #fffbeb; border-color: #fcd34d; color: #92400e; font-weight: 700; }
+    // the phone's connection as it said it (ADL Pro 1.0.18)
+    .o_fw_fl_net {
+        padding: .05rem .4rem; border-radius: 999px; border: 1px solid $fl-line; background: $fl-bg;
+        font-size: .68rem; white-space: nowrap; color: $fl-muted;
+    }
+    .o_fw_fl_net_danger { background: #fef2f2; border-color: #fca5a5; color: #991b1b; font-weight: 700; }
+    .o_fw_fl_net_warning { background: #fffbeb; border-color: #fcd34d; color: #92400e; font-weight: 700; }
+    .o_fw_fl_net_ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .o_fw_fl_net_row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .2rem; }
     .o_fw_fl_tel { color: $fl-ink; text-decoration: none; padding: .1rem .3rem; &:hover { color: $fl-brand; } }
     .o_fw_fl_card_alerts { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
     .o_fw_fl_pill {
@@ -382,6 +391,11 @@ $fl-info: #2563eb;
     .o_fw_fl_band_halt { top: 4px; bottom: 4px; background: $fl-halt; }
     .o_fw_fl_band_gap { top: 6px; bottom: 6px; background: repeating-linear-gradient(45deg, #9ca3af 0 3px, #e5e7eb 3px 6px); }
     .o_fw_fl_band_locoff { top: 6px; bottom: 6px; background: repeating-linear-gradient(45deg, $fl-danger 0 3px, #fecaca 3px 6px); }
+    // the connection (ADL Pro 1.0.18, and positions that reached the office late)
+    .o_fw_fl_band_nonet { top: 6px; bottom: 6px; background: #475569; }
+    .o_fw_fl_band_late { top: 8px; bottom: 8px; background: #94a3b8; }
+    .o_fw_fl_band_dataoff { top: 6px; bottom: 6px; background: $fl-warn; }
+    .o_fw_fl_band_airplane { top: 6px; bottom: 6px; background: #7f1d1d; }
     .o_fw_fl_band_speed { top: 0; bottom: 0; background: $fl-danger; padding: 0; }
     .o_fw_fl_band_open { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .6); }
     .o_fw_fl_band_link { cursor: pointer; &:hover { filter: brightness(1.08); } }

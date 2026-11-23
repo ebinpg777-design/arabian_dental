@@ -1470,6 +1470,13 @@ class ResUsersLive(models.Model):
     # asked which it was (2026-10-24).
     fw_last_heard_at = fields.Datetime('Phone Last Heard', readonly=True,
                                        groups='lab_fieldwork.group_fieldwork_manager')
+    # The phone's own state with its last post (ADL Pro 1.0.18): on Wi-Fi or mobile
+    # data, mobile data switched on or off, airplane mode, the Location switch.
+    # (client, 2026-11-23)
+    fw_phone_status = fields.Json('Phone Status', readonly=True,
+                                  groups='lab_fieldwork.group_fieldwork_manager')
+    fw_phone_status_at = fields.Datetime('Phone Status At', readonly=True,
+                                         groups='lab_fieldwork.group_fieldwork_manager')
 
     # The free Traccar Client app instead of the browser (client, 2026-10-19). It
     # tracks with the screen off; the browser cannot. The identifier is the phone's

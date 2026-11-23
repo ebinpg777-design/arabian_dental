@@ -177,6 +177,36 @@ class TestGpsApp(HttpCase):
             {'type': kind, 'timestamp': stamp} for kind in ('gps_saver_on', 'gps_saver_off', 'gps_silent')]})],
             ['gps_saver_on', 'gps_saver_off', 'gps_silent'])
 
+    def test_the_phone_says_its_connection_when_it_is_back_online(self):
+        """ADL Pro 1.0.18 (client, 2026-11-23: "show the info if the user's location is
+        off or mobile data is not ON or wifi is not connected"): the connection's ups and
+        downs wait on the phone and come with their own times, and every post carries
+        the phone's state."""
+        device = self._switch_on()
+        self._on_duty()
+        lost = fields.Datetime.now() - timedelta(minutes=40)
+        back = fields.Datetime.now() - timedelta(minutes=2)
+        stamp = lambda t: t.strftime('%Y-%m-%dT%H:%M:%SZ')     # noqa: E731
+        body = {'device_id': device, 'locations': [], 'events': [
+            {'type': 'mobile_data_off', 'timestamp': stamp(lost)},
+            {'type': 'internet_lost', 'timestamp': stamp(lost)},
+            {'type': 'internet_back', 'timestamp': stamp(back)}],
+            'status': {'network': 'wifi', 'wifi': True, 'wifi_on': True, 'mobile_data': False,
+                       'airplane': False, 'location': True, 'online': True,
+                       'evil': '<script>', 'network_extra': {'x': 1}}}
+        r = self.url_open('/lab_fieldwork/gps', json=body)
+        self.assertEqual(r.status_code, 200)
+        events = self.env['lab.location.event'].sudo().search([('user_id', '=', self.exec_user.id)], order='ts, id')
+        self.assertEqual(sorted(events.mapped('kind')), ['internet_back', 'internet_lost', 'mobile_data_off'])
+        status = self.exec_user.sudo().fw_phone_status
+        self.assertEqual(status, {'network': 'wifi', 'wifi': True, 'wifi_on': True, 'mobile_data': False,
+                                  'airplane': False, 'location': True, 'online': True},
+                         "only the known keys, only plain values")
+        self.assertTrue(self.exec_user.sudo().fw_phone_status_at)
+        # a phone before 1.0.18 sends no state, and what was said stays
+        self.url_open('/lab_fieldwork/gps', json={'device_id': device, 'locations': []})
+        self.assertEqual(self.exec_user.sudo().fw_phone_status['mobile_data'], False)
+
     def test_only_an_administrator_switches_the_app_and_the_id_is_secret(self):
         with self.assertRaises(AccessError):
             self.exec_user.with_user(self.exec_user).with_context(fw_value=True).action_fw_tracking_app()

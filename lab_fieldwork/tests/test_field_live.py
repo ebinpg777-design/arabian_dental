@@ -68,6 +68,71 @@ class TestFieldLive(TransactionCase):
         return [a for a in board['alerts'] if a['key'] == key
                 and (user is None or a['user_id'] == user.id)]
 
+    def _status(self, **status):
+        self.exec_user.sudo().write({'fw_phone_status': status,
+                                     'fw_phone_status_at': fields.Datetime.now() - timedelta(minutes=1)})
+
+    def test_the_phones_connection_is_on_the_board(self):
+        """Client, 2026-11-23: "show the info if the user's location is off or mobile
+        data is not ON or wifi is not connected" - as the phone said it (ADL Pro 1.0.18)."""
+        self._on_duty(hours_ago=2)
+        self._ping(1)
+        self._status(network='wifi', wifi=True, wifi_on=True, mobile_data=False,
+                     airplane=False, location=True, online=True)
+        board = self._board()
+        net = self._me(board)['phone_app']['net']
+        self.assertEqual((net['mobile_data'], net['wifi']), (False, True))
+        self.assertIn('age_s', net)
+        alert = self._alerts(board, 'mobile_data', self.exec_user)
+        self.assertTrue(alert, "mobile data off: positions reach the office only over Wi-Fi")
+        self.assertIn('Wi-Fi', alert[0]['detail'])
+        self._status(network='cellular', wifi=False, wifi_on=False, mobile_data=True,
+                     airplane=True, location=False, online=True)
+        board = self._board()
+        self.assertTrue(self._alerts(board, 'airplane', self.exec_user))
+        self.assertTrue(self._alerts(board, 'location_switch', self.exec_user))
+        self.assertFalse(self._alerts(board, 'mobile_data', self.exec_user))
+
+    def test_the_connection_said_late_is_drawn_on_the_day(self):
+        self._on_duty(hours_ago=3)
+        self._ping(5)
+        Event = self.env['lab.location.event']
+        now = fields.Datetime.now()
+        Event._record(self.exec_user, [
+            {'kind': 'internet_lost', 'ts': fields.Datetime.to_string(now - timedelta(minutes=90))},
+            {'kind': 'internet_back', 'ts': fields.Datetime.to_string(now - timedelta(minutes=60))},
+            {'kind': 'airplane_on', 'ts': fields.Datetime.to_string(now - timedelta(minutes=30))}])
+        me = self._me(self._board())
+        kinds = [b['kind'] for b in me['bands']]
+        self.assertIn('nonet', kinds)
+        airplane = next(b for b in me['bands'] if b['kind'] == 'airplane')
+        self.assertTrue(airplane['open'], "still on: open to now")
+        self.assertIn('internet_lost', [e['kind'] for e in me['story']])
+        self.assertNotIn('late', kinds, "the phone said it: nothing inferred")
+
+    def test_positions_that_reached_the_office_late_show_a_day_without_internet(self):
+        """A phone before ADL Pro 1.0.18 does not say it lost the internet; its
+        positions arriving long after they were taken say it for it."""
+        self._on_duty(hours_ago=3)
+        for minutes in (70, 65, 60):
+            self._ping(minutes, lat=11.1 + minutes / 10000)
+        Ping = self.env['lab.location.ping'].sudo()
+        late = Ping.search([('user_id', '=', self.exec_user.id)])
+        self._ping(2)
+        self.env.flush_all()
+        # the database stamps create_date with its own clock, not the frozen one: every
+        # position arrives on time, then the three an hour old arrive 40 minutes ago
+        self.env.cr.execute("UPDATE lab_location_ping SET create_date = ts WHERE user_id = %s",
+                            [self.exec_user.id])
+        self.env.cr.execute("UPDATE lab_location_ping SET create_date = %s WHERE id IN %s",
+                            [fields.Datetime.now() - timedelta(minutes=40), tuple(late.ids)])
+        self.env.invalidate_all()
+        me = self._me(self._board())
+        band = [b for b in me['bands'] if b['kind'] == 'late']
+        self.assertEqual(len(band), 1, "three late positions close together: one stretch")
+        story = next(e for e in me['story'] if e['kind'] == 'late')
+        self.assertIn('reached the office only at', story['title'])
+
     def test_location_turned_off_in_the_phone_is_told_on_the_board(self):
         """Client, 2026-10-24: "if any time location off in the phone settings then
         that information needed"."""

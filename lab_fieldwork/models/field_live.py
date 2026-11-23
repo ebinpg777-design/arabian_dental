@@ -43,6 +43,7 @@ from odoo.exceptions import AccessError
 
 from .lab_visit import OUTCOMES
 from .local_day import local_midnight_utc, tz_name
+from .location_event import SPANS
 from .location_live import epoch
 
 _logger = logging.getLogger(__name__)
@@ -53,6 +54,8 @@ LATE_START_HOUR = 10        # visits planned and no day started by then
 LONG_VISIT_MINUTES = 90     # checked in, not out
 KM_VARIANCE_PCT = 30        # claim vs trail
 OVERSPEED_TIMES = 3
+LATE_MINUTES = 10          # a position reaching the office this late waited on the phone
+LATE_JOIN_MINUTES = 20     # late positions this close together are one stretch without internet
 STORY_MAX = 80
 OVERVIEW_POINTS = 300       # trail points per person in the overview; the focus gets the full trail
 PULSE_HOURS = range(7, 21)
@@ -169,6 +172,10 @@ class LabFieldLive(models.AbstractModel):
         now = fields.Datetime.now()
         heard = user.sudo().fw_last_heard_at
         source = last.get('source') or ''
+        # The phone's own word on its connection with its last post (ADL Pro 1.0.18):
+        # Wi-Fi, mobile data, airplane mode, the Location switch. (client, 2026-11-23)
+        status = user.sudo().fw_phone_status or {}
+        status_at = user.sudo().fw_phone_status_at
         return {
             'on_app': bool(user.fw_native_app),
             'app_version': user.fw_native_app_version or '',
@@ -190,6 +197,8 @@ class LabFieldLive(models.AbstractModel):
                        else 'network') if silent else '',
             'heard_age_s': int((now - heard).total_seconds()) if heard else None,
             'device': user.sudo().fw_native_device or '',
+            'net': dict(status, age_s=int((now - status_at).total_seconds()))
+            if status and status_at else None,
         }
 
     @api.model
@@ -311,22 +320,44 @@ class LabFieldLive(models.AbstractModel):
                           'label': _('%s km/h') % int(round(point[3]))})
         # What the phone said about itself (ADL Pro 1.0.9): location turned off and on
         # again in its settings, the permission taken, the recorder started again - a
-        # stretch with no route explained by the phone. (client, 2026-10-24)
-        off_since = None
-        for event in self.env['lab.location.event'].sudo().search(
-                [('user_id', '=', user.id), ('date', '=', day)], order='ts'):
-            when = epoch(event.ts)
-            events.append({'kind': event.kind, 'epoch': when,
-                           'title': dict(event._fields['kind'].selection)[event.kind]})
-            if event.kind == 'location_off':
-                off_since = off_since or when
-            elif event.kind == 'location_on' and off_since:
-                bands.append({'kind': 'locoff', 'from_epoch': off_since, 'to_epoch': when,
-                              'label': _('Location off')})
-                off_since = None
-        if off_since:
-            bands.append({'kind': 'locoff', 'from_epoch': off_since, 'to_epoch': max(off_since, open_until),
-                          'label': _('Location off'), 'open': True})
+        # stretch with no route explained by the phone. (client, 2026-10-24) Since
+        # 1.0.18 its connection too: no internet, mobile data off, airplane mode, said
+        # when it is back online. (client, 2026-11-23)
+        day_events = self.env['lab.location.event'].sudo().search(
+            [('user_id', '=', user.id), ('date', '=', day)], order='ts')
+        titles = dict(self.env['lab.location.event']._fields['kind'].selection)
+        for event in day_events:
+            events.append({'kind': event.kind, 'epoch': epoch(event.ts), 'title': titles[event.kind]})
+        span_labels = {'locoff': _('Location off'), 'nonet': _('No internet'),
+                       'dataoff': _('Mobile data off'), 'airplane': _('Airplane mode')}
+        for kind, opened_by, closed_by, _label in SPANS:
+            since = None
+            for event in day_events:
+                when = epoch(event.ts)
+                if event.kind == opened_by:
+                    since = since or when
+                elif event.kind == closed_by and since:
+                    bands.append({'kind': kind, 'from_epoch': since, 'to_epoch': when,
+                                  'label': span_labels[kind]})
+                    since = None
+            if since:
+                bands.append({'kind': kind, 'from_epoch': since, 'to_epoch': max(since, open_until),
+                              'label': span_labels[kind], 'open': True})
+        # A phone that does not say it (before ADL Pro 1.0.18) shows it all the same:
+        # positions that reached the office long after they were taken waited on the
+        # phone for a connection.
+        if not any(e.kind in ('internet_lost', 'internet_back') for e in day_events):
+            zone = self.with_context(tz=tz_name(self.env, user))
+            hhmm = lambda dt: fields.Datetime.context_timestamp(zone, dt).strftime('%H:%M')  # noqa: E731
+            for span in self._late_spans(user, day):
+                bands.append({'kind': 'late', 'from_epoch': epoch(span['from']),
+                              'to_epoch': max(epoch(span['to']), epoch(span['from']) + 60),
+                              'label': _('Sent late')})
+                events.append({'kind': 'late', 'epoch': epoch(span['from']),
+                               'title': _('Positions from %(start)s to %(end)s reached the office '
+                                          'only at %(sent)s', start=hhmm(span['from']),
+                                          end=hhmm(span['to']), sent=hhmm(span['sent'])),
+                               'detail': _('no internet on the phone, or the phone held ADL Pro back')})
         gap_minutes = 0
         for cash in records['cash'].get(user.id, []):
             events.append({'kind': 'cash', 'epoch': epoch(cash.create_date),
@@ -346,6 +377,26 @@ class LabFieldLive(models.AbstractModel):
         }
         split['road'] = max(0, duty_minutes - split['clinic'] - halt_minutes - gap_minutes)
         return events[:STORY_MAX], bands, split
+
+    @api.model
+    def _late_spans(self, user, day):
+        """[{'from', 'to', 'sent'}]: stretches of the day whose positions reached the
+        server LATE_MINUTES or more after they were taken - the phone held them for
+        want of a connection. Fixes close together make one stretch."""
+        self.env['lab.location.ping'].flush_model(['user_id', 'date', 'ts'])
+        self.env.cr.execute("""
+            SELECT ts, create_date FROM lab_location_ping
+             WHERE user_id = %s AND date = %s
+               AND create_date - ts >= %s * interval '1 minute'
+             ORDER BY ts""", [user.id, day, LATE_MINUTES])
+        spans = []
+        for taken, sent in self.env.cr.fetchall():
+            if spans and (taken - spans[-1]['to']).total_seconds() <= LATE_JOIN_MINUTES * 60:
+                spans[-1]['to'] = taken
+                spans[-1]['sent'] = min(spans[-1]['sent'], sent)
+            else:
+                spans.append({'from': taken, 'to': taken, 'sent': sent})
+        return spans
 
     @api.model
     def _alerts_of(self, user, ex, row, trip, is_today, now, offline_s, limit):
@@ -379,6 +430,19 @@ class LabFieldLive(models.AbstractModel):
                   "them to turn battery saver off")
                 % fields.Datetime.context_timestamp(self.with_context(tz=tz_name(self.env, user)),
                                                     saver_since).strftime('%H:%M'))
+        # The connection, as the phone last said it (ADL Pro 1.0.18; client, 2026-11-23)
+        net = phone.get('net') or {}
+        airplane_since = self.env['lab.location.event']._open_since(day_events, 'airplane_on', 'airplane_off')
+        if ex.get('on_duty') and (net.get('airplane') or airplane_since):
+            add('airplane', 'danger', _('Airplane mode is ON'),
+                _('nothing reaches the office until it is off'))
+        elif ex.get('on_duty') and net.get('mobile_data') is False:
+            add('mobile_data', 'warning', _('Mobile data is OFF'),
+                (_('on Wi-Fi now - ') if net.get('wifi') else '')
+                + _('positions reach the office only over Wi-Fi; ask them to turn mobile data on'))
+        if ex.get('on_duty') and net.get('location') is False and not off_since:
+            add('location_switch', 'danger', _('Location is OFF'),
+                _("the phone's Location switch was off at its last report"))
         in_browser = bool(ex.get('on_duty') and phone.get('in_browser'))
         if in_browser:
             # A browser records only while its page is in front with the screen on: the
@@ -403,6 +467,10 @@ class LabFieldLive(models.AbstractModel):
                 elif phone.get('on_app'):
                     detail += _(' · not heard from: no network, or ADL Pro was stopped by '
                                 'battery saving')
+                    if net.get('mobile_data') is False:
+                        detail += _(' · mobile data was OFF at its last report')
+                    elif net.get('network') == 'wifi':
+                        detail += _(' · it last reported over Wi-Fi')
                 add('silent', 'danger', _('No signal'), detail)
         open_halt = next((h for h in ex.get('halts') or [] if not h['ended_epoch']), None)
         if open_halt:

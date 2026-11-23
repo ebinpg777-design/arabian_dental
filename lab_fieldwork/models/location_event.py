@@ -21,6 +21,24 @@ KINDS = [
     ('gps_saver_on', 'Battery saver switched the GPS off'),
     ('gps_saver_off', 'Battery saver off: GPS back'),
     ('gps_silent', 'On the road with no GPS fix for 5 minutes'),
+    # ADL Pro 1.0.18 (client, 2026-11-23: "show the info if the user's location is off
+    # or mobile data is not ON or wifi is not connected"). A phone without internet
+    # cannot say so at the time: these wait on the phone and arrive with their own
+    # times when it is back online.
+    ('internet_lost', 'No internet on the phone'),
+    ('internet_back', 'Internet back on the phone'),
+    ('mobile_data_off', 'Mobile data turned off'),
+    ('mobile_data_on', 'Mobile data turned on'),
+    ('airplane_on', 'Airplane mode turned on'),
+    ('airplane_off', 'Airplane mode turned off'),
+]
+
+# The spans the phone's own events open and close: (band kind, opened by, closed by, label).
+SPANS = [
+    ('locoff', 'location_off', 'location_on', 'Location off'),
+    ('nonet', 'internet_lost', 'internet_back', 'No internet'),
+    ('dataoff', 'mobile_data_off', 'mobile_data_on', 'Mobile data off'),
+    ('airplane', 'airplane_on', 'airplane_off', 'Airplane mode'),
 ]
 
 
@@ -79,6 +97,35 @@ class LabLocationEvent(models.Model):
             elif event.kind == 'location_on':
                 off = None
         return off
+
+    @api.model
+    def _open_since(self, events, opened_by, closed_by):
+        """The time a span the phone opened (`opened_by`) is still open since, or None,
+        from a day's events in time order."""
+        since = None
+        for event in events:
+            if event.kind == opened_by:
+                since = since or event.ts
+            elif event.kind == closed_by:
+                since = None
+        return since
+
+    @api.model
+    def _store_status(self, user, status):
+        """Keep the last state of the phone it posted (ADL Pro 1.0.18): network, Wi-Fi,
+        mobile data, airplane mode, the Location switch. Only known keys, only plain
+        values - this comes through a public door."""
+        if not isinstance(status, dict):
+            return
+        clean = {}
+        for key in ('wifi', 'wifi_on', 'mobile_data', 'airplane', 'location', 'online'):
+            if isinstance(status.get(key), bool):
+                clean[key] = status[key]
+        network = status.get('network')
+        if network in ('wifi', 'cellular', 'other', 'none'):
+            clean['network'] = network
+        if clean:
+            user.sudo().write({'fw_phone_status': clean, 'fw_phone_status_at': fields.Datetime.now()})
 
     @api.model
     def _saver_on_since(self, events):
