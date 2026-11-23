@@ -28,6 +28,25 @@ they are separate codebases from here on.
 project if Drive backups are wanted.
 
 
+### Ebshel store modules
+
+The project runs these modules of the Ebshel store unchanged, so they are not in this
+repository: `ebshel_account_assets`, `ebshel_account_budget`, `ebshel_analytic_batch_fix`,
+`ebshel_auto_database_backup`, `ebshel_einvoice_report`, `ebshel_gst_report`,
+`ebshel_hr_employee_privacy`, `ebshel_invoice_analysis_fix`, `ebshel_invoice_round_off`,
+`ebshel_payment_allocation`, `ebshel_petty_cash`, `ebshel_purchase_advance`,
+`ebshel_purchase_budget`, `ebshel_purchase_request`, `ebshel_salesperson_summary` and
+`ebshel_whatsapp_password_reset`. They come from branch `arabian_dental` of the
+`odoo-apps` repository, which holds only this project's modules and is kept up to date
+with the store's `20.0` branch automatically. Put a checkout of that branch on the addons
+path **after** this repository:
+
+    addons_path = <odoo>/odoo/addons,<odoo>/addons,<this repository>,<odoo-apps, branch arabian_dental>
+
+The `ebshel_*` modules still here are the project's own copies, which differ from the
+store's; each moves to the store branch once the project has been moved to the store's
+version of it.
+
 ### The tile ribbon
 
 `ebshel_dynamic_filter` (Dynamic Filter Tiles) replaced the project's own fork of it on
