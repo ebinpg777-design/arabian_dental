@@ -10,7 +10,8 @@
                             <div class="col-6">
                                 <strong>Executive:</strong> <span t-field="o.executive_id"/><br/>
                                 <strong>Period:</strong> <span t-field="o.period"
-                                    t-options="{'format': 'MMMM y'}"/>
+                                    t-options="{'format': 'MMMM y'}"/><br/>
+                                <span t-if="o.basis"><strong>Counted on:</strong> <span t-field="o.basis"/></span>
                             </div>
                             <div class="col-6 text-end">
                                 <strong>Status:</strong> <span t-field="o.state"/><br/>
@@ -19,19 +20,122 @@
                                 </span>
                             </div>
                         </div>
-                        <!-- what was billed, one row per invoice line; no incentive per
-                             row - the slabs pay on the month's total (client, 2026-10-08) -->
+                        <t t-set="collected" t-value="o.basis == 'collected'"/>
+                        <!-- The Collected basis: the month's money first, with every receipt
+                             and cheque and why it counts or does not (client, 2026-11-23). -->
+                        <t t-if="collected">
+                            <table class="table table-sm table-bordered mb-3" style="page-break-inside: avoid;">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Cash &amp; bank received</strong><br/><small class="text-muted">receipts dated in the month</small></td>
+                                        <td class="text-end"><span t-field="o.collected_cash_bank"/></td>
+                                        <td><strong>Cheques cleared</strong> (<t t-out="o.cheques_cleared_count"/>)<br/><small class="text-muted">counted on the day they cleared</small></td>
+                                        <td class="text-end"><span t-field="o.collected_cheques"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Of which received in an earlier month</strong></td>
+                                        <td class="text-end"><span t-field="o.collected_earlier"/></td>
+                                        <td><strong>Taken back</strong><br/><small class="text-muted">cheques counted earlier that bounced this month</small></td>
+                                        <td class="text-end"><span t-field="o.taken_back_amount"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Cheques not cleared</strong> (<t t-out="o.cheques_waiting_count"/>)<br/><small class="text-muted">not counted - each counts in the month it clears</small></td>
+                                        <td class="text-end"><span t-field="o.cheques_waiting_amount"/></td>
+                                        <td><strong>Cheques bounced</strong> (<t t-out="o.cheques_bounced_count"/>)</td>
+                                        <td class="text-end"><span t-field="o.cheques_bounced_amount"/></td>
+                                    </tr>
+                                    <tr class="fw-bold">
+                                        <td colspan="3">Counted this month (the executive's part, before tax)</td>
+                                        <td class="text-end"><span t-field="o.total_sales"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <t t-set="counted_rows" t-value="o.collection_ids.filtered(lambda r: r.status in ('counted', 'taken_back'))"/>
+                            <t t-set="waiting_rows" t-value="o.collection_ids.filtered(lambda r: r.status in ('pending', 'later'))"/>
+                            <t t-set="bounced_rows" t-value="o.collection_ids.filtered(lambda r: r.status == 'bounced')"/>
+                            <h5>Receipts counted this month</h5>
+                            <p t-if="not counted_rows" class="text-muted">None.</p>
+                            <table t-else="" class="table table-sm" style="font-size: 85%;">
+                                <thead>
+                                    <tr>
+                                        <th>Counted on</th><th>Receipt</th><th>Paid by</th>
+                                        <th>Cheque</th><th>Received</th><th>Deposited</th><th>Cleared</th>
+                                        <th>Invoice</th><th>Clinic</th>
+                                        <th class="text-end">Received</th>
+                                        <th class="text-end">Counted</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="counted_rows" t-as="row">
+                                        <tr>
+                                            <td><span t-field="row.counted_date"/></td>
+                                            <td><t t-out="row.receipt_ref"/></td>
+                                            <td><span t-field="row.mode"/></td>
+                                            <td><t t-out="row.cheque_number or ''"/></td>
+                                            <td><span t-field="row.receipt_date"/></td>
+                                            <td><span t-field="row.deposit_date"/></td>
+                                            <td><span t-field="row.clear_date"/></td>
+                                            <td><t t-out="row.invoice_ref"/></td>
+                                            <td><t t-out="row.partner_id.name"/></td>
+                                            <td class="text-end"><span t-field="row.amount"/></td>
+                                            <td class="text-end"><span t-field="row.counted_amount"/></td>
+                                        </tr>
+                                        <tr t-if="row.note"><td/><td colspan="10" class="text-muted small" style="border-top: 0;"><t t-out="row.note"/></td></tr>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="fw-bold">
+                                        <td colspan="9">Total</td>
+                                        <td class="text-end"><t t-out="o.currency_id.format(sum(counted_rows.mapped('amount')))"/></td>
+                                        <td class="text-end"><t t-out="o.currency_id.format(sum(counted_rows.mapped('counted_amount')))"/></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <h5>Cheques not counted this month</h5>
+                            <p t-if="not waiting_rows and not bounced_rows" class="text-muted">None - every cheque received by the month's end had cleared.</p>
+                            <table t-else="" class="table table-sm" style="font-size: 85%;">
+                                <thead>
+                                    <tr>
+                                        <th>Cheque</th><th>Cheque date</th><th>Received</th><th>Deposited</th>
+                                        <th>Status</th><th>Invoice</th><th>Clinic</th>
+                                        <th class="text-end">Amount</th><th>Why not counted</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="waiting_rows | bounced_rows" t-as="row">
+                                        <td><t t-out="row.cheque_number"/></td>
+                                        <td><span t-field="row.cheque_date"/></td>
+                                        <td><span t-field="row.receipt_date"/></td>
+                                        <td><span t-field="row.deposit_date"/></td>
+                                        <td><span t-field="row.status"/></td>
+                                        <td><t t-out="row.invoice_ref"/></td>
+                                        <td><t t-out="row.partner_id.name"/></td>
+                                        <td class="text-end"><span t-field="row.amount"/></td>
+                                        <td class="small"><t t-out="row.note"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <h5 class="mt-3">What was counted, line by line</h5>
+                        </t>
+                        <!-- what was billed (collected), one row per invoice line; no
+                             incentive per row - the slabs pay on the month's total
+                             (client, 2026-10-08) -->
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>Date</th><th>Invoice</th><th>Order</th><th>Product</th>
-                                    <th class="text-end">Billed</th>
+                                    <th t-if="collected">Counted on</th><th t-else="">Date</th>
+                                    <th t-if="collected">Receipt</th>
+                                    <th>Invoice</th><th>Order</th><th>Product</th>
+                                    <th class="text-end" t-if="collected">Collected</th>
+                                    <th class="text-end" t-else="">Billed</th>
                                     <th class="text-end">Incentive Base</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr t-foreach="o.line_ids" t-as="line">
-                                    <td><span t-field="line.invoice_date"/></td>
+                                    <td t-if="collected"><span t-field="line.counted_date"/></td>
+                                    <td t-else=""><span t-field="line.invoice_date"/></td>
+                                    <td t-if="collected"><t t-out="line.receipt_ref"/></td>
                                     <td><span t-out="line.invoice_id.name"/></td>
                                     <td><span t-field="line.sale_order_id.name"/></td>
                                     <td><span t-field="line.product_id.name"/>
@@ -45,7 +149,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="fw-bold">
-                                    <td colspan="4">Total</td>
+                                    <td t-att-colspan="5 if collected else 4">Total</td>
                                     <td class="text-end"><span t-field="o.total_sales"/></td>
                                     <td class="text-end"><span t-field="o.total_base"/></td>
                                 </tr>

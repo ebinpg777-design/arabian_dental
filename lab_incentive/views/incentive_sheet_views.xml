@@ -30,6 +30,11 @@
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <button name="action_view_receipts" type="object"
+                                class="oe_stat_button" icon="fa-money"
+                                invisible="basis != 'collected'">
+                            <field name="total_collected" widget="statinfo" string="Collected"/>
+                        </button>
                         <button name="action_view_new_clinics" type="object"
                                 class="oe_stat_button" icon="fa-user-plus"
                                 invisible="state == 'draft'">
@@ -44,9 +49,12 @@
                             <field name="period"
                                    readonly="state != 'draft'"/>
                             <field name="rule_id" readonly="1"/>
+                            <field name="basis" invisible="not basis"/>
                         </group>
                         <group>
-                            <field name="total_sales" readonly="1"/>
+                            <field name="total_sales" readonly="1" invisible="basis == 'collected'"/>
+                            <field name="total_collected" readonly="1" invisible="basis != 'collected'"
+                                   string="Collected (before tax)"/>
                             <field name="total_base" readonly="1"/>
                             <field name="slab_amount" readonly="1"/>
                             <field name="new_clinic_amount" readonly="1"
@@ -54,6 +62,13 @@
                             <field name="incentive_amount" readonly="1"
                                    class="fw-bold"/>
                         </group>
+                    </group>
+
+                    <!-- The month's money, and every cheque's way through it: what counted,
+                         what waits for the bank, what bounced (client, 2026-11-23). -->
+                    <group string="Money in this month" invisible="basis != 'collected'">
+                        <field name="collection_widget_data" widget="lab_collection_widget"
+                               nolabel="1" colspan="2"/>
                     </group>
 
                     <!-- The calculation widget: WHY the amount above is what it is. -->
@@ -70,22 +85,68 @@
                         <field name="paid_date" readonly="1"/>
                     </group>
 
-                    <!-- What was billed: one row per invoice line. No incentive per
-                         row - the slabs pay on the month's total, and a share per order
-                         read as if each order earned its own (client, 2026-10-08). -->
-                    <field name="line_ids" readonly="1">
-                        <list decoration-danger="sale_amount &lt; 0">
-                            <field name="invoice_date"/>
-                            <field name="invoice_id"/>
-                            <field name="sale_order_id"/>
-                            <field name="product_id"/>
-                            <field name="quantity" optional="show"/>
-                            <field name="sale_amount" sum="Total"/>
-                            <field name="incentive_basis" optional="show"/>
-                            <field name="incentive_base" sum="Total"/>
-                            <field name="used_incentive_price" optional="hide"/>
-                        </list>
-                    </field>
+                    <notebook>
+                        <!-- What was counted: one row per invoice line (per receipt on the
+                             Collected basis). No incentive per row - the slabs pay on the
+                             month's total, and a share per order read as if each order
+                             earned its own (client, 2026-10-08). -->
+                        <page string="What was counted" name="lines">
+                            <field name="line_ids" readonly="1">
+                                <list decoration-danger="sale_amount &lt; 0">
+                                    <field name="invoice_date" column_invisible="parent.basis == 'collected'"/>
+                                    <field name="counted_date" column_invisible="parent.basis != 'collected'"/>
+                                    <field name="receipt_ref" column_invisible="parent.basis != 'collected'"/>
+                                    <field name="receipt_mode" column_invisible="parent.basis != 'collected'"
+                                           optional="show"/>
+                                    <field name="invoice_id"/>
+                                    <field name="sale_order_id" optional="show"/>
+                                    <field name="product_id"/>
+                                    <field name="quantity" optional="show"/>
+                                    <field name="sale_amount" sum="Total"
+                                           column_invisible="parent.basis == 'collected'"/>
+                                    <field name="collected_amount" sum="Total"
+                                           column_invisible="parent.basis != 'collected'"/>
+                                    <field name="incentive_basis" optional="show"/>
+                                    <field name="incentive_base" sum="Total"/>
+                                    <field name="used_incentive_price" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <!-- Every receipt that touched the executive's invoices and matters
+                             to this month, with the reason it counts or does not. -->
+                        <page string="Receipts &amp; cheques" name="receipts"
+                              invisible="basis != 'collected'">
+                            <field name="collection_ids" readonly="1">
+                                <list decoration-success="status == 'counted'"
+                                      decoration-warning="status in ('pending', 'later')"
+                                      decoration-danger="status in ('bounced', 'taken_back')">
+                                    <field name="status" widget="badge"
+                                           decoration-success="status == 'counted'"
+                                           decoration-warning="status in ('pending', 'later')"
+                                           decoration-danger="status in ('bounced', 'taken_back')"/>
+                                    <field name="counted_date"/>
+                                    <field name="mode"/>
+                                    <field name="receipt_ref"/>
+                                    <field name="receipt_date"/>
+                                    <field name="cheque_number"/>
+                                    <field name="cheque_date" optional="hide"/>
+                                    <field name="deposit_date" optional="show"/>
+                                    <field name="clear_date"/>
+                                    <field name="bounce_date" optional="show"/>
+                                    <field name="invoice_ref"/>
+                                    <field name="partner_id" optional="show"/>
+                                    <field name="amount" sum="Total" optional="show"/>
+                                    <field name="executive_amount" optional="show"/>
+                                    <field name="counted_amount" sum="Total"/>
+                                    <field name="note"/>
+                                    <field name="cheque_id" column_invisible="1"/>
+                                    <button name="action_open_cheque" type="object" icon="fa-external-link"
+                                            title="Open the cheque" invisible="not cheque_id"
+                                            groups="lab_finance_ops.group_lab_cheque_user"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
                 <chatter/>
             </form>
@@ -100,7 +161,10 @@
                 <field name="name"/>
                 <field name="executive_id"/>
                 <field name="period"/>
+                <field name="basis" optional="hide"/>
                 <field name="total_sales" sum="Total"/>
+                <field name="collected_cheques" sum="Total" optional="hide"/>
+                <field name="cheques_waiting_amount" sum="Total" optional="hide"/>
                 <field name="incentive_amount" sum="Total"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'paid'"
@@ -126,6 +190,73 @@
                             context="{'group_by':'executive_id'}"/>
                     <filter name="by_period" string="Month"
                             context="{'group_by':'period:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- The receipts of a sheet, on their own: group by status, by cheque, by clinic. -->
+    <record id="view_incentive_collection_list" model="ir.ui.view">
+        <field name="name">lab.incentive.collection.list</field>
+        <field name="model">lab.incentive.collection</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false"
+                  decoration-success="status == 'counted'"
+                  decoration-warning="status in ('pending', 'later')"
+                  decoration-danger="status in ('bounced', 'taken_back')">
+                <field name="sheet_id" optional="hide"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'counted'"
+                       decoration-warning="status in ('pending', 'later')"
+                       decoration-danger="status in ('bounced', 'taken_back')"/>
+                <field name="counted_date"/>
+                <field name="mode"/>
+                <field name="receipt_ref"/>
+                <field name="receipt_date"/>
+                <field name="journal_name" optional="hide"/>
+                <field name="cheque_number"/>
+                <field name="cheque_bank" optional="hide"/>
+                <field name="cheque_date" optional="hide"/>
+                <field name="deposit_date" optional="show"/>
+                <field name="clear_date"/>
+                <field name="bounce_date" optional="show"/>
+                <field name="invoice_ref"/>
+                <field name="invoice_date" optional="hide"/>
+                <field name="partner_id"/>
+                <field name="amount" sum="Total"/>
+                <field name="executive_amount" sum="Total" optional="show"/>
+                <field name="counted_amount" sum="Total"/>
+                <field name="from_earlier_month" optional="hide"/>
+                <field name="note"/>
+                <field name="cheque_id" column_invisible="1"/>
+                <button name="action_open_cheque" type="object" icon="fa-external-link"
+                        title="Open the cheque" invisible="not cheque_id"
+                        groups="lab_finance_ops.group_lab_cheque_user"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_incentive_collection_search" model="ir.ui.view">
+        <field name="name">lab.incentive.collection.search</field>
+        <field name="model">lab.incentive.collection</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="receipt_ref"/>
+                <field name="cheque_number"/>
+                <field name="invoice_ref"/>
+                <field name="partner_id"/>
+                <filter name="counted" string="Counted"
+                        domain="[('status', 'in', ('counted', 'taken_back'))]"/>
+                <filter name="not_counted" string="Not counted"
+                        domain="[('status', 'not in', ('counted', 'taken_back'))]"/>
+                <separator/>
+                <filter name="cheques" string="Cheques" domain="[('mode', '=', 'cheque')]"/>
+                <filter name="earlier" string="Received in an earlier month"
+                        domain="[('from_earlier_month', '=', True)]"/>
+                <group>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="group_mode" string="Paid By" context="{'group_by': 'mode'}"/>
+                    <filter name="group_clinic" string="Clinic" context="{'group_by': 'partner_id'}"/>
                 </group>
             </search>
         </field>

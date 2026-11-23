@@ -6,8 +6,16 @@
         <field name="arch" type="xml">
             <form string="Generate Incentive Sheets">
                 <group>
-                    <field name="period"/>
+                    <group>
+                        <field name="period"/>
+                    </group>
+                    <group>
+                        <field name="basis" widget="radio"/>
+                    </group>
                 </group>
+                <!-- what month-end will produce, executive by executive, before any
+                     sheet is written (client, 2026-11-23) -->
+                <field name="preview_data" widget="lab_incentive_preview" nolabel="1"/>
                 <footer>
                     <button string="Generate" name="action_generate" type="object"
                             class="btn-primary"/>

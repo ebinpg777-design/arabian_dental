@@ -1,0 +1,197 @@
+// Receipts on an incentive sheet, and the month-end preview. Flat: borders and tints,
+// no gradients. Colours through Odoo's own variables (no --bs- prefix in this backend),
+// so dark mode follows.
+$inc-ok: var(--success, #198754);
+$inc-wait: var(--warning, #e0a800);
+$inc-bad: var(--danger, #dc3545);
+$inc-main: var(--primary, #714b67);
+$inc-line: var(--border-color, #dee2e6);
+
+.o_inc_money {
+    width: 100%;
+}
+
+.o_inc_tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: .5rem;
+    margin-bottom: .75rem;
+}
+.o_inc_tile {
+    border: 1px solid $inc-line;
+    border-left-width: 4px;
+    border-radius: 6px;
+    padding: .45rem .65rem;
+    min-width: 0;
+
+    &.o_inc_tone_main { border-left-color: $inc-main; }
+    &.o_inc_tone_ok { border-left-color: $inc-ok; }
+    &.o_inc_tone_wait { border-left-color: $inc-wait; }
+    &.o_inc_tone_bad { border-left-color: $inc-bad; }
+}
+.o_inc_tile_label {
+    font-size: .78rem;
+    color: var(--secondary-color, #6c757d);
+}
+.o_inc_tile_value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.o_inc_tile_sub {
+    font-size: .74rem;
+    color: var(--secondary-color, #6c757d);
+}
+
+.o_inc_journeys {
+    border: 1px solid $inc-line;
+    border-radius: 6px;
+    padding: .5rem .65rem;
+}
+.o_inc_journeys_head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .35rem;
+}
+.o_inc_legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    font-size: .75rem;
+    color: var(--secondary-color, #6c757d);
+
+    .o_inc_dot {
+        position: static;
+        display: inline-block;
+        transform: none;
+        margin-right: .25rem;
+        vertical-align: middle;
+    }
+}
+
+.o_inc_row {
+    display: grid;
+    grid-template-columns: minmax(120px, 190px) 1fr minmax(90px, 130px);
+    gap: .6rem;
+    align-items: center;
+    padding: .4rem 0;
+    border-top: 1px solid $inc-line;
+
+    &.o_inc_scale {
+        border-top: 0;
+        padding: 0;
+        font-size: .72rem;
+        color: var(--secondary-color, #6c757d);
+
+        .o_inc_bar_cell {
+            display: flex;
+            justify-content: space-between;
+        }
+    }
+    &.o_inc_clickable { cursor: pointer; }
+    &.o_inc_clickable:hover { background: var(--tertiary-bg, #f8f9fa); }
+
+    @include media-breakpoint-down(md) {
+        grid-template-columns: 1fr auto;
+        .o_inc_bar_cell { grid-column: 1 / -1; grid-row: 2; }
+        &.o_inc_scale { display: none; }
+    }
+}
+.o_inc_who { min-width: 0; }
+.o_inc_what { text-align: right; }
+.o_inc_note {
+    grid-column: 1 / -1;
+    color: var(--secondary-color, #6c757d);
+    margin-top: -.2rem;
+}
+
+.o_inc_bar {
+    position: relative;
+    height: 14px;
+    border-radius: 7px;
+    background: var(--tertiary-bg, #f1f3f5);
+    border: 1px solid $inc-line;
+}
+.o_inc_track {
+    position: absolute;
+    top: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background: $inc-ok;
+}
+.o_inc_st_pending .o_inc_track,
+.o_inc_st_later .o_inc_track {
+    background: transparent;
+    border-top: 3px dashed $inc-wait;
+    height: 0;
+}
+.o_inc_st_bounced .o_inc_track,
+.o_inc_st_taken_back .o_inc_track { background: $inc-bad; }
+
+.o_inc_dot {
+    position: absolute;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--body-bg, #fff);
+    box-sizing: content-box;
+
+    &.o_inc_ev_received { background: var(--secondary-color, #6c757d); }
+    &.o_inc_ev_deposited { background: $inc-wait; }
+    &.o_inc_ev_cleared { background: $inc-ok; }
+    &.o_inc_ev_bounced { background: $inc-bad; border-radius: 2px; }
+    &.o_inc_before, &.o_inc_after { opacity: .55; }
+}
+.o_inc_dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .2rem .8rem;
+    margin-top: .2rem;
+}
+
+.o_inc_badge {
+    display: inline-block;
+    font-size: .72rem;
+    padding: .05rem .45rem;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+}
+.o_inc_st_counted .o_inc_badge { color: $inc-ok; }
+.o_inc_st_pending .o_inc_badge,
+.o_inc_st_later .o_inc_badge { color: $inc-wait; }
+.o_inc_st_bounced .o_inc_badge,
+.o_inc_st_taken_back .o_inc_badge { color: $inc-bad; }
+
+// the month-end preview in the generate wizard
+.o_inc_preview {
+    width: 100%;
+
+    .o_inc_preview_table {
+        font-size: .85rem;
+        td, th { white-space: nowrap; }
+    }
+    .o_inc_wait_text { color: $inc-wait; }
+    .o_inc_bad_text { color: $inc-bad; }
+}
+.o_inc_minibar {
+    display: flex;
+    height: 5px;
+    width: 140px;
+    margin-top: .2rem;
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--tertiary-bg, #f1f3f5);
+
+    span { display: block; height: 100%; }
+    .o_inc_mb_cash { background: $inc-ok; }
+    .o_inc_mb_cheque { background: $inc-main; }
+    .o_inc_mb_wait {
+        background: transparent;
+        border: 1px dashed $inc-wait;
+        box-sizing: border-box;
+    }
+}

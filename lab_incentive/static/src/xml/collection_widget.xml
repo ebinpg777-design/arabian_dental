@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="lab_incentive.CollectionWidget">
+        <div class="o_inc_money">
+            <div class="o_inc_tiles">
+                <div t-foreach="this.tiles" t-as="tile" t-key="tile.key"
+                     t-attf-class="o_inc_tile o_inc_tone_#{tile.tone}">
+                    <div class="o_inc_tile_label" t-out="tile.label"/>
+                    <div class="o_inc_tile_value" t-out="tile.value"/>
+                    <div class="o_inc_tile_sub" t-out="tile.sub"/>
+                </div>
+            </div>
+
+            <div t-if="this.cheques.length" class="o_inc_journeys">
+                <div class="o_inc_journeys_head">
+                    <span class="fw-bold">Cheques in <t t-out="this.data.month"/></span>
+                    <span class="o_inc_legend">
+                        <span><i class="o_inc_dot o_inc_ev_received"/>received</span>
+                        <span><i class="o_inc_dot o_inc_ev_deposited"/>deposited</span>
+                        <span><i class="o_inc_dot o_inc_ev_cleared"/>cleared</span>
+                        <span><i class="o_inc_dot o_inc_ev_bounced"/>bounced</span>
+                    </span>
+                </div>
+                <div class="o_inc_row o_inc_scale">
+                    <div class="o_inc_who"/>
+                    <div class="o_inc_bar_cell">
+                        <span t-out="this.data.month_start"/>
+                        <span t-out="this.data.month_end"/>
+                    </div>
+                    <div class="o_inc_what"/>
+                </div>
+                <div t-foreach="this.cheques" t-as="cheque" t-key="cheque.id"
+                     t-attf-class="o_inc_row o_inc_st_#{cheque.status} #{this.access.cheques ? 'o_inc_clickable' : ''}"
+                     t-on-click="() => this.openCheque(cheque)">
+                    <div class="o_inc_who">
+                        <div class="fw-bold text-truncate">
+                            <t t-out="cheque.number"/>
+                            <span class="text-muted fw-normal"> · <t t-out="cheque.amount_text"/></span>
+                        </div>
+                        <div class="text-muted small text-truncate" t-out="cheque.clinic"/>
+                    </div>
+                    <div class="o_inc_bar_cell">
+                        <div class="o_inc_bar">
+                            <div class="o_inc_track" t-att-style="this.trackStyle(cheque)"/>
+                            <span t-foreach="cheque.events" t-as="ev" t-key="ev.kind"
+                                  t-attf-class="o_inc_dot o_inc_ev_#{ev.kind} #{ev.before ? 'o_inc_before' : ''} #{ev.after ? 'o_inc_after' : ''}"
+                                  t-att-style="this.markerStyle(ev)"
+                                  t-att-title="this.eventTitle(ev)"/>
+                        </div>
+                        <div class="o_inc_dates small text-muted">
+                            <t t-foreach="cheque.events" t-as="ev" t-key="ev.kind">
+                                <span><t t-out="this.eventTitle(ev)"/><t t-if="ev.before"> (earlier)</t><t t-if="ev.after"> (later)</t></span>
+                            </t>
+                        </div>
+                    </div>
+                    <div class="o_inc_what">
+                        <span class="o_inc_badge" t-out="cheque.status_label"/>
+                        <div t-if="cheque.counted_text" class="fw-bold" t-out="cheque.counted_text"/>
+                        <div t-else="" class="text-muted small">not counted</div>
+                    </div>
+                    <div class="o_inc_note small" t-if="cheque.note" t-out="cheque.note"/>
+                </div>
+            </div>
+            <div t-elif="this.tiles.length" class="text-muted small mt-2">
+                No cheque touched this executive's invoices in the month.
+            </div>
+        </div>
+    </t>
+</templates>

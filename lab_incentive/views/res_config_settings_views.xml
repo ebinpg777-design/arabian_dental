@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- What an incentive is counted on, in Field Work's own settings (the field had no
+         screen: the basis could only be changed as a system parameter). -->
+    <record id="res_config_settings_view_form_incentive" model="ir.ui.view">
+        <field name="name">res.config.settings.form.lab_incentive</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="lab_fieldwork.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='lab_fieldwork']" position="inside">
+                <block title="Incentives" name="lab_incentive_block">
+                    <setting id="lab_incentive_basis_setting" string="Incentive counted on"
+                             help="Collected counts the money received in the month for the executive's invoices, before tax: cash and bank on their date, a cheque in the month it clears - whenever it was received. A cheque not cleared is never counted.">
+                        <field name="lab_incentive_basis" widget="radio"/>
+                    </setting>
+                    <setting id="lab_incentive_cron_setting" string="Generate on the 1st"
+                             help="Generate and compute last month's sheets automatically on the 1st.">
+                        <field name="lab_incentive_generate_cron"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

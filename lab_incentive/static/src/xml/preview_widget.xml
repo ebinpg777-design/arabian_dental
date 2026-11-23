@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="lab_incentive.IncentivePreview">
+        <div class="o_inc_preview">
+            <div class="text-muted small mb-2">
+                <t t-if="this.collected">
+                    <b>Collected:</b> the money received in <t t-out="this.data.month"/> for each
+                    executive's invoices, before tax. A cheque counts in the month it clears -
+                    also one received in an earlier month; one not cleared is shown, not counted.
+                </t>
+                <t t-elif="this.data.basis === 'paid'">
+                    <b>Billed and paid:</b> invoices of <t t-out="this.data.month"/> that are paid.
+                    An invoice settled by a cheque not yet cleared is not paid.
+                </t>
+                <t t-else="">
+                    <b>Billed:</b> what was invoiced in <t t-out="this.data.month"/>, less credit notes.
+                </t>
+                <span t-if="this.data.rule"> Rule: <t t-out="this.data.rule"/>.</span>
+                <span t-else="" class="text-danger"> No incentive rule is active for this month.</span>
+            </div>
+            <div t-if="!this.rows.length" class="text-muted">Nobody billed, collected or opened a clinic in this month.</div>
+            <div t-else="" class="table-responsive">
+                <table class="table table-sm o_inc_preview_table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Executive</th>
+                            <th class="text-end">Billed</th>
+                            <t t-if="this.collected">
+                                <th class="text-end">Cash &amp; bank</th>
+                                <th class="text-end">Cheques cleared</th>
+                                <th class="text-end">Not cleared</th>
+                                <th class="text-end">Bounced</th>
+                            </t>
+                            <th class="text-end">Base</th>
+                            <th class="text-end">Incentive</th>
+                            <th>Sheet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="this.rows" t-as="row" t-key="row.id">
+                            <td>
+                                <div class="fw-bold" t-out="row.name"/>
+                                <div t-if="this.collected" class="o_inc_minibar" title="Cash &amp; bank · cheques cleared · cheques not cleared">
+                                    <span t-if="row.cash" class="o_inc_mb_cash" t-att-style="this.part(row, 'cash')"/>
+                                    <span t-if="row.cheques" class="o_inc_mb_cheque" t-att-style="this.part(row, 'cheques')"/>
+                                    <span t-if="row.waiting" class="o_inc_mb_wait" t-att-style="this.part(row, 'waiting')"/>
+                                </div>
+                            </td>
+                            <td class="text-end" t-out="row.billed_text"/>
+                            <t t-if="this.collected">
+                                <td class="text-end" t-out="row.cash_text"/>
+                                <td class="text-end">
+                                    <t t-out="row.cheques_text"/>
+                                    <div t-if="row.earlier" class="small text-muted"><t t-out="row.earlier_text"/> received earlier</div>
+                                </td>
+                                <td t-attf-class="text-end #{row.waiting ? 'o_inc_wait_text' : 'text-muted'}">
+                                    <t t-out="row.waiting_text"/>
+                                    <div t-if="row.waiting_count" class="small text-muted"><t t-out="row.waiting_count"/> cheque(s)</div>
+                                </td>
+                                <td t-attf-class="text-end #{row.bounced ? 'o_inc_bad_text' : 'text-muted'}" t-out="row.bounced_text"/>
+                            </t>
+                            <td class="text-end" t-out="row.base_text"/>
+                            <td class="text-end fw-bold">
+                                <t t-out="row.incentive_text"/>
+                                <div t-if="row.clinics" class="small text-muted fw-normal">incl. <t t-out="row.clinics"/> new clinic(s)</div>
+                            </td>
+                            <td>
+                                <span t-out="row.sheet_state"/>
+                                <div t-if="row.frozen" class="small text-muted">kept at <t t-out="row.frozen_amount"/> - reset it to recompute</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td>Total</td>
+                            <td class="text-end" t-out="this.data.totals.billed_text"/>
+                            <t t-if="this.collected">
+                                <td class="text-end" t-out="this.data.totals.cash_text"/>
+                                <td class="text-end" t-out="this.data.totals.cheques_text"/>
+                                <td class="text-end" t-out="this.data.totals.waiting_text"/>
+                                <td class="text-end" t-out="this.data.totals.bounced_text"/>
+                            </t>
+                            <td class="text-end" t-out="this.data.totals.base_text"/>
+                            <td class="text-end" t-out="this.data.totals.incentive_text"/>
+                            <td/>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </t>
+</templates>

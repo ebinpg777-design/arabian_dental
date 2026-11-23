@@ -16,6 +16,12 @@ from .product_template import INCENTIVE_BASES
 
 EXCLUDED_STATES = ('draft', 'sent', 'cancel')
 
+INCENTIVE_SHEET_BASES = [
+    ('invoiced', 'Billed'),
+    ('paid', 'Billed and paid'),
+    ('collected', 'Collected (a cheque when it clears)'),
+]
+
 
 class LabIncentiveSheet(models.Model):
     _name = 'lab.incentive.sheet'
@@ -42,10 +48,48 @@ class LabIncentiveSheet(models.Model):
         default='draft', required=True, tracking=True, copy=False)
 
     line_ids = fields.One2many('lab.incentive.sheet.line', 'sheet_id', readonly=True)
+    # Written when the sheet is computed: an approved sheet keeps the basis it was
+    # approved on if the setting is changed later.
+    basis = fields.Selection(
+        INCENTIVE_SHEET_BASES, string='Incentive Basis', readonly=True, copy=False,
+        help="Billed: what was invoiced in the month. Billed and paid: only invoices the "
+             "clinic has paid. Collected: the money received in the month - a cheque in "
+             "the month it clears, whenever it was received.")
     total_sales = fields.Monetary(
         'Total Billed', compute='_compute_totals', store=True,
         help="What was billed to the clinics in the month: the posted invoices of the "
-             "executive's orders, less their credit notes.")
+             "executive's orders, less their credit notes. On the Collected basis, what "
+             "was collected for those invoices in the month, before tax.")
+    # The same figure under the name it has on the Collected basis.
+    total_collected = fields.Monetary(
+        related='total_sales', string='Total Collected',
+        help="The executive's part of the money collected in the month, before tax: cash "
+             "and bank receipts on their date, cheques on the day they cleared, less "
+             "cheques counted earlier that bounced this month.")
+
+    collection_ids = fields.One2many('lab.incentive.collection', 'sheet_id', readonly=True,
+                                     string='Receipts')
+    collected_cash_bank = fields.Monetary(
+        'Cash & Bank', compute='_compute_collection_totals', store=True,
+        help="Cash and bank transfers received in the month, the executive's part before tax.")
+    collected_cheques = fields.Monetary(
+        'Cheques Cleared', compute='_compute_collection_totals', store=True,
+        help="Cheques that cleared in the month - received this month or earlier.")
+    cheques_cleared_count = fields.Integer(compute='_compute_collection_totals', store=True)
+    collected_earlier = fields.Monetary(
+        'Of Which Received Earlier', compute='_compute_collection_totals', store=True,
+        help="Cheques received in an earlier month that cleared in this one: counted now.")
+    cheques_waiting_amount = fields.Monetary(
+        'Cheques Not Cleared', compute='_compute_collection_totals', store=True,
+        help="Cheques received by the month's end that had not cleared in it. Not counted: "
+             "each counts in the month it clears.")
+    cheques_waiting_count = fields.Integer(compute='_compute_collection_totals', store=True)
+    cheques_bounced_amount = fields.Monetary(
+        'Cheques Bounced', compute='_compute_collection_totals', store=True)
+    cheques_bounced_count = fields.Integer(compute='_compute_collection_totals', store=True)
+    taken_back_amount = fields.Monetary(
+        'Taken Back', compute='_compute_collection_totals', store=True,
+        help="Cheques counted in an earlier month that bounced in this one.")
     total_base = fields.Monetary(
         compute='_compute_totals', store=True,
         help="What the incentive was actually calculated on — differs from Total "
@@ -166,10 +210,17 @@ class LabIncentiveSheet(models.Model):
     # ------------------------------------------------------------------ basis
     @api.model
     def _incentive_basis(self):
-        """'invoiced' (billed) or 'paid' (billed and paid). Only billed amounts count
-        (client, 2026-10-08), so the older 'confirmed' and 'delivered' read as billed."""
+        """'invoiced' (billed), 'paid' (billed and paid) or 'collected' (the money
+        received in the month, a cheque when it clears - client, 2026-11-23). The older
+        'confirmed' and 'delivered' read as billed (client, 2026-10-08).
+
+        The generate wizard's preview asks for a basis other than the setting's through
+        the context, to show a choice before it is saved."""
+        override = self.env.context.get('lab_incentive_basis_override')
+        if override in ('invoiced', 'paid', 'collected'):
+            return override
         basis = self.env['ir.config_parameter'].sudo().get_str('lab_incentive.basis')
-        return 'paid' if basis == 'paid' else 'invoiced'
+        return basis if basis in ('paid', 'collected') else 'invoiced'
 
     @api.model
     def _paid_invoices(self, invoices, company):
@@ -187,7 +238,15 @@ class LabIncentiveSheet(models.Model):
         open_moves = {d['move_id'] for d in self.env['lab.collection.performance']
                       .sudo()._open_debits(
                           company, partner_ids=invoices.commercial_partner_id.ids)}
-        return invoices.filtered(lambda m: m.id not in open_moves)
+        # A cheque not yet cleared is not a payment (client, 2026-11-23): the receipt
+        # settles the invoice the day the cheque comes in, but the money is not the
+        # lab's until the bank clears it.
+        unpaid = self.env['account.partial.reconcile'].sudo().search([
+            ('debit_move_id.move_id', 'in', invoices.ids),
+            ('credit_move_id.move_id.origin_payment_id.cheque_id.state', 'in',
+             ('received', 'deposited')),
+        ]).debit_move_id.move_id
+        return invoices.filtered(lambda m: m.id not in open_moves and m not in unpaid)
 
     def _qualifying_lines(self):
         """The billed lines this executive's incentive is judged on for the month:
@@ -231,36 +290,25 @@ class LabIncentiveSheet(models.Model):
                                   "approval is not lost without anyone noticing.",
                                   sheet.name))
             sheet.line_ids.unlink()
+            sheet.collection_ids.unlink()
             # the rule first: a product on a margin basis needs the period's fallback
             rule = self.env['lab.incentive.rule']._active_rule(
                 sheet.company_id, sheet.period)
             default_margin = rule.default_margin_pct if rule else 0.0
-            lines = []
-            for aml in sheet._qualifying_lines():
-                # company currency, signed: a credit note is a negative bill
-                billed = -aml.balance
-                sign = -1 if billed < 0 else 1
-                quantity = abs(aml.quantity) * sign
-                product = aml.product_id
-                # What the product is counted on (Ortho, 2026-10-08): the billed
-                # amount, its incentive price, or the lab's margin on it - signed
-                # like the bill, so a credit note takes back the base it gave.
-                base = (product._incentive_base(billed, quantity, default_margin)
-                        if product else billed)
-                lines.append((0, 0, {
-                    'sale_order_id': aml.sale_line_ids.order_id[:1].id,
-                    'invoice_id': aml.move_id.id,
-                    'invoice_date': aml.move_id.invoice_date,
-                    'product_id': product.id,
-                    'quantity': quantity,
-                    'sale_amount': billed,
-                    'incentive_base': base,
-                    'incentive_basis': product.incentive_basis or 'sale',
-                    'used_incentive_price': bool(product) and product._uses_own_incentive_base(),
-                }))
+            basis = sheet._incentive_basis()
+            if basis == 'collected':
+                lines = []
+                for row, line_vals in sheet._collected_values(default_margin):
+                    receipt = self.env['lab.incentive.collection'].create(
+                        dict(row, sheet_id=sheet.id))
+                    lines += [(0, 0, dict(vals, collection_id=receipt.id))
+                              for vals in line_vals]
+            else:
+                lines = [(0, 0, vals) for vals in sheet._billed_line_vals(default_margin)]
             clinics = sheet._new_clinics()
             bonus = len(clinics) * (rule.new_clinic_bonus or 0.0) if rule else 0.0
             sheet.write({'line_ids': lines, 'state': 'computed', 'rule_id': rule.id,
+                         'basis': basis,
                          'new_clinic_ids': [(6, 0, clinics.ids)],
                          'new_clinic_count': len(clinics),
                          'new_clinic_amount': bonus})
@@ -272,6 +320,43 @@ class LabIncentiveSheet(models.Model):
                 continue
             sheet.slab_amount = rule.sudo().compute_incentive(sheet.total_base)
         return True
+
+    def _billed_line_vals(self, default_margin):
+        """The sheet lines of the billed bases: one per qualifying invoice line."""
+        self.ensure_one()
+        lines = []
+        for aml in self._qualifying_lines():
+            # company currency, signed: a credit note is a negative bill
+            billed = -aml.balance
+            sign = -1 if billed < 0 else 1
+            quantity = abs(aml.quantity) * sign
+            product = aml.product_id
+            # What the product is counted on (Ortho, 2026-10-08): the billed amount,
+            # its incentive price, or the lab's margin on it - signed like the bill, so
+            # a credit note takes back the base it gave.
+            base = (product._incentive_base(billed, quantity, default_margin)
+                    if product else billed)
+            lines.append({
+                'sale_order_id': aml.sale_line_ids.order_id[:1].id,
+                'invoice_id': aml.move_id.id,
+                'invoice_date': aml.move_id.invoice_date,
+                'product_id': product.id,
+                'quantity': quantity,
+                'sale_amount': billed,
+                'incentive_base': base,
+                'incentive_basis': product.incentive_basis or 'sale',
+                'used_incentive_price': bool(product) and product._uses_own_incentive_base(),
+            })
+        return lines
+
+    def action_view_receipts(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window', 'name': _('Receipts — %s', self.name),
+            'res_model': 'lab.incentive.collection', 'view_mode': 'list,form',
+            'domain': [('sheet_id', '=', self.id)],
+            'context': {'create': False, 'search_default_group_status': 1},
+        }
 
     def action_approve(self):
         for sheet in self:
@@ -336,11 +421,21 @@ class LabIncentiveSheetLine(models.Model):
     sale_order_id = fields.Many2one('sale.order', required=True)
     invoice_id = fields.Many2one('account.move', string='Invoice', readonly=True)
     invoice_date = fields.Date(readonly=True)
+    # The Collected basis: the receipt this line's share came from, and the day it counted.
+    collection_id = fields.Many2one('lab.incentive.collection', string='Receipt Row',
+                                    readonly=True, ondelete='cascade', index='btree_not_null')
+    receipt_ref = fields.Char(related='collection_id.receipt_ref', string='Receipt')
+    receipt_mode = fields.Selection(related='collection_id.mode', string='Paid By')
+    counted_date = fields.Date('Date Counted', readonly=True,
+                               help="Collected basis: the day this money became the lab's - the receipt's date, or the day its cheque cleared.")
     product_id = fields.Many2one('product.product', required=True)
     quantity = fields.Float(digits='Product Unit', readonly=True)
     sale_amount = fields.Monetary(
         'Billed Amount', currency_field='currency_id',
-        help="What this invoice line billed, before tax; negative on a credit note.")
+        help="What this invoice line billed, before tax; negative on a credit note. On the "
+             "Collected basis, the line's share of the money received, before tax.")
+    # The same figure under the name it has on the Collected basis.
+    collected_amount = fields.Monetary(related='sale_amount', string='Collected (before tax)')
     incentive_base = fields.Monetary(
         currency_field='currency_id',
         help="What the incentive was actually computed on for this line.")

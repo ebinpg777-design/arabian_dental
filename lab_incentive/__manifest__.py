@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Incentive',
-    'version': '20.0.1.7.0',
+    'version': '20.0.1.8.0',
     'summary': "Monthly executive incentives: calculate, approve, disburse (R19/R20)",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',
@@ -14,8 +14,10 @@
     # account: the incentive menus hang off the Accounting menu and the access rows
     # name account.group_account_manager, so it is declared even though
     # lab_collections already brings it in.
+    # lab_finance_ops: the Collected basis counts a cheque when its register says it
+    # cleared (client, 2026-11-23).
     'depends': ['account', 'lab_fieldwork', 'lab_delivery', 'ebshel_dynamic_filter',
-                'lab_collections', 'lab_ceo_dashboard'],
+                'lab_collections', 'lab_ceo_dashboard', 'lab_finance_ops'],
     'data': [
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
@@ -25,6 +27,7 @@
         'views/incentive_sheet_views.xml',
         'wizard/generate_sheets_views.xml',
         'views/menus.xml',
+        'views/res_config_settings_views.xml',
         'report/incentive_report.xml',
         'report/incentive_report_templates.xml',
         'data/filter_tiles.xml',
@@ -36,6 +39,11 @@
             'lab_incentive/static/src/js/slab_widget.js',
             'lab_incentive/static/src/xml/slab_widget.xml',
             'lab_incentive/static/src/scss/slab_widget.scss',
+            'lab_incentive/static/src/js/collection_widget.js',
+            'lab_incentive/static/src/xml/collection_widget.xml',
+            'lab_incentive/static/src/js/preview_widget.js',
+            'lab_incentive/static/src/xml/preview_widget.xml',
+            'lab_incentive/static/src/scss/collection_widget.scss',
         ],
     },
     'installable': True,
