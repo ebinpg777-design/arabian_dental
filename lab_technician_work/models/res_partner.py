@@ -19,9 +19,10 @@ class ResPartner(models.Model):
             partner.technician_work_count = counts.get(partner._origin, 0)
 
     def action_view_technician_work(self):
+        """The Technician Work screen, on this technician."""
         self.ensure_one()
-        action = self.env['ir.actions.act_window']._for_xml_id('lab_technician_work.action_technician_work')
-        action['name'] = _('Work of %s', self.display_name)
-        action['domain'] = [('technician_id', '=', self.id)]
-        action['context'] = {'search_default_this_year': 1, 'pivot_row_groupby': ['date:month']}
-        return action
+        return {
+            'type': 'ir.actions.client', 'tag': 'lab_technician_work_board',
+            'name': _('Work of %s', self.display_name),
+            'context': {'technician_ids': [self.id]},
+        }

@@ -1,88 +1,22 @@
 # -*- coding: utf-8 -*-
-"""Technician Work Summary: the printed sheet of a period - per technician, the cases,
-the works (order lines), the quantity and the teeth, and the products if asked."""
-from datetime import timedelta
-
+"""What the Technician Work screen prints: the board as the screen shows it - its
+filters, its rows (by technician, department, product...), its chosen columns, and
+each row's breakdown if asked - on the lab letterhead."""
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
 from odoo.tools.misc import formatLang
 
-from odoo.addons.sale_custom.wizard.order_list_wizard import local_midnight_utc
-
-MEASURES = ('case_count', 'rework_count', 'quantity', 'teeth_count', 'amount', 'amount_share')
+from ..models.technician_board import COLUMNS
 
 
 class TechnicianWorkSummary(models.TransientModel):
     _name = 'sale.technician.work.summary'
     _description = 'Technician Work Summary'
 
-    def _default_date_from(self):
-        return fields.Date.context_today(self).replace(day=1)
-
-    date_from = fields.Date(string='From', required=True, default=_default_date_from)
-    date_to = fields.Date(string='To', required=True, default=fields.Date.context_today)
-    date_field = fields.Selection(
-        [('date', 'Order date'), ('delivered_date', 'Delivered on')],
-        string='Count by', required=True, default='date',
-        help="Order date: the cases registered in the period. Delivered on: the cases "
-             "delivered in the period - the work finished.")
-    technician_ids = fields.Many2many('res.partner', string='Technicians',
-                                      domain="[('is_technician', '=', True)]")
-    department_ids = fields.Many2many('hr.department', string='Departments')
-    include_reworks = fields.Boolean(string='Count Reworks', default=True)
-    show_products = fields.Boolean(string='Show the Products of Each Technician')
-    company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
-
-    def _domain(self):
-        self.ensure_one()
-        if self.date_from > self.date_to:
-            raise UserError(_('The start date is after the end date.'))
-        # the reader's whole days, not UTC ones
-        start = local_midnight_utc(self, self.date_from)
-        end = local_midnight_utc(self, self.date_to + timedelta(days=1))
-        domain = [(self.date_field, '>=', start), (self.date_field, '<', end),
-                  ('company_id', '=', self.company_id.id)]
-        if self.technician_ids:
-            domain.append(('technician_id', 'in', self.technician_ids.ids))
-        if self.department_ids:
-            domain.append(('department_id', 'in', self.department_ids.ids))
-        if not self.include_reworks:
-            domain.append(('is_rework', '=', False))
-        return domain
-
-    def _rows(self):
-        """[{technician, cases, works, quantity, teeth, value, share, products: [...]}],
-        the busiest first."""
-        self.ensure_one()
-        Work = self.env['sale.technician.work']
-        aggregates = ['__count'] + ['%s:sum' % measure for measure in MEASURES]
-
-        def values(result):
-            count, cases, reworks, quantity, teeth, value, share = result
-            return {'works': count, 'cases': cases or 0, 'reworks': reworks or 0,
-                    'quantity': quantity or 0.0, 'teeth': teeth or 0,
-                    'value': value or 0.0, 'share': share or 0.0}
-
-        rows = {}
-        for technician, *result in Work._read_group(self._domain(), ['technician_id'], aggregates):
-            rows[technician.id] = dict(values(result), technician=technician, products=[])
-        if self.show_products and rows:
-            for technician, product, *result in Work._read_group(
-                    self._domain(), ['technician_id', 'product_id'], aggregates, order='__count desc'):
-                rows[technician.id]['products'].append(dict(values(result), product=product))
-        return sorted(rows.values(), key=lambda row: (-row['works'], row['technician'].name or ''))
-
-    def action_print(self):
-        self.ensure_one()
-        return self.env.ref('lab_technician_work.action_report_technician_work').report_action(self)
-
-    def action_open_analysis(self):
-        """The same period, as a pivot to drill into."""
-        self.ensure_one()
-        action = self.env['ir.actions.act_window']._for_xml_id('lab_technician_work.action_technician_work')
-        action['domain'] = self._domain()
-        action['context'] = {}
-        return action
+    date_from = fields.Date(string='From', required=True)
+    date_to = fields.Date(string='To', required=True)
+    options = fields.Json(help="The screen's filters, as get_board takes them.")
+    columns = fields.Json(help="The columns chosen on the screen, in order.")
+    with_breakdown = fields.Boolean(string='With Each Row Broken Down')
 
 
 class TechnicianWorkSummaryReport(models.AbstractModel):
@@ -91,34 +25,64 @@ class TechnicianWorkSummaryReport(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
-        wizard = self.env['sale.technician.work.summary'].browse(docids)
-        wizard.ensure_one()
-        currency = wizard.company_id.currency_id
-        rows = wizard._rows()
-        total = {key: sum(row[key] for row in rows)
-                 for key in ('works', 'cases', 'reworks', 'quantity', 'teeth', 'value', 'share')}
-        criteria = []
-        if wizard.technician_ids:
-            criteria.append((_('Technicians'), ', '.join(wizard.technician_ids.mapped('name'))))
-        if wizard.department_ids:
-            criteria.append((_('Departments'), ', '.join(wizard.department_ids.mapped('name'))))
-        criteria.append((_('Counted by'), dict(wizard._fields['date_field']._description_selection(
-            self.env))[wizard.date_field]))
-        if not wizard.include_reworks:
-            criteria.append((_('Reworks'), _('not counted')))
-        top = max((row['works'] for row in rows), default=0)
+        summary = self.env['sale.technician.work.summary'].browse(docids)
+        summary.ensure_one()
+        Work = self.env['sale.technician.work']
+        board = Work.get_board(summary.options or {})
+        opts = board['options']
+        labels = dict(COLUMNS)
+        columns = [(key, self.env._(labels[key])) for key in (summary.columns or []) if key in labels] \
+            or [(key, self.env._(labels[key])) for key in board['default_columns']]
+        breakdowns = {}
+        if summary.with_breakdown:
+            for row in board['rows']:
+                breakdowns[row['key']] = Work.get_breakdown(summary.options, row['key'])
+        currency = self.env.company.currency_id
+        choices = board['choices']
+
+        def chosen(key, label):
+            ids = set(opts.get(key) or [])
+            names = [item['name'] for item in choices.get(key, []) if item['id'] in ids]
+            return (label, ', '.join(names)) if names else None
+
+        criteria = [item for item in (
+            chosen('technician_ids', _('Technicians')),
+            chosen('department_ids', _('Departments')),
+            chosen('categ_ids', _('Categories')),
+            chosen('team_ids', _('Routes')),
+            chosen('partner_ids', _('Clinics')),
+        ) if item]
+        criteria.append((_('Counted by'), _('delivered date') if opts['date_field'] == 'delivered_date'
+                         else _('order date')))
+        if opts['rework'] != 'all':
+            criteria.append((_('Reworks'), _('left out') if opts['rework'] == 'exclude' else _('only')))
+        if opts['cases'] != 'all':
+            criteria.append((_('Cases'), _('shared only') if opts['cases'] == 'shared' else _('worked alone')))
+
+        def show(key, value):
+            if key in ('value', 'share'):
+                return '%s %s' % (currency.symbol or '', formatLang(self.env, value or 0.0,
+                                                                    digits=currency.decimal_places))
+            if key in ('rework_rate', 'works_pct'):
+                return '%s%%' % formatLang(self.env, value or 0.0, digits=1)
+            if key == 'trend':
+                return ('+%s' % value) if value > 0 else str(value) if value else '0'
+            if value is None:
+                return ''
+            return formatLang(self.env, value, digits=0 if float(value).is_integer() else 1)
+
+        top = max((row['works'] for row in board['rows']), default=0)
         return {
-            'doc_ids': wizard.ids,
-            'doc_model': wizard._name,
-            'docs': wizard,
-            'wizard': wizard,
-            'rows': rows,
-            'total': total,
-            'top': top,
+            'doc_ids': summary.ids,
+            'doc_model': summary._name,
+            'docs': summary,
+            'wizard': summary,
+            'board': board,
+            'columns': columns,
+            'breakdowns': breakdowns,
             'criteria': criteria,
-            'printed_on': fields.Datetime.context_timestamp(wizard, fields.Datetime.now()).strftime('%d-%m-%Y %H:%M'),
-            'money': lambda amount: '%s %s' % (currency.symbol or '', formatLang(
-                self.env, amount or 0.0, digits=currency.decimal_places)),
-            'number': lambda value: formatLang(self.env, value or 0.0, digits=0 if float(value or 0).is_integer() else 2),
+            'show': show,
+            'top': top,
             'pct': lambda part, whole: (100.0 * part / whole) if whole else 0.0,
+            'printed_on': fields.Datetime.context_timestamp(summary, fields.Datetime.now()).strftime('%d-%m-%Y %H:%M'),
         }

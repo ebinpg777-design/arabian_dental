@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_technician_work.TechnicianBoard">
+    <div class="o_action o_tw">
+        <!-- what is shown: the period, how it is counted, what a row is -->
+        <div class="o_tw_head">
+            <div class="o_tw_title">
+                <div class="o_tw_eyebrow">Technician Work</div>
+                <h2 t-out="this.state.data ? this.state.data.period.label : ''"/>
+                <div class="o_tw_sub" t-if="this.state.data">
+                    compared with <t t-out="this.state.data.period.previous_label"/>
+                </div>
+            </div>
+            <div class="o_tw_actions">
+                <button class="btn btn-light" t-on-click="() => this.load()" title="Refresh">
+                    <i t-attf-class="fa fa-refresh {{ this.state.busy ? 'fa-spin' : '' }}"/>
+                </button>
+                <div class="o_tw_drop">
+                    <button class="btn btn-light" t-on-click="() => this.togglePanel('print')">
+                        <i class="fa fa-print me-1"/>Print
+                    </button>
+                    <div t-if="this.state.panel === 'print'" class="o_tw_panel o_tw_panel_right">
+                        <label class="o_tw_check">
+                            <input type="checkbox" t-att-checked="this.state.printBreakdown"
+                                   t-on-change="(ev) => this.setPrintBreakdown(ev.target.checked)"/>
+                            Each row broken down by <t t-out="this.breakdownLabel"/>
+                        </label>
+                        <button class="btn btn-primary btn-sm w-100 mt-2" t-on-click="() => this.print()">
+                            <i class="fa fa-file-pdf-o me-1"/>Print PDF
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn-light" t-on-click="() => this.exportExcel()" title="Export to Excel">
+                    <i class="fa fa-file-excel-o me-1"/>Export
+                </button>
+            </div>
+        </div>
+
+        <!-- the filters -->
+        <div class="o_tw_bar">
+            <div class="o_tw_period">
+                <button class="btn btn-light btn-sm" title="Previous period" t-on-click="() => this.shift(-1)">
+                    <i class="fa fa-chevron-left"/>
+                </button>
+                <div class="o_tw_drop">
+                    <button class="btn btn-light btn-sm o_tw_preset" t-on-click="() => this.togglePanel('period')">
+                        <i class="fa fa-calendar me-1"/><t t-out="this.presetLabel"/>
+                        <i class="fa fa-caret-down ms-1"/>
+                    </button>
+                    <div t-if="this.state.panel === 'period'" class="o_tw_panel">
+                        <div class="o_tw_presets">
+                            <button t-foreach="this.presets" t-as="preset" t-key="preset.key"
+                                    t-attf-class="btn btn-sm {{ this.state.preset === preset.key ? 'btn-primary' : 'btn-light' }}"
+                                    t-on-click="() => this.pickPreset(preset.key)" t-out="preset.label"/>
+                        </div>
+                        <div class="o_tw_dates">
+                            <label>From <input type="date" class="form-control form-control-sm" t-att-value="this.state.options.date_from"
+                                               t-on-change="(ev) => this.pickDate('date_from', ev.target.value)"/></label>
+                            <label>To <input type="date" class="form-control form-control-sm" t-att-value="this.state.options.date_to"
+                                             t-on-change="(ev) => this.pickDate('date_to', ev.target.value)"/></label>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-light btn-sm" title="Next period" t-on-click="() => this.shift(1)">
+                    <i class="fa fa-chevron-right"/>
+                </button>
+            </div>
+
+            <div class="o_tw_seg" title="Which date puts a case in the period">
+                <button t-attf-class="{{ this.state.options.date_field === 'date' ? 'o_tw_on' : '' }}"
+                        t-on-click="() => this.setOption('date_field', 'date')">Ordered</button>
+                <button t-attf-class="{{ this.state.options.date_field === 'delivered_date' ? 'o_tw_on' : '' }}"
+                        t-on-click="() => this.setOption('date_field', 'delivered_date')">Delivered</button>
+            </div>
+
+            <t t-foreach="this.filters" t-as="filter" t-key="filter.key">
+                <div class="o_tw_drop">
+                    <button t-attf-class="btn btn-sm o_tw_filter {{ this.state.options[filter.key].length ? 'o_tw_filter_on' : '' }}"
+                            t-on-click="() => this.togglePanel(filter.key)">
+                        <i t-attf-class="fa {{ filter.icon }} me-1"/><t t-out="filter.label"/>
+                        <span t-if="this.state.options[filter.key].length" class="o_tw_count"
+                              t-out="this.state.options[filter.key].length"/>
+                        <i class="fa fa-caret-down ms-1"/>
+                    </button>
+                    <div t-if="this.state.panel === filter.key" class="o_tw_panel o_tw_panel_list">
+                        <input type="search" class="form-control form-control-sm mb-2" placeholder="Search..."
+                               t-att-value="this.state.panelQuery" t-on-input="(ev) => this.setPanelQuery(ev.target.value)"/>
+                        <div class="o_tw_choices">
+                            <label t-foreach="this.choices(filter.key)" t-as="choice" t-key="choice.id" class="o_tw_check">
+                                <input type="checkbox" t-att-checked="this.isChosen(filter.key, choice.id)"
+                                       t-on-change="() => this.toggleChoice(filter.key, choice.id)"/>
+                                <span class="o_tw_choice_name" t-out="choice.name"/>
+                                <span class="o_tw_choice_n" t-out="this.number(choice.works)"/>
+                            </label>
+                            <div t-if="!this.choices(filter.key).length" class="text-muted small">Nothing in this period.</div>
+                        </div>
+                        <button t-if="this.state.options[filter.key].length" class="btn btn-link btn-sm p-0 mt-1"
+                                t-on-click="() => this.clearFilter(filter.key)">Clear</button>
+                    </div>
+                </div>
+            </t>
+
+            <div class="o_tw_drop">
+                <button t-attf-class="btn btn-sm o_tw_filter {{ (this.state.options.rework !== 'all' or this.state.options.cases !== 'all') ? 'o_tw_filter_on' : '' }}"
+                        t-on-click="() => this.togglePanel('more')">
+                    <i class="fa fa-sliders me-1"/>More<i class="fa fa-caret-down ms-1"/>
+                </button>
+                <div t-if="this.state.panel === 'more'" class="o_tw_panel">
+                    <div class="o_tw_panel_label">Reworks</div>
+                    <div class="o_tw_seg o_tw_seg_full mb-2">
+                        <button t-attf-class="{{ this.state.options.rework === 'all' ? 'o_tw_on' : '' }}" t-on-click="() => this.setOption('rework', 'all')">Counted</button>
+                        <button t-attf-class="{{ this.state.options.rework === 'exclude' ? 'o_tw_on' : '' }}" t-on-click="() => this.setOption('rework', 'exclude')">Left out</button>
+                        <button t-attf-class="{{ this.state.options.rework === 'only' ? 'o_tw_on' : '' }}" t-on-click="() => this.setOption('rework', 'only')">Only</button>
+                    </div>
+                    <div class="o_tw_panel_label">Cases</div>
+                    <div class="o_tw_seg o_tw_seg_full">
+                        <button t-attf-class="{{ this.state.options.cases === 'all' ? 'o_tw_on' : '' }}" t-on-click="() => this.setOption('cases', 'all')">All</button>
+                        <button t-attf-class="{{ this.state.options.cases === 'shared' ? 'o_tw_on' : '' }}" t-on-click="() => this.setOption('cases', 'shared')">Shared</button>
+                        <button t-attf-class="{{ this.state.options.cases === 'alone' ? 'o_tw_on' : '' }}" t-on-click="() => this.setOption('cases', 'alone')">Worked alone</button>
+                    </div>
+                </div>
+            </div>
+
+            <button t-if="this.activeFilters.length or this.state.options.rework !== 'all' or this.state.options.cases !== 'all'"
+                    class="btn btn-link btn-sm" t-on-click="() => this.clearAll()">Clear filters</button>
+        </div>
+
+        <div t-if="this.state.panel" class="o_tw_backdrop" t-on-click="() => this.closePanel()"/>
+
+        <div t-if="this.state.error" class="alert alert-danger" t-out="this.state.error"/>
+
+        <div t-if="this.state.loading" class="o_tw_loading"><i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/></div>
+
+        <t t-elif="this.state.data">
+            <!-- the period at a glance, against the one before -->
+            <div class="o_tw_tiles">
+                <div t-foreach="this.tiles" t-as="tile" t-key="tile.key"
+                     t-attf-class="o_tw_tile {{ tile.main ? 'o_tw_tile_main' : '' }}"
+                     t-on-click="() => this.clickTile(tile)">
+                    <div class="o_tw_tile_label"><i t-attf-class="fa {{ tile.icon }} me-1"/><t t-out="tile.label"/></div>
+                    <div class="o_tw_tile_value" t-out="tile.value"/>
+                    <div t-attf-class="o_tw_tile_delta {{ this.delta(tile.key).cls }}" t-out="this.delta(tile.key).text"/>
+                </div>
+            </div>
+
+            <div class="o_tw_insights" t-if="this.state.data.insights.length">
+                <div t-foreach="this.state.data.insights" t-as="insight" t-key="insight_index"
+                     t-attf-class="o_tw_insight o_tw_tone_{{ insight.tone }}">
+                    <i t-attf-class="fa {{ insight.icon }}"/><span t-out="insight.text"/>
+                </div>
+            </div>
+
+            <!-- the rows: what a row is, what it opens into, which columns -->
+            <div class="o_tw_tools">
+                <div class="o_tw_seg">
+                    <button t-attf-class="{{ this.state.view === 'board' ? 'o_tw_on' : '' }}" t-on-click="() => this.setView('board')">
+                        <i class="fa fa-list-ol me-1"/>Leaderboard</button>
+                    <button t-attf-class="{{ this.state.view === 'heat' ? 'o_tw_on' : '' }}" t-on-click="() => this.setView('heat')">
+                        <i class="fa fa-th me-1"/>Who worked when</button>
+                </div>
+                <label class="o_tw_select">Rows
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setOption('group_by', ev.target.value)">
+                        <option t-foreach="this.state.data.dimensions" t-as="dim" t-key="dim.key" t-att-value="dim.key"
+                                t-att-selected="dim.key === this.state.options.group_by" t-out="dim.label"/>
+                    </select>
+                </label>
+                <label class="o_tw_select" t-if="this.state.view === 'board'">Open a row by
+                    <select class="form-select form-select-sm" t-on-change="(ev) => this.setBreakdown(ev.target.value)">
+                        <option t-foreach="this.otherDimensions" t-as="dim"
+                                t-key="dim.key" t-att-value="dim.key"
+                                t-att-selected="dim.key === this.state.options.breakdown" t-out="dim.label"/>
+                    </select>
+                </label>
+                <input type="search" class="form-control form-control-sm o_tw_search" placeholder="Find a name..."
+                       t-att-value="this.state.query" t-on-input="(ev) => this.setQuery(ev.target.value)"/>
+                <div class="o_tw_drop ms-auto" t-if="this.state.view === 'board'">
+                    <button class="btn btn-light btn-sm" t-on-click="() => this.togglePanel('columns')">
+                        <i class="fa fa-columns me-1"/>Columns
+                    </button>
+                    <div t-if="this.state.panel === 'columns'" class="o_tw_panel o_tw_panel_right">
+                        <label t-foreach="this.state.data.columns" t-as="col" t-key="col.key" class="o_tw_check">
+                            <input type="checkbox" t-att-checked="this.state.columns.includes(col.key)"
+                                   t-on-change="() => this.toggleColumn(col.key)"/>
+                            <span t-out="col.label"/>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div t-if="!this.rows.length" class="o_tw_empty">
+                <i class="fa fa-wrench fa-2x mb-2"/>
+                <div>No technician work in this period.</div>
+            </div>
+
+            <!-- the leaderboard -->
+            <div t-elif="this.state.view === 'board'" class="o_tw_table_wrap">
+                <table class="o_tw_table">
+                    <thead>
+                        <tr>
+                            <th class="o_tw_c_rank">#</th>
+                            <th class="o_tw_sortable" t-on-click="() => this.sortBy('name')">
+                                <t t-out="this.state.data.dimension"/>
+                            </th>
+                            <th class="o_tw_c_trend">Trend</th>
+                            <th t-foreach="this.shownColumns" t-as="col" t-key="col.key"
+                                t-attf-class="o_tw_num o_tw_sortable {{ this.state.sort.key === col.key ? 'o_tw_sorted' : '' }}"
+                                t-on-click="() => this.sortBy(col.key)">
+                                <t t-out="col.label"/>
+                                <i t-if="this.state.sort.key === col.key"
+                                   t-attf-class="fa {{ this.state.sort.desc ? 'fa-sort-amount-desc' : 'fa-sort-amount-asc' }} ms-1"/>
+                            </th>
+                            <th class="o_tw_c_open"/>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="this.rows" t-as="row" t-key="row.key">
+                            <tr t-attf-class="o_tw_row {{ this.openOf(row) ? 'o_tw_row_open' : '' }}"
+                                t-on-click="() => this.toggleRow(row)">
+                                <td class="o_tw_c_rank"><span t-att-class="this.medal(row.rank)" t-out="row.rank"/></td>
+                                <td class="o_tw_c_name">
+                                    <div class="o_tw_name">
+                                        <i t-attf-class="fa {{ this.openOf(row) ? 'fa-caret-down' : 'fa-caret-right' }} o_tw_caret"/>
+                                        <span t-out="row.name"/>
+                                    </div>
+                                    <div class="o_tw_bar_track">
+                                        <div class="o_tw_bar_fill" t-att-style="this.barWidth(row)"/>
+                                    </div>
+                                </td>
+                                <td class="o_tw_c_trend">
+                                    <svg width="96" height="24" class="o_tw_spark" t-if="row.series.length > 1">
+                                        <polyline t-att-points="this.sparkPoints(row.series)"/>
+                                    </svg>
+                                </td>
+                                <td t-foreach="this.shownColumns" t-as="col" t-key="col.key"
+                                    t-attf-class="o_tw_num {{ col.key === 'trend' ? this.trendClass(row.trend) : '' }} {{ col.key === 'works' ? 'fw-bold' : '' }}"
+                                    t-out="this.cell(col.key, row[col.key])"/>
+                                <td class="o_tw_c_open">
+                                    <button class="btn btn-link btn-sm p-0" title="The order lines"
+                                            t-on-click.stop="() => this.openLines(row.key)"><i class="fa fa-list"/></button>
+                                    <button t-if="row.key" class="btn btn-link btn-sm p-0 ms-2" title="Open"
+                                            t-on-click.stop="() => this.openRecord(row)"><i class="fa fa-external-link"/></button>
+                                </td>
+                            </tr>
+                            <tr t-if="this.openOf(row)" class="o_tw_detail">
+                                <td/>
+                                <td t-att-colspan="this.shownColumns.length + 3">
+                                    <div t-if="this.openOf(row).loading" class="text-muted small">
+                                        <i class="fa fa-circle-o-notch fa-spin me-1"/>Loading...
+                                    </div>
+                                    <div t-else="" class="o_tw_break">
+                                        <div class="o_tw_break_head">
+                                            By <t t-out="this.openOf(row).dimension"/>
+                                        </div>
+                                        <div t-foreach="this.openOf(row).rows" t-as="item" t-key="item_index" class="o_tw_break_row">
+                                            <span class="o_tw_break_name" t-out="item.name"/>
+                                            <span class="o_tw_break_track"><span class="o_tw_break_fill" t-att-style="this.breakWidth(item)"/></span>
+                                            <span class="o_tw_break_n"><b t-out="this.number(item.works)"/> works</span>
+                                            <span class="o_tw_break_n"><t t-out="this.number(item.cases)"/> cases</span>
+                                            <span class="o_tw_break_n"><t t-out="this.number(item.teeth)"/> teeth</span>
+                                            <span class="o_tw_break_n text-muted" t-out="this.number(item.works_pct, 1) + '%'"/>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td/>
+                            <td>Total</td>
+                            <td/>
+                            <td t-foreach="this.shownColumns" t-as="col" t-key="col.key" class="o_tw_num"
+                                t-out="this.totalCell(col.key)"/>
+                            <td/>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- who worked when -->
+            <div t-else="" class="o_tw_heat_wrap">
+                <div class="o_tw_heat" t-attf-style="grid-template-columns: 180px repeat({{ this.state.data.period.points.length }}, minmax(14px, 1fr));">
+                    <div class="o_tw_heat_corner"/>
+                    <div t-foreach="this.state.data.period.point_labels" t-as="label" t-key="label_index"
+                         class="o_tw_heat_col" t-att-title="label" t-out="this.shortLabel(label)"/>
+                    <t t-foreach="this.heatRows" t-as="row" t-key="row.key">
+                        <div class="o_tw_heat_name" t-out="row.name" t-att-title="row.name"/>
+                        <div t-foreach="row.series" t-as="value" t-key="value_index"
+                             class="o_tw_heat_cell" t-att-style="this.heatStyle(value)"
+                             t-att-title="this.heatTitle(row, value_index, value)"/>
+                    </t>
+                </div>
+                <div class="o_tw_heat_note text-muted small">
+                    One square per <t t-out="this.state.data.period.unit"/>; the darker, the more works.
+                    <t t-if="this.rows.length > 60"> The 60 busiest are shown.</t>
+                </div>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

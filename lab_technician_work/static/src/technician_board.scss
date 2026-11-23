@@ -1,0 +1,269 @@
+// Technician Work screen. Flat: borders and solid tints, no gradients. Colours through
+// Odoo's own variables (no --bs- prefix in this backend), so dark mode follows.
+$tw-main: #017e84;
+$tw-plum: #714b67;
+$tw-ok: var(--success, #198754);
+$tw-bad: var(--danger, #dc3545);
+$tw-warn: var(--warning, #c98a00);
+$tw-line: var(--border-color, #dee2e6);
+$tw-muted: var(--secondary-color, #6c757d);
+$tw-soft: var(--tertiary-bg, #f4f6f7);
+
+.o_tw {
+    padding: 16px 20px 32px;
+    overflow: auto;
+    height: 100%;
+    background: var(--body-bg, #fff);
+
+    .o_tw_head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    .o_tw_eyebrow {
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-size: .72rem;
+        color: $tw-main;
+        font-weight: 700;
+    }
+    h2 { margin: 0; font-size: 1.6rem; font-weight: 700; }
+    .o_tw_sub { color: $tw-muted; font-size: .82rem; }
+    .o_tw_actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    // ------------------------------------------------------------------ filters
+    .o_tw_bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid $tw-line;
+        border-radius: 8px;
+        background: $tw-soft;
+        margin-bottom: 14px;
+    }
+    .o_tw_period { display: flex; align-items: center; gap: 2px; }
+    .o_tw_preset { min-width: 120px; font-weight: 600; }
+    .o_tw_drop { position: relative; }
+    .o_tw_filter {
+        border: 1px solid $tw-line;
+        background: var(--body-bg, #fff);
+        &.o_tw_filter_on { border-color: $tw-main; color: $tw-main; font-weight: 600; }
+    }
+    .o_tw_count {
+        display: inline-block;
+        min-width: 18px;
+        margin-left: 4px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: $tw-main;
+        color: #fff;
+        font-size: .72rem;
+        text-align: center;
+    }
+    .o_tw_seg {
+        display: inline-flex;
+        border: 1px solid $tw-line;
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--body-bg, #fff);
+
+        button {
+            border: 0;
+            background: transparent;
+            padding: 3px 10px;
+            font-size: .82rem;
+            color: inherit;
+            & + button { border-left: 1px solid $tw-line; }
+            &.o_tw_on { background: $tw-main; color: #fff; }
+        }
+        &.o_tw_seg_full { display: flex; button { flex: 1; } }
+    }
+    .o_tw_panel {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        z-index: 20;
+        width: 300px;
+        max-width: 90vw;
+        padding: 10px;
+        border: 1px solid $tw-line;
+        border-radius: 8px;
+        background: var(--body-bg, #fff);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+
+        &.o_tw_panel_right { left: auto; right: 0; width: 240px; }
+    }
+    .o_tw_panel_label { font-size: .72rem; text-transform: uppercase; color: $tw-muted; margin-bottom: 3px; }
+    .o_tw_presets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .o_tw_dates { display: flex; gap: 8px; label { flex: 1; font-size: .78rem; color: $tw-muted; } }
+    .o_tw_choices { max-height: 280px; overflow: auto; }
+    .o_tw_check {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 2px;
+        font-size: .85rem;
+        cursor: pointer;
+        &:hover { background: $tw-soft; }
+    }
+    .o_tw_choice_name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_tw_choice_n { color: $tw-muted; font-size: .75rem; }
+    .o_tw_backdrop { position: fixed; inset: 0; z-index: 10; }
+
+    .o_tw_loading { text-align: center; padding: 60px 0; color: $tw-muted; }
+
+    // ------------------------------------------------------------------ tiles
+    .o_tw_tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .o_tw_tile {
+        padding: 10px 12px;
+        border: 1px solid $tw-line;
+        border-left: 4px solid $tw-plum;
+        border-radius: 8px;
+        background: var(--body-bg, #fff);
+
+        &.o_tw_tile_main { border-left-color: $tw-main; cursor: pointer; }
+    }
+    .o_tw_tile_label { font-size: .76rem; color: $tw-muted; }
+    .o_tw_tile_value { font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
+    .o_tw_tile_delta { font-size: .76rem; font-weight: 600; min-height: 1em; }
+    .o_tw_up { color: $tw-ok; }
+    .o_tw_down { color: $tw-bad; }
+    .o_tw_flat { color: $tw-muted; }
+
+    // ------------------------------------------------------------------ insights
+    .o_tw_insights {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .o_tw_insight {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: $tw-soft;
+        font-size: .85rem;
+        i { margin-top: 3px; color: $tw-main; }
+        &.o_tw_tone_ok i { color: $tw-ok; }
+        &.o_tw_tone_warn i { color: $tw-warn; }
+        &.o_tw_tone_bad i { color: $tw-bad; }
+    }
+
+    // ------------------------------------------------------------------ tools
+    .o_tw_tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .o_tw_select {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: .8rem;
+        color: $tw-muted;
+        select { width: auto; }
+    }
+    .o_tw_search { width: 180px; }
+
+    // ------------------------------------------------------------------ leaderboard
+    .o_tw_table_wrap { overflow-x: auto; border: 1px solid $tw-line; border-radius: 8px; }
+    .o_tw_table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .86rem;
+
+        th, td { padding: 7px 10px; border-bottom: 1px solid $tw-line; vertical-align: middle; }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: $tw-soft;
+            font-size: .76rem;
+            text-transform: uppercase;
+            color: $tw-muted;
+            white-space: nowrap;
+            z-index: 1;
+        }
+        tfoot td { font-weight: 700; background: $tw-soft; border-bottom: 0; }
+    }
+    .o_tw_sortable { cursor: pointer; &:hover { color: $tw-main; } }
+    .o_tw_sorted { color: $tw-main !important; }
+    .o_tw_num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .o_tw_row { cursor: pointer; &:hover { background: $tw-soft; } }
+    .o_tw_row_open { background: $tw-soft; }
+    .o_tw_c_rank { width: 44px; text-align: center; }
+    .o_tw_c_trend { width: 110px; }
+    .o_tw_c_open { width: 60px; text-align: right; white-space: nowrap; }
+    .o_tw_c_name { min-width: 200px; }
+    .o_tw_name { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+    .o_tw_caret { color: $tw-muted; width: 10px; }
+    .o_tw_bar_track { height: 4px; margin-top: 4px; border-radius: 2px; background: $tw-line; }
+    .o_tw_bar_fill { height: 100%; border-radius: 2px; background: $tw-main; }
+    .o_tw_rank { color: $tw-muted; font-weight: 600; }
+    .o_tw_medal {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        border-radius: 50%;
+        color: #fff;
+        font-weight: 700;
+        font-size: .78rem;
+    }
+    .o_tw_medal_1 { background: #c8a400; }
+    .o_tw_medal_2 { background: #8d99a3; }
+    .o_tw_medal_3 { background: #b07445; }
+    .o_tw_spark polyline { fill: none; stroke: $tw-main; stroke-width: 1.6; }
+
+    .o_tw_detail td { background: $tw-soft; }
+    .o_tw_break_head { font-size: .72rem; text-transform: uppercase; color: $tw-muted; margin-bottom: 4px; }
+    .o_tw_break_row {
+        display: grid;
+        grid-template-columns: minmax(160px, 2fr) minmax(80px, 2fr) repeat(4, auto);
+        gap: 4px 14px;
+        align-items: center;
+        padding: 2px 0;
+        font-size: .82rem;
+    }
+    .o_tw_break_name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_tw_break_track { display: block; height: 6px; border-radius: 3px; background: $tw-line; }
+    .o_tw_break_fill { display: block; height: 100%; border-radius: 3px; background: $tw-plum; }
+    .o_tw_break_n { white-space: nowrap; text-align: right; }
+
+    .o_tw_empty { text-align: center; padding: 50px 0; color: $tw-muted; }
+
+    // ------------------------------------------------------------------ heatmap
+    .o_tw_heat_wrap { overflow-x: auto; border: 1px solid $tw-line; border-radius: 8px; padding: 10px; }
+    .o_tw_heat { display: grid; gap: 2px; min-width: 600px; }
+    .o_tw_heat_col { font-size: .62rem; color: $tw-muted; text-align: center; overflow: hidden; white-space: nowrap; }
+    .o_tw_heat_name {
+        font-size: .78rem;
+        padding-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 16px;
+    }
+    .o_tw_heat_cell { height: 16px; border-radius: 3px; background-color: $tw-soft; }
+    .o_tw_heat_note { margin-top: 8px; }
+
+    @include media-breakpoint-down(md) {
+        padding: 10px;
+        h2 { font-size: 1.25rem; }
+        .o_tw_search { width: 100%; }
+        .o_tw_break_row { grid-template-columns: 1fr auto auto; .o_tw_break_track, .o_tw_break_n:nth-child(n+5) { display: none; } }
+    }
+}
