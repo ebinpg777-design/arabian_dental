@@ -27,7 +27,19 @@ class AccountPayment(models.Model):
     approval_note = fields.Char('Approval Remark', copy=False, tracking=True)
     cheque_id = fields.Many2one(
         'lab.cheque', string='Cheque', copy=False, readonly=True, index='btree_not_null',
-        help="The cheque whose clearing produced this payment.")
+        help="The cheque this payment books.")
+    lab_cheque_holding = fields.Boolean(
+        string='Cheque in Hand', readonly=True, copy=False,
+        help="Booked when the cheque was received: its money waits in the bank's Cheques "
+             "in Hand (PDC) account until the cheque is deposited.")
+
+    @api.depends('cheque_id', 'lab_cheque_holding', 'journal_id')
+    def _compute_outstanding_account_id(self):
+        super()._compute_outstanding_account_id()
+        for payment in self.filtered('lab_cheque_holding'):
+            account = payment.journal_id.lab_pdc_account_id
+            if account:
+                payment.outstanding_account_id = account
 
     # ------------------------------------------------------------------ policy
     def _approval_settings(self):

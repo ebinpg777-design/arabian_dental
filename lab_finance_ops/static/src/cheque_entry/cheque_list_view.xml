@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="lab_finance_ops.ChequeListView.Buttons" t-inherit="web.ListView.Buttons" t-inherit-mode="primary">
+        <xpath expr="." position="inside">
+            <button t-if="this.showChequeEntry and !this.editedRecord" type="button"
+                    class="btn btn-secondary o_lab_add_cheque" t-on-click="() => this.openChequeEntry()">
+                <i class="fa fa-money me-1"/>Add Cheque
+            </button>
+        </xpath>
+    </t>
+
+    <t t-name="lab_finance_ops.ChequeListRenderer" t-inherit="web.ListRenderer" t-inherit-mode="primary">
+        <xpath expr="//div[@t-ref='this.rootRef']" position="before">
+            <ChequeStrip t-if="this.showChequeStrip"/>
+        </xpath>
+    </t>
+
+    <t t-name="lab_finance_ops.ChequeStrip">
+        <div t-if="this.state.allowed and this.state.summary" class="o_lab_cheque_strip">
+            <span class="o_lab_cheque_strip_title"><i class="fa fa-money me-1"/>Cheques</span>
+            <button t-foreach="this.tiles" t-as="tile" t-key="tile.key" type="button"
+                    class="o_lab_cheque_tile" t-att-class="tile.kind and ('o_lab_cheque_tile_' + tile.kind)"
+                    t-att-disabled="!tile.count" t-on-click="() => this.open(tile)">
+                <span class="o_lab_cheque_tile_label" t-out="tile.label"/>
+                <span class="o_lab_cheque_tile_value"><b t-out="tile.count"/>
+                    <t t-if="tile.count"> · <t t-out="this.money(tile.amount)"/></t></span>
+            </button>
+        </div>
+    </t>
+
+</templates>

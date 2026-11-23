@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-from datetime import date
+import importlib.util
+import os
+from datetime import date, timedelta
 
 from odoo.exceptions import UserError, ValidationError
+from odoo.modules.module import get_module_path
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -50,6 +53,10 @@ class TestLabFinanceOps(TransactionCase):
         cls.bank_journal.inbound_payment_method_line_ids.filtered(
             lambda l: not l.payment_account_id
         ).payment_account_id = cls.acc_outstanding.id
+        # the bank's Cheques in Hand (PDC) account: a cheque waits here from the day it is
+        # received to the day it is deposited (2026-11-23)
+        cls.acc_pdc = account('T10150', 'PDC - Test Bank', 'asset_current', True)
+        cls.bank_journal.lab_pdc_account_id = cls.acc_pdc
 
         cls.clinic = cls.env['res.partner'].create({
             'name': 'Test Clinic', 'is_company': True, 'is_clinic': True,
@@ -154,6 +161,180 @@ class TestLabFinanceOps(TransactionCase):
         from datetime import timedelta
         cheque = self._cheque(1000.0, cheque_date=self.today + timedelta(days=30))
         self.assertTrue(cheque.is_post_dated)
+
+    # ------------------------------------------------- settled when received, banked when deposited
+    # client, 2026-11-23: "the customer invoices should be matched with postdated cheques on
+    # the date of cheque received. bank account will reflect on the date when the cheque
+    # deposited in the bank"
+    def _lines(self, account, move=None):
+        domain = [('account_id', '=', account.id), ('parent_state', '=', 'posted')]
+        if move:
+            domain.append(('move_id', '=', move.id))
+        return self.env['account.move.line'].search(domain)
+
+    def _received(self, amount=2000.0, days_ago=10, **vals):
+        invoice = self._invoice(amount)
+        cheque = self._cheque(amount, received_date=self.today - timedelta(days=days_ago),
+                              cheque_date=self.today + timedelta(days=20),
+                              allocation_ids=[(0, 0, {'move_id': invoice.id, 'amount': amount})], **vals)
+        return invoice, cheque
+
+    def test_the_invoices_are_settled_on_the_day_the_cheque_is_received(self):
+        invoice, cheque = self._received(days_ago=10)
+        self.assertEqual(cheque.accounting, 'holding')
+        cheque.action_confirm_receipt()
+        payment = cheque.payment_id
+        invoice.invalidate_recordset()
+        self.assertEqual(payment.date, self.today - timedelta(days=10), "dated the received day")
+        self.assertEqual(payment.outstanding_account_id, self.acc_pdc, "the money waits in the PDC account")
+        self.assertEqual(invoice.amount_residual, 0.0)
+        self.assertFalse(self._lines(self.bank_journal.default_account_id, payment.move_id), "nothing in the bank yet")
+        self.assertTrue(cheque.receipt_booked)
+
+    def test_the_bank_shows_it_from_the_day_it_is_deposited(self):
+        invoice, cheque = self._received(days_ago=10)
+        cheque.action_confirm_receipt()
+        cheque.deposit_date = self.today - timedelta(days=3)
+        cheque.action_deposit()
+        deposit = cheque.deposit_move_id
+        self.assertEqual(deposit.date, self.today - timedelta(days=3))
+        bank_line = self._lines(self.bank_journal.default_account_id, deposit)
+        self.assertEqual(bank_line.balance, 2000.0)
+        pdc = self._lines(self.acc_pdc, deposit) | self._lines(self.acc_pdc, cheque.payment_id.move_id)
+        self.assertTrue(all(pdc.mapped('reconciled')), "the PDC account is matched out")
+        self.assertEqual(sum(pdc.mapped('balance')), 0.0)
+        cheque.action_clear()
+        self.assertEqual(cheque.state, 'cleared')
+        self.assertEqual(len(self.env['account.payment'].search([('cheque_id', '=', cheque.id)])), 1,
+                         "clearing books nothing more")
+
+    def test_depositing_a_cheque_not_yet_received_receives_it_first(self):
+        invoice, cheque = self._received(days_ago=4)
+        cheque.action_deposit()
+        invoice.invalidate_recordset()
+        self.assertEqual(cheque.payment_id.date, self.today - timedelta(days=4))
+        self.assertEqual(cheque.deposit_move_id.date, self.today)
+        self.assertEqual(invoice.amount_residual, 0.0)
+
+    def test_a_deposit_date_must_be_between_receipt_and_today(self):
+        _invoice, cheque = self._received(days_ago=4)
+        cheque.deposit_date = self.today + timedelta(days=1)
+        with self.assertRaises(UserError):
+            cheque.action_deposit()
+        cheque.deposit_date = self.today - timedelta(days=9)
+        with self.assertRaises(UserError):
+            cheque.action_deposit()
+
+    def test_a_bounce_reverses_the_bank_and_reopens_the_invoices(self):
+        invoice, cheque = self._received(days_ago=10)
+        cheque.action_deposit()
+        cheque.bounce_reason = 'Insufficient funds'
+        cheque.action_bounce()
+        invoice.invalidate_recordset()
+        self.assertEqual(invoice.payment_state, 'not_paid')
+        self.assertEqual(cheque.payment_id.state, 'rejected')
+        self.assertEqual(sum(self._lines(self.bank_journal.default_account_id).filtered(
+            lambda l: l.move_id in (cheque.deposit_move_id | cheque.deposit_move_id.reversal_move_ids)).mapped('balance')), 0.0)
+        self.assertEqual(cheque.deposit_move_id.reversal_move_ids.date, self.today, "reversed the day it bounced")
+        # presented again: back in hand today, settled again when received
+        cheque.action_draft()
+        self.assertEqual((cheque.state, cheque.payment_id, cheque.received_date), ('received', self.env['account.payment'], self.today))
+        cheque.action_confirm_receipt()
+        invoice.invalidate_recordset()
+        self.assertEqual(invoice.amount_residual, 0.0)
+
+    def test_a_received_cheque_cancelled_reopens_its_invoices_but_a_deposited_one_bounces(self):
+        invoice, cheque = self._received()
+        cheque.action_confirm_receipt()
+        cheque.action_cancel()
+        invoice.invalidate_recordset()
+        self.assertEqual((cheque.state, invoice.payment_state), ('cancel', 'not_paid'))
+        _invoice, banked = self._received()
+        banked.action_deposit()
+        with self.assertRaises(UserError):
+            banked.action_cancel()
+
+    def test_a_cheque_in_the_books_keeps_what_it_settled(self):
+        invoice, cheque = self._received()
+        cheque.action_confirm_receipt()
+        with self.assertRaises(UserError):
+            cheque.amount = 2500.0
+        with self.assertRaises(UserError):
+            cheque.allocation_ids.amount = 1000.0
+        cheque.note = 'Handed over at the counter'
+        cheque.amount = 2000.0  # the same value is not a change
+
+    def test_a_bank_without_a_pdc_account_is_named(self):
+        _invoice, cheque = self._received()
+        cheque.journal_id.lab_pdc_account_id = False
+        with self.assertRaisesRegex(UserError, 'Cheques in Hand'):
+            cheque.action_confirm_receipt()
+
+    def test_each_invoice_is_settled_for_what_was_allocated_to_it(self):
+        first, second = self._invoice(2000.0), self._invoice(2000.0)
+        cheque = self._cheque(3000.0, allocation_ids=[
+            (0, 0, {'move_id': first.id, 'amount': 1000.0}),
+            (0, 0, {'move_id': second.id, 'amount': 2000.0})])
+        cheque.action_confirm_receipt()
+        (first | second).invalidate_recordset()
+        if hasattr(self.env['account.move.line'], '_reconcile_up_to'):
+            self.assertEqual((first.amount_residual, second.amount_residual), (1000.0, 0.0))
+
+    def test_a_cheque_recorded_the_old_way_is_not_paid_twice(self):
+        """Every in-hand cheque brought over from Odoo 17 carries the receipt Odoo 17 posted."""
+        old_receipt = self._payment(1500.0)
+        old_receipt.action_post()
+        cheque = self._cheque(1500.0)
+        cheque.write({'accounting': 'clearing', 'payment_id': old_receipt.id})
+        cheque.action_deposit()
+        cheque.action_clear()
+        self.assertEqual(cheque.payment_id, old_receipt)
+        self.assertFalse(cheque.deposit_move_id)
+        self.assertFalse(self.env['account.payment'].search([('cheque_id', '=', cheque.id)]))
+
+    def test_the_add_cheque_card(self):
+        Cheque = self.env['lab.cheque']
+        first, second = self._invoice(1000.0), self._invoice(1500.0)
+        empty = Cheque.lab_cheque_entry_data()
+        self.assertIn(self.bank_journal.id, [j['id'] for j in empty['journals'] if j['pdc']])
+        data = Cheque.lab_cheque_entry_data(self.clinic.id)
+        offered = {i['id']: i['open'] for i in data['invoices']}
+        self.assertEqual((offered.get(first.id), offered.get(second.id)), (1000.0, 1500.0))
+        made = Cheque.lab_cheque_quick_create({
+            'partner_id': self.clinic.id, 'cheque_number': '000164', 'amount': 2500.0,
+            'cheque_date': str(self.today + timedelta(days=30)), 'received_date': str(self.today),
+            'bank_name': 'Federal Bank', 'journal_id': self.bank_journal.id, 'state': 'cleared',
+        }, [{'move_id': first.id, 'amount': 1000.0}, {'move_id': second.id, 'amount': 1500.0}])
+        cheque = Cheque.browse(made['id'])
+        (first | second).invalidate_recordset()
+        self.assertEqual(cheque.state, 'received', "only what the card may set is set")
+        self.assertTrue(made['payment'])
+        self.assertEqual(first.amount_residual + second.amount_residual, 0.0)
+        again = Cheque.lab_cheque_entry_data(self.clinic.id)
+        self.assertEqual(again['last']['bank_name'], 'Federal Bank', "the next cheque remembers the bank")
+        self.assertIn('000164', again['numbers'])
+        summary = Cheque.lab_cheque_summary()
+        self.assertGreaterEqual(summary['in_hand']['count'], 1)
+        self.assertEqual(Cheque.search_count(summary['week']['domain'] + [('id', '=', cheque.id)]), 0,
+                         "a month away is not due this week")
+
+    def test_the_upgrade_keeps_recorded_cheques_and_finds_each_banks_pdc_account(self):
+        path = os.path.join(get_module_path('lab_finance_ops'), 'migrations', '20.0.1.1.0', 'post-migrate.py')
+        spec = importlib.util.spec_from_file_location('lab_finance_ops_pdc_post_migrate', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        cheque = self._cheque(1000.0)
+        bank_account = self.env['account.account'].create({
+            'code': 'T10160', 'name': 'KGB OD Account', 'account_type': 'asset_cash'})
+        pdc = self.env['account.account'].create({
+            'code': 'T10161', 'name': 'PDC -KGB OD ACC', 'account_type': 'asset_current', 'reconcile': True})
+        journal = self.env['account.journal'].create({
+            'name': 'KGB TEST', 'code': 'TKGB', 'type': 'bank', 'default_account_id': bank_account.id})
+        self.env.flush_all()
+        module.migrate(self.env.cr, '20.0.1.0.2')
+        self.env.invalidate_all()
+        self.assertEqual(cheque.accounting, 'clearing')
+        self.assertEqual(journal.lab_pdc_account_id, pdc)
 
     # ------------------------------------------------------------------ approval
     def _require_approval(self, threshold='1000'):

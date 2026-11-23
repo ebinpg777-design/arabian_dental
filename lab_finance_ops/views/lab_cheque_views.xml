@@ -8,7 +8,12 @@
                 <header>
                     <button name="action_load_open_invoices" type="object"
                             string="Allocate to Open Invoices" class="btn-secondary"
-                            invisible="state != 'received'"/>
+                            invisible="state != 'received' or receipt_booked"/>
+                    <!-- Settle the allocated invoices now, dated the received day; the cheque
+                         waits in the bank's PDC account until it is deposited (2026-11-23). -->
+                    <button name="action_confirm_receipt" type="object" string="Confirm Receipt"
+                            class="btn-primary"
+                            invisible="state != 'received' or accounting != 'holding' or receipt_booked"/>
                     <button name="action_deposit" type="object" string="Deposit"
                             class="btn-primary" invisible="state != 'received'"/>
                     <button name="action_clear" type="object" string="Mark Cleared"
@@ -30,11 +35,21 @@
                                 icon="fa-money" invisible="not payment_id">
                             <span class="o_stat_text">Payment</span>
                         </button>
+                        <button name="action_view_deposit" type="object" class="oe_stat_button"
+                                icon="fa-university" invisible="not deposit_move_id">
+                            <span class="o_stat_text">Deposit Entry</span>
+                        </button>
                     </div>
                     <widget name="web_ribbon" title="Post-dated" bg_color="text-bg-warning"
                             invisible="not is_post_dated or state != 'received'"/>
                     <widget name="web_ribbon" title="Bounced" bg_color="text-bg-danger"
                             invisible="state != 'bounced'"/>
+                    <div class="alert alert-info d-flex align-items-center gap-2" role="status"
+                         invisible="not receipt_booked or state != 'received'">
+                        <i class="fa fa-check-circle" title="Received"/>
+                        <span>The allocated invoices are settled as of the received date. The cheque
+                            waits in the bank's Cheques in Hand (PDC) account until it is deposited.</span>
+                    </div>
                     <div class="oe_title">
                         <label for="cheque_number"/>
                         <h1><field name="cheque_number" placeholder="Cheque number"/></h1>
@@ -53,13 +68,19 @@
                             <field name="is_post_dated" invisible="1"/>
                             <field name="received_date"/>
                             <field name="collected_by_id"/>
-                            <field name="journal_id" required="state != 'received'"/>
+                            <field name="journal_id" required="state != 'received' or accounting == 'holding'"
+                                   options="{'no_create': True}"/>
+                            <field name="deposit_date" readonly="state != 'received'"
+                                   placeholder="Today, when deposited"/>
+                            <field name="accounting" invisible="1"/>
+                            <field name="receipt_booked" invisible="1"/>
+                            <field name="deposit_move_id" invisible="1"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
                     <notebook>
                         <page string="Invoice-wise Allocation" name="allocation">
-                            <field name="allocation_ids" readonly="state != 'received'">
+                            <field name="allocation_ids" readonly="state != 'received' or receipt_booked">
                                 <list editable="bottom">
                                     <field name="move_id"
                                            domain="[('partner_id', 'child_of', parent.partner_id),
@@ -83,9 +104,10 @@
                             <group>
                                 <field name="bounce_reason"
                                        required="state == 'bounced'"/>
-                                <field name="deposit_date"/>
                                 <field name="clear_date"/>
                                 <field name="payment_id"/>
+                                <field name="deposit_move_id"/>
+                                <field name="accounting" readonly="1"/>
                             </group>
                             <field name="note" placeholder="Internal notes..."/>
                         </page>
@@ -100,7 +122,7 @@
         <field name="name">lab.cheque.list</field>
         <field name="model">lab.cheque</field>
         <field name="arch" type="xml">
-            <list decoration-danger="state == 'bounced'"
+            <list js_class="lab_cheque_list" decoration-danger="state == 'bounced'"
                   decoration-success="state == 'cleared'"
                   decoration-warning="is_post_dated and state == 'received'"
                   decoration-muted="state == 'cancel'">

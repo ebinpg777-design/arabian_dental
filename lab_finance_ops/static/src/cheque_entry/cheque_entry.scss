@@ -1,0 +1,97 @@
+// Add Cheque card and the cheques strip (2026-11-23). Flat, the backend's own colours.
+
+.o_lab_cheque_entry {
+    .o_lab_cheque_card {
+        border: 1px solid $border-color;
+        border-left: 4px solid $primary;
+        border-radius: .5rem;
+        background: $o-gray-100;
+        padding: 1rem 1.1rem .8rem;
+    }
+    .o_lab_cheque_row { margin-bottom: .75rem; }
+    .o_lab_cheque_split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: .9rem;
+    }
+    .o_lab_cheque_label {
+        display: block;
+        font-size: .75rem;
+        font-weight: 600;
+        color: $o-gray-600;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        margin-bottom: .2rem;
+    }
+    .o_lab_cheque_partner .o_input { font-size: 1.05rem; }
+    .o_lab_cheque_number { font-family: $font-family-monospace; letter-spacing: .08em; }
+    .o_lab_cheque_amount { font-size: 1.35rem; font-weight: 600; max-width: 16rem; }
+    .o_lab_cheque_words { min-height: 1.2rem; margin-top: .25rem; font-style: italic; color: $o-gray-700; }
+    .o_lab_cheque_warn { font-size: .75rem; color: $danger; margin-top: .2rem; }
+    .o_lab_cheque_hint { font-size: .8rem; color: $o-gray-600; }
+    .o_lab_cheque_chip {
+        display: inline-block;
+        margin-top: .3rem;
+        padding: 0 .5rem;
+        border-radius: 1rem;
+        font-size: .75rem;
+        font-weight: 600;
+        background: $o-gray-200;
+        color: $o-gray-700;
+    }
+    .o_lab_cheque_chip_post { background: rgba($info, .15); color: darken($info, 15%); }
+    .o_lab_cheque_chip_due { background: rgba($success, .15); color: darken($success, 12%); }
+    .o_lab_cheque_chip_stale { background: rgba($warning, .2); color: darken($warning, 25%); }
+
+    .o_lab_cheque_bank {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 12rem);
+        gap: .9rem;
+        margin: 1rem 0 .5rem;
+    }
+    .o_lab_cheque_bank_note { grid-column: 1 / -1; font-size: .75rem; color: $o-gray-600; }
+
+    .o_lab_cheque_invoices { border-top: 1px solid $border-color; padding-top: .75rem; }
+    .o_lab_cheque_invoices_head { display: flex; align-items: center; margin-bottom: .4rem; }
+    .o_lab_cheque_table { margin-bottom: .4rem; }
+    .o_lab_cheque_table td { vertical-align: middle; }
+    .o_lab_cheque_line { max-width: 8rem; margin-left: auto; }
+    .o_lab_cheque_picked { background: rgba($primary, .05); }
+    .o_lab_cheque_totals { display: flex; justify-content: space-between; font-size: .85rem; }
+    .o_lab_cheque_saved { margin-top: .6rem; font-size: .8rem; color: $success; }
+    .o_lab_cheque_problem { font-size: .8rem; color: $o-gray-600; margin-left: auto; }
+
+    @include media-breakpoint-down(sm) {
+        .o_lab_cheque_split, .o_lab_cheque_bank { grid-template-columns: minmax(0, 1fr); }
+    }
+}
+
+.o_lab_cheque_strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid $border-color;
+    background: $o-gray-100;
+
+    .o_lab_cheque_strip_title { font-weight: 600; color: $o-gray-700; margin-right: .25rem; }
+    .o_lab_cheque_tile {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 7.5rem;
+        padding: .3rem .7rem;
+        border: 1px solid $border-color;
+        border-radius: .4rem;
+        background: $o-view-background-color;
+        text-align: left;
+
+        &:hover:not(:disabled) { border-color: $primary; }
+        &:disabled { opacity: .6; cursor: default; }
+    }
+    .o_lab_cheque_tile_label { font-size: .7rem; color: $o-gray-600; text-transform: uppercase; }
+    .o_lab_cheque_tile_value { font-size: .85rem; }
+    .o_lab_cheque_tile_warn { border-color: $warning; .o_lab_cheque_tile_label { color: darken($warning, 25%); } }
+    .o_lab_cheque_tile_bad { border-color: $danger; .o_lab_cheque_tile_label { color: $danger; } }
+}

@@ -48,6 +48,11 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_tree"/>
         <field name="arch" type="xml">
+            <!-- Customer Payments: Add Cheque, and the cheques strip above the list (2026-11-23).
+                 Vendor payments share this view; the widget shows itself for customers only. -->
+            <xpath expr="/list" position="attributes">
+                <attribute name="js_class">lab_cheque_list</attribute>
+            </xpath>
             <field name="state" position="before">
                 <field name="approval_state" widget="badge" optional="show"
                        decoration-success="approval_state == 'approved'"

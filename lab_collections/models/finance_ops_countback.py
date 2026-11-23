@@ -7,9 +7,8 @@ ledger receipts are journal entries that never reconcile, so a paid invoice
 keeps its whole residual: the EOD page and the cheque allocation both saw money
 owed that had long been paid. (2026-09-15)
 """
-from odoo import _, models
-from odoo.exceptions import UserError
-from odoo.tools import float_compare, float_is_zero
+from odoo import models
+from odoo.tools import float_compare
 
 
 class LabEodReport(models.TransientModel):
@@ -28,11 +27,10 @@ class LabEodReport(models.TransientModel):
 class LabCheque(models.Model):
     _inherit = 'lab.cheque'
 
-    def action_load_open_invoices(self):
-        """The clinic's invoices still open after the countback, oldest first."""
+    def _open_invoice_amounts(self):
+        """The clinic's invoices still open after the countback, oldest first: the
+        allocation grid, and the Add Cheque card, offer these."""
         self.ensure_one()
-        if self.state != 'received':
-            raise UserError(_("Invoices can only be allocated while the cheque is in hand."))
         commercial = self.partner_id.commercial_partner_id
         partner_ids = self.env['res.partner'].with_context(active_test=False).search(
             [('id', 'child_of', commercial.id)]).ids
@@ -48,21 +46,6 @@ class LabCheque(models.Model):
             ('move_type', '=', 'out_invoice'),
             ('state', '=', 'posted'),
         ], order='invoice_date, id')
-        self.allocation_ids.unlink()
-        remaining = self.amount
-        lines = []
         rounding = self.currency_id.rounding or 0.01
-        for move in moves:
-            if float_is_zero(remaining, precision_rounding=rounding):
-                break
-            due = open_by_move[move.id]
-            if float_compare(due, 0.0, precision_rounding=rounding) <= 0:
-                continue
-            take = min(due, remaining)
-            lines.append((0, 0, {'move_id': move.id, 'amount': take}))
-            remaining -= take
-        if not lines:
-            raise UserError(_("%s has no open invoices to allocate this cheque against.",
-                              self.partner_id.display_name))
-        self.allocation_ids = lines
-        return True
+        return [(move, open_by_move[move.id]) for move in moves
+                if float_compare(open_by_move[move.id], 0.0, precision_rounding=rounding) > 0]

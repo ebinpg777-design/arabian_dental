@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="lab_finance_ops.ChequeEntryDialog">
+        <Dialog title="'Add a cheque'" size="'lg'" contentClass="'o_lab_cheque_entry'">
+            <div t-if="this.state.loading and !this.state.data" class="text-muted p-3">Loading…</div>
+            <t t-else="">
+                <!-- The cheque, as held in the hand -->
+                <div class="o_lab_cheque_card">
+                    <div class="o_lab_cheque_row">
+                        <label class="o_lab_cheque_label">Received from</label>
+                        <div class="o_lab_cheque_partner">
+                            <RecordSelector resModel="'res.partner'" resId="this.state.partnerId"
+                                            update="(id) => this.setPartner(id)" domain="this.partnerDomain"
+                                            placeholder="'Clinic or doctor'"/>
+                        </div>
+                    </div>
+                    <div class="o_lab_cheque_row o_lab_cheque_split">
+                        <div>
+                            <label class="o_lab_cheque_label">Cheque no.</label>
+                            <input type="text" class="form-control o_lab_cheque_number" inputmode="numeric"
+                                   t-att-value="this.state.number" placeholder="000123"
+                                   t-on-input="(ev) => this.state.number = ev.target.value"/>
+                            <div t-if="this.duplicate" class="o_lab_cheque_warn">Already recorded for this clinic</div>
+                        </div>
+                        <div>
+                            <label class="o_lab_cheque_label">Date on the cheque</label>
+                            <DateTimeInput type="'date'" value="this.state.chequeDate"
+                                           onChange="(v) => v and (this.state.chequeDate = v)"/>
+                            <span t-if="this.dateChip" class="o_lab_cheque_chip"
+                                  t-att-class="'o_lab_cheque_chip_' + this.dateChip.kind" t-out="this.dateChip.label"/>
+                        </div>
+                    </div>
+                    <div class="o_lab_cheque_row">
+                        <label class="o_lab_cheque_label">Amount</label>
+                        <input type="text" class="form-control o_lab_cheque_amount" inputmode="decimal"
+                               t-att-value="this.state.amountText" placeholder="0.00"
+                               t-on-input="(ev) => this.onAmount(ev)"/>
+                        <div class="o_lab_cheque_words" t-out="this.words"/>
+                    </div>
+                    <div class="o_lab_cheque_row o_lab_cheque_split">
+                        <div>
+                            <label class="o_lab_cheque_label">Drawn on (bank)</label>
+                            <input type="text" class="form-control" t-att-value="this.state.bank"
+                                   placeholder="Federal Bank" t-on-input="(ev) => this.state.bank = ev.target.value"/>
+                        </div>
+                        <div>
+                            <label class="o_lab_cheque_label">Branch</label>
+                            <input type="text" class="form-control" t-att-value="this.state.branch"
+                                   t-on-input="(ev) => this.state.branch = ev.target.value"/>
+                        </div>
+                    </div>
+                    <div t-if="this.state.data.last and this.state.partnerId" class="o_lab_cheque_hint">
+                        <i class="fa fa-history me-1"/>Last cheque <b t-out="this.state.data.last.cheque_number"/>
+                        for <t t-out="this.money(this.state.data.last.amount)"/>
+                        <t t-if="this.state.data.in_hand.count"> · <b t-out="this.state.data.in_hand.count"/> in hand
+                            (<t t-out="this.money(this.state.data.in_hand.amount)"/>)</t>
+                    </div>
+                </div>
+
+                <!-- Where it goes, and when -->
+                <div class="o_lab_cheque_bank">
+                    <div>
+                        <label class="o_lab_cheque_label">Deposit into</label>
+                        <select class="form-select" t-on-change="(ev) => this.setJournal(ev)">
+                            <option t-foreach="this.state.data.journals" t-as="j" t-key="j.id" t-att-value="j.id"
+                                    t-att-selected="j.id === this.state.journalId">
+                                <t t-out="j.name"/><t t-if="!j.pdc"> (no PDC account)</t>
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="o_lab_cheque_label">Received on</label>
+                        <DateTimeInput type="'date'" value="this.state.receivedDate"
+                                       onChange="(v) => v and (this.state.receivedDate = v)"/>
+                    </div>
+                    <div class="o_lab_cheque_bank_note">
+                        Invoices are settled on the received date; the bank shows the money from the day it is deposited.
+                    </div>
+                </div>
+
+                <!-- What it settles -->
+                <div class="o_lab_cheque_invoices">
+                    <div class="o_lab_cheque_invoices_head">
+                        <b>Settles</b>
+                        <span t-if="this.state.manual" class="ms-auto">
+                            <a href="#" t-on-click.prevent="() => this.resetAllocation()">Oldest first again</a>
+                        </span>
+                    </div>
+                    <div t-if="!this.state.partnerId" class="text-muted small">Choose the clinic to see its open invoices.</div>
+                    <div t-elif="!this.state.invoices.length" class="text-muted small">No open invoices: the cheque stays as credit on the clinic's account.</div>
+                    <table t-else="" class="table table-sm o_lab_cheque_table">
+                        <thead>
+                            <tr><th/><th>Invoice</th><th>Date</th><th class="text-end">Open</th><th class="text-end">Settle</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="this.state.invoices" t-as="inv" t-key="inv.id"
+                                t-att-class="{'o_lab_cheque_picked': inv.picked}">
+                                <td><input type="checkbox" class="form-check-input" t-att-checked="inv.picked"
+                                           t-on-change="() => this.togglePick(inv)"/></td>
+                                <td t-out="inv.name"/>
+                                <td t-out="inv.date"/>
+                                <td class="text-end" t-out="this.money(inv.open)"/>
+                                <td class="text-end">
+                                    <input type="text" class="form-control form-control-sm text-end o_lab_cheque_line"
+                                           inputmode="decimal" t-att-value="inv.picked ? inv.amount : ''"
+                                           t-on-change="(ev) => this.onLineAmount(inv, ev)"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="o_lab_cheque_totals">
+                        <span>Settles <b t-out="this.money(this.allocated)"/></span>
+                        <span t-att-class="{'text-danger': this.leftOver &lt; -0.001}">
+                            <t t-if="this.leftOver &gt;= 0">Left as credit <b t-out="this.money(this.leftOver)"/></t>
+                            <t t-else="">Over by <b t-out="this.money(-this.leftOver)"/></t>
+                        </span>
+                    </div>
+                </div>
+                <div t-if="this.state.saved.length" class="o_lab_cheque_saved">
+                    <i class="fa fa-check me-1"/>Saved: <t t-out="this.state.saved.join(', ')"/>
+                </div>
+            </t>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-att-disabled="!!this.problem or this.state.saving"
+                        t-on-click="() => this.save(false)">Save &amp; Receive</button>
+                <button class="btn btn-secondary" t-att-disabled="!!this.problem or this.state.saving"
+                        t-on-click="() => this.save(true)"
+                        title="Same clinic, bank and amount; the next number, a month later">Save &amp; Next Cheque</button>
+                <button class="btn btn-link" t-on-click="() => this.props.close()">Close</button>
+                <span t-if="this.problem and this.state.data" class="o_lab_cheque_problem" t-out="this.problem"/>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

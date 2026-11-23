@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Finance Ops — Cheques, Approvals, Daybook & EOD',
-    'version': '20.0.1.0.2',
+    'version': '20.0.1.1.0',
     'category': 'Accounting/Accounting',
     'summary': 'Cheque register with invoice-wise allocation, multi-step payment approval, '
                'daybook, doctor-wise outstanding and a consolidated end-of-day report',
@@ -38,6 +38,7 @@ the client expects to find them.
         'security/lab_finance_ops_security.xml',
         'data/ir_sequence_data.xml',
         'views/lab_cheque_views.xml',
+        'views/account_journal_views.xml',
         'views/lab_finance_lockdown_views.xml',
         'views/account_payment_views.xml',
         'views/lab_outstanding_report_views.xml',
@@ -49,6 +50,15 @@ the client expects to find them.
         'views/lab_finance_ops_menus.xml',
         'security/ir.access.csv',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'lab_finance_ops/static/src/cheque_entry/cheque_entry.scss',
+            'lab_finance_ops/static/src/cheque_entry/cheque_entry_dialog.js',
+            'lab_finance_ops/static/src/cheque_entry/cheque_entry_dialog.xml',
+            'lab_finance_ops/static/src/cheque_entry/cheque_list_view.js',
+            'lab_finance_ops/static/src/cheque_entry/cheque_list_view.xml',
+        ],
+    },
     'installable': True,
     'application': False,
     'license': 'LGPL-3',
