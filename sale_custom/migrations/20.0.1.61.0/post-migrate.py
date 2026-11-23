@@ -19,6 +19,10 @@ _logger = logging.getLogger(__name__)
 def migrate(cr, version):
     if not version:
         return
+    # Deleting a calendar block makes PostgreSQL check mrp_workorder.leave_id, which
+    # core leaves unindexed: 82k deletes each scanning 88k steps ran 17 minutes on live
+    # before it was stopped (2026-11-23). With the index it is seconds.
+    cr.execute("CREATE INDEX IF NOT EXISTS mrp_workorder__leave_id_lab_index ON mrp_workorder (leave_id)")
     cr.execute("""
         CREATE TEMP TABLE lab_unplanned_steps AS
         SELECT wo.id, wo.leave_id, wo.production_id
