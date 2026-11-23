@@ -205,7 +205,6 @@ $tw-soft: var(--tertiary-bg, #f4f6f7);
     .o_tw_row { cursor: pointer; &:hover { background: $tw-soft; } }
     .o_tw_row_open { background: $tw-soft; }
     .o_tw_c_rank { width: 44px; text-align: center; }
-    .o_tw_c_trend { width: 110px; }
     .o_tw_c_open { width: 60px; text-align: right; white-space: nowrap; }
     .o_tw_c_name { min-width: 200px; }
     .o_tw_name { display: flex; align-items: center; gap: 6px; font-weight: 600; }
@@ -226,7 +225,8 @@ $tw-soft: var(--tertiary-bg, #f4f6f7);
     .o_tw_medal_1 { background: #c8a400; }
     .o_tw_medal_2 { background: #8d99a3; }
     .o_tw_medal_3 { background: #b07445; }
-    .o_tw_spark polyline { fill: none; stroke: $tw-main; stroke-width: 1.6; }
+    .o_tw_total_note { font-weight: 400; font-size: .72rem; color: $tw-muted; margin-left: 6px; }
+    .o_tw_footnote { padding: 8px 12px; font-size: .78rem; color: $tw-muted; border-top: 1px solid $tw-line; }
 
     .o_tw_detail td { background: $tw-soft; }
     .o_tw_break_head { font-size: .72rem; text-transform: uppercase; color: $tw-muted; margin-bottom: 4px; }

@@ -47,8 +47,10 @@
                         </tr>
                     </table>
                     <p class="occ-sub" style="margin:4px 0 10px;">
-                        A case names its technicians; every line of it counts for each of them.
-                        Previous period: <t t-out="board['period']['previous_label']"/>.
+                        The totals count each case and line once. A technician's row counts every line
+                        of their cases, so a case worked by three people is in three rows; the (Share)
+                        columns divide it between them and add up to the totals. Contacts with the same
+                        name are one technician. Previous period: <t t-out="board['period']['previous_label']"/>.
                     </p>
 
                     <ul t-if="board['insights']" style="margin:0 0 10px 16px;padding:0;font-size:9pt;">
@@ -91,7 +93,7 @@
                                 </t>
                             </t>
                             <tr class="occ-total">
-                                <td colspan="3">TOTAL</td>
+                                <td colspan="3">TOTAL (each case and line once)</td>
                                 <td t-foreach="columns" t-as="col" class="num"
                                     t-out="show(col[0], totals.get(col[0])) if col[0] in totals else ''"/>
                             </tr>

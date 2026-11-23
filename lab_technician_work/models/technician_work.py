@@ -14,6 +14,15 @@ count of work done by a technician" (2026-11-23).
   technicians of the case, so the shares of a case add up to it once.
 
 Cancelled orders and section or note lines are left out; reworks are kept, and marked.
+
+One person, one technician (2026-11-23): the migrated data keeps the same person under
+several contacts ("ABHAY." and "ABHAY.", "MINHAJ" and "MINHAJ.."), and 3,056 orders name
+two of them - the same person twice on one case. Contacts whose names match without
+case, spaces and punctuation are counted as one technician, the oldest contact standing
+for them, so a case counts once for each PERSON who worked it.
+
+The share columns (works, cases, quantity, teeth and value, divided by the people on
+the case) add up to the lab's totals; the plain ones give every person the whole case.
 """
 from odoo import api, fields, models, tools
 from odoo.tools import SQL
@@ -49,6 +58,11 @@ class SaleTechnicianWork(models.Model):
                                 help="Order lines: each line counted once per technician.")
     case_count = fields.Integer(string='Cases', readonly=True, aggregator='sum',
                                 help="Orders: each case counted once per technician.")
+    work_share = fields.Float(string='Works (Share)', readonly=True, aggregator='sum', digits=(16, 2),
+                              help="The line divided between the technicians of the case.")
+    case_share = fields.Float(string='Cases (Share)', readonly=True, aggregator='sum', digits=(16, 2))
+    quantity_share = fields.Float(string='Quantity (Share)', readonly=True, aggregator='sum', digits=(16, 2))
+    teeth_share = fields.Float(string='Teeth (Share)', readonly=True, aggregator='sum', digits=(16, 2))
     rework_count = fields.Integer(string='Rework Cases', readonly=True, aggregator='sum')
     technician_count = fields.Integer(string='Technicians on the Case', readonly=True, aggregator='max')
     is_rework = fields.Boolean(string='Rework', readonly=True)
@@ -62,10 +76,24 @@ class SaleTechnicianWork(models.Model):
 
     def _query(self):
         return SQL("""
-            WITH technicians AS (
+            WITH named AS (
+                -- one person, one technician: contacts whose names match without case,
+                -- spaces and punctuation are the same person, the oldest standing for them
+                SELECT p.id,
+                       MIN(p.id) OVER (PARTITION BY COALESCE(
+                           NULLIF(UPPER(REGEXP_REPLACE(p.name, '[^[:alnum:]]', '', 'g')), ''), p.id::text
+                       )) AS person_id
+                  FROM res_partner p
+                 WHERE p.is_technician
+            ), people AS (
+                -- a contact named on an order without the Technician mark is a person too
+                SELECT DISTINCT r.order_id, COALESCE(n.person_id, r.partner_id) AS partner_id
+                  FROM sale_order_technician_rel r
+             LEFT JOIN named n ON n.id = r.partner_id
+            ), technicians AS (
                 SELECT order_id, partner_id,
                        COUNT(*) OVER (PARTITION BY order_id) AS technician_count
-                  FROM sale_order_technician_rel
+                  FROM people
             ), first_line AS (
                 SELECT order_id, MIN(id) AS line_id
                   FROM sale_order_line
@@ -88,11 +116,17 @@ class SaleTechnicianWork(models.Model):
                    CARDINALITY(ARRAY_REMOVE(
                        STRING_TO_ARRAY(REGEXP_REPLACE(COALESCE(l.teeth, ''), '[^0-9,]', '', 'g'), ','), ''
                    )) AS teeth_count,
+                   CARDINALITY(ARRAY_REMOVE(
+                       STRING_TO_ARRAY(REGEXP_REPLACE(COALESCE(l.teeth, ''), '[^0-9,]', '', 'g'), ','), ''
+                   ))::float / t.technician_count AS teeth_share,
                    l.product_uom_qty AS quantity,
                    l.price_subtotal AS amount,
                    l.price_subtotal / t.technician_count AS amount_share,
                    1 AS work_count,
                    CASE WHEN f.line_id = l.id THEN 1 ELSE 0 END AS case_count,
+                   1.0 / t.technician_count AS work_share,
+                   CASE WHEN f.line_id = l.id THEN 1.0 / t.technician_count ELSE 0 END AS case_share,
+                   l.product_uom_qty / t.technician_count AS quantity_share,
                    CASE WHEN f.line_id = l.id AND o.is_rework THEN 1 ELSE 0 END AS rework_count,
                    t.technician_count,
                    COALESCE(o.is_rework, FALSE) AS is_rework,

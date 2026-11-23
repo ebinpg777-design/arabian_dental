@@ -202,7 +202,6 @@
                             <th class="o_tw_sortable" t-on-click="() => this.sortBy('name')">
                                 <t t-out="this.state.data.dimension"/>
                             </th>
-                            <th class="o_tw_c_trend">Trend</th>
                             <th t-foreach="this.shownColumns" t-as="col" t-key="col.key"
                                 t-attf-class="o_tw_num o_tw_sortable {{ this.state.sort.key === col.key ? 'o_tw_sorted' : '' }}"
                                 t-on-click="() => this.sortBy(col.key)">
@@ -227,11 +226,6 @@
                                         <div class="o_tw_bar_fill" t-att-style="this.barWidth(row)"/>
                                     </div>
                                 </td>
-                                <td class="o_tw_c_trend">
-                                    <svg width="96" height="24" class="o_tw_spark" t-if="row.series.length > 1">
-                                        <polyline t-att-points="this.sparkPoints(row.series)"/>
-                                    </svg>
-                                </td>
                                 <td t-foreach="this.shownColumns" t-as="col" t-key="col.key"
                                     t-attf-class="o_tw_num {{ col.key === 'trend' ? this.trendClass(row.trend) : '' }} {{ col.key === 'works' ? 'fw-bold' : '' }}"
                                     t-out="this.cell(col.key, row[col.key])"/>
@@ -244,7 +238,7 @@
                             </tr>
                             <tr t-if="this.openOf(row)" class="o_tw_detail">
                                 <td/>
-                                <td t-att-colspan="this.shownColumns.length + 3">
+                                <td t-att-colspan="this.shownColumns.length + 2">
                                     <div t-if="this.openOf(row).loading" class="text-muted small">
                                         <i class="fa fa-circle-o-notch fa-spin me-1"/>Loading...
                                     </div>
@@ -268,14 +262,20 @@
                     <tfoot>
                         <tr>
                             <td/>
-                            <td>Total</td>
-                            <td/>
+                            <td>Total <span class="o_tw_total_note">each case and line once</span></td>
                             <td t-foreach="this.shownColumns" t-as="col" t-key="col.key" class="o_tw_num"
                                 t-out="this.totalCell(col.key)"/>
                             <td/>
                         </tr>
                     </tfoot>
                 </table>
+                <div class="o_tw_footnote">
+                    <i class="fa fa-info-circle me-1"/>A case names its technicians, and a technician's row counts
+                    all of the case's lines. A case worked by three people is in three rows, but once in the
+                    totals - so the rows of Cases, Works, Quantity and Teeth add up to more than the totals.
+                    The <b>(Share)</b> columns divide each case between its technicians, so they add up to the
+                    totals. Contacts with the same name (ABHAY and ABHAY.) are counted as one technician.
+                </div>
             </div>
 
             <!-- who worked when -->

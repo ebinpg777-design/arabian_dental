@@ -89,12 +89,17 @@ class TestTechnicianWork(TransactionCase):
         self.assertEqual((anu['cases'], anu['works'], anu['reworks']), (2, 3, 1))
         self.assertEqual((anu['rank'], binu['rank']), (1, 2), "the busiest first")
         self.assertEqual(anu['rework_rate'], 50.0)
-        self.assertEqual(anu['works_pct'], 60.0, "3 of the 5 works")
+        self.assertEqual(anu['works_share'], 2.0, "half of each shared line, all of their own")
+        self.assertEqual(anu['works_pct'], 66.7, "2 of the lab's 3 lines")
         self.assertEqual(anu['trend'], 3, "nothing the period before")
         self.assertEqual(sum(anu['series']), 3, "the daily series adds up to the works")
         self.assertEqual(anu['active_days'], 1)
-        self.assertEqual(board['totals']['people'], 2)
-        self.assertEqual(board['totals']['works'], 5)
+        totals = board['totals']
+        self.assertEqual(totals['people'], 2)
+        self.assertEqual((totals['cases'], totals['works']), (2, 3), "each case and line once, shared or not")
+        self.assertEqual((totals['quantity'], totals['teeth']), (5.0, 4))
+        self.assertEqual(totals['works_share'], totals['works'], "the shares add up to the totals")
+        self.assertEqual(totals['share'], totals['value'])
         self.assertEqual(board['period']['unit'], 'day')
         self.assertTrue(board['insights'])
         self.assertEqual({c['id'] for c in board['choices']['technician_ids']}, {self.anu.id, self.binu.id})
@@ -106,11 +111,25 @@ class TestTechnicianWork(TransactionCase):
         self.assertEqual([r['key'] for r in alone['rows']], self.anu.ids)
         by_product = self.Work.get_board(self._options(group_by='product_id'))
         products = {r['key']: r['works'] for r in by_product['rows']}
-        self.assertEqual(products, {self.crown.id: 3, self.denture.id: 2}, "a line once per technician")
+        self.assertEqual(products, {self.crown.id: 2, self.denture.id: 1}, "a shared line once")
         only_binu = self.Work.get_board(self._options(technician_ids=self.binu.ids))
         self.assertEqual([r['key'] for r in only_binu['rows']], self.binu.ids)
         self.assertEqual({c['id'] for c in only_binu['choices']['technician_ids']}, {self.anu.id, self.binu.id},
                          "a filter still offers what it leaves out")
+
+    def test_the_same_person_under_two_contacts_counts_once(self):
+        """The migrated data keeps people twice ("ABHAY" and "ABHAY."), and an order
+        naming both counted the person twice."""
+        anu_again = self.env['res.partner'].create({'name': 'tw anu.', 'is_technician': True})
+        order = self._order(self.anu | anu_again | self.binu, [(self.crown, 2, '14, 15')])
+        rows = self.Work.search([('order_id', '=', order.id)])
+        self.assertEqual(rows.technician_id, self.anu | self.binu, "one person, the oldest contact")
+        self.assertEqual(set(rows.mapped('technician_count')), {2}, "two people on the case, not three")
+        self.assertEqual(len(rows), 2)
+        anu_again.invalidate_recordset(['technician_work_count'])
+        self.assertEqual(anu_again.technician_work_count, self.anu.technician_work_count,
+                         "either contact opens the person's work")
+        self.assertEqual(anu_again.action_view_technician_work()['context']['technician_ids'], self.anu.ids)
 
     def test_a_period_is_compared_with_the_like_period_before(self):
         previous = self.Work._previous_period

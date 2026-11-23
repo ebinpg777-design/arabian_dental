@@ -10,12 +10,13 @@ with its daily series, the choices each filter offers, and plain-sentence insigh
 """
 import io
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import SQL
 from odoo.tools.misc import format_date
 
 from odoo.addons.sale_custom.wizard.order_list_wizard import local_midnight_utc
@@ -38,24 +39,21 @@ FILTERS = {
     'partner_ids': 'partner_id',
     'product_ids': 'product_id',
 }
-# summed measures: field -> key on the screen
-MEASURES = {
-    'case_count': 'cases',
-    'work_count': 'works',
-    'rework_count': 'reworks',
-    'quantity': 'quantity',
-    'teeth_count': 'teeth',
-    'amount': 'value',
-    'amount_share': 'share',
-}
+# what every group carries (see _distinct_sums)
+MEASURE_KEYS = ('cases', 'works', 'reworks', 'quantity', 'teeth', 'value',
+                'cases_share', 'works_share', 'quantity_share', 'teeth_share', 'share')
 # the columns a screen (and its print and export) may show, in order
 COLUMNS = [
     ('cases', 'Cases'),
+    ('cases_share', 'Cases (Share)'),
     ('works', 'Works'),
+    ('works_share', 'Works (Share)'),
     ('reworks', 'Reworks'),
     ('rework_rate', 'Rework %'),
     ('quantity', 'Quantity'),
+    ('quantity_share', 'Quantity (Share)'),
     ('teeth', 'Teeth'),
+    ('teeth_share', 'Teeth (Share)'),
     ('value', 'Value'),
     ('share', 'Value Share'),
     ('active_days', 'Active Days'),
@@ -63,7 +61,7 @@ COLUMNS = [
     ('works_pct', '% of Works'),
     ('trend', 'vs Previous'),
 ]
-DEFAULT_COLUMNS = ['cases', 'works', 'reworks', 'quantity', 'teeth', 'share', 'trend']
+DEFAULT_COLUMNS = ['cases', 'works', 'works_share', 'quantity', 'teeth', 'share', 'trend']
 TOP = 25  # rows of a breakdown before "others"
 
 
@@ -125,32 +123,75 @@ class SaleTechnicianWork(models.Model):
         return domain
 
     @api.model
-    def _sums(self, domain, groupby=()):
-        """{group key: {cases, works, ...}} - the key is the group's id (0 for none),
-        or () without a grouping."""
-        aggregates = ['%s:sum' % fname for fname in MEASURES]
-        result = {}
-        for *keys, values in [(*row[:len(groupby)], row[len(groupby):])
-                              for row in self._read_group(domain, list(groupby), aggregates)]:
-            sums = {MEASURES[fname]: value or 0 for fname, value in zip(MEASURES, values)}
-            key = tuple(self._key(value) for value in keys)
-            result[key[0] if len(key) == 1 else key] = sums
-        return result
+    def _distinct_sums(self, domain, group_field=None, day_field=None):
+        """{key: {cases, works, ..., *_share}} of the rows matching ``domain``, by
+        ``group_field`` and/or the local day of ``day_field``; the key is the group's
+        id (0 for none), the day, ``(id, day)``, or ``()`` with neither.
 
-    @staticmethod
-    def _key(value):
-        if isinstance(value, models.BaseModel):
-            return value.id or 0
-        if isinstance(value, datetime):
-            return value.date()
-        return value
+        A row of the view is a technician on an order line, so a line worked by three
+        people is three rows. Here every case and line counts ONCE in its group: the
+        cases are the distinct orders, the works the distinct lines, and the quantity,
+        teeth and value those of the distinct lines (client, 2026-11-23: "most of the
+        lines are shared with multiple technicians - no duplicates"). The share sums
+        divide each line between its technicians instead.
+        """
+        query = self._search(domain)
+        if query.is_empty():
+            return {}
+        table = self._table
+
+        def col(name):
+            return SQL.identifier(table, name)
+
+        tz = (self.env.context.get('tz') or self.env.user.tz
+              or self.env.company.partner_id.tz or 'Asia/Kolkata')
+        group_sql = col(group_field) if group_field else SQL('NULL::int')
+        day_sql = SQL("(%s AT TIME ZONE 'UTC' AT TIME ZONE %s)::date", col(day_field), tz) \
+            if day_field else SQL('NULL::date')
+        rows_sql = query.select(
+            SQL('%s AS g', group_sql), SQL('%s AS d', day_sql),
+            *(SQL('%s AS %s', col(name), SQL.identifier(name)) for name in (
+                'order_id', 'order_line_id', 'is_rework', 'quantity', 'teeth_count', 'amount',
+                'work_share', 'case_share', 'quantity_share', 'teeth_share', 'amount_share')))
+        self.env.cr.execute(SQL("""
+            SELECT g, d,
+                   COUNT(DISTINCT order_id), COUNT(*),
+                   COUNT(DISTINCT order_id) FILTER (WHERE rework),
+                   SUM(quantity), SUM(teeth), SUM(amount),
+                   SUM(case_share), SUM(work_share), SUM(quantity_share), SUM(teeth_share), SUM(amount_share)
+              FROM (SELECT g, d, order_line_id, MAX(order_id) AS order_id, BOOL_OR(is_rework) AS rework,
+                           MAX(quantity) AS quantity, MAX(teeth_count) AS teeth, MAX(amount) AS amount,
+                           SUM(case_share) AS case_share, SUM(work_share) AS work_share,
+                           SUM(quantity_share) AS quantity_share, SUM(teeth_share) AS teeth_share,
+                           SUM(amount_share) AS amount_share
+                      FROM (%s) technician_lines
+                     GROUP BY g, d, order_line_id) lines
+             GROUP BY g, d
+        """, rows_sql))
+        result = {}
+        for g, d, *values in self.env.cr.fetchall():
+            sums = dict(zip(MEASURE_KEYS, (float(value or 0) for value in values)))
+            for key in ('cases', 'works', 'reworks', 'teeth'):
+                sums[key] = int(sums[key])
+            if group_field and day_field:
+                key = (g or 0, d)
+            elif group_field:
+                key = g or 0
+            elif day_field:
+                key = d
+            else:
+                key = ()
+            result[key] = sums
+        return result
 
     @staticmethod
     def _derived(row, total_works):
         """The columns worked out from the sums."""
         row['rework_rate'] = round(100.0 * row['reworks'] / row['cases'], 1) if row['cases'] else 0.0
         row['per_day'] = round(row['works'] / row['active_days'], 1) if row.get('active_days') else 0.0
-        row['works_pct'] = round(100.0 * row['works'] / total_works, 1) if total_works else 0.0
+        # a share of the lab's works: the row's part of each line it shares, so the
+        # percentages of the technicians add up to 100
+        row['works_pct'] = round(100.0 * row['works_share'] / total_works, 1) if total_works else 0.0
         row['trend'] = row['works'] - row.get('prev_works', 0)
         return row
 
@@ -197,34 +238,113 @@ class SaleTechnicianWork(models.Model):
             return day - timedelta(days=day.weekday())
         return day.replace(day=1)
 
+    # ------------------------------------------------------------------ one read, counted
+    # The screen's figures come from the period's rows read ONCE (and the previous
+    # period's once more), counted here in every grouping it needs: twelve queries on
+    # the view took three seconds for a month, each of them computing the people of
+    # every order. (2026-11-23)
+    ROW_FIELDS = ('technician_id', 'order_id', 'order_line_id', 'is_rework', 'quantity', 'teeth_count',
+                  'amount', 'case_share', 'work_share', 'quantity_share', 'teeth_share', 'amount_share',
+                  'technician_count', 'department_id', 'categ_id', 'team_id', 'partner_id', 'product_id')
+
+    @api.model
+    def _board_rows(self, opts, date_from, date_to):
+        """[{field: value, 'day': local date}] of the period, with every filter but the
+        dimension ones (technicians, departments...), which are applied in Python so the
+        filters can still offer what they leave out."""
+        base = dict(opts, **{key: [] for key in FILTERS})
+        query = self._search(self._board_domain(base, date_from, date_to))
+        if query.is_empty():
+            return []
+        tz = (self.env.context.get('tz') or self.env.user.tz
+              or self.env.company.partner_id.tz or 'Asia/Kolkata')
+        table = self._table
+        self.env.cr.execute(query.select(
+            SQL("(%s AT TIME ZONE 'UTC' AT TIME ZONE %s)::date", SQL.identifier(table, opts['date_field']), tz),
+            *(SQL.identifier(table, name) for name in self.ROW_FIELDS)))
+        names = ('day',) + self.ROW_FIELDS
+        return [dict(zip(names, row)) for row in self.env.cr.fetchall()]
+
+    @staticmethod
+    def _passes(row, opts, skip=None):
+        for key, fname in FILTERS.items():
+            if key != skip and opts[key] and row[fname] not in opts['_sets'][key]:
+                return False
+        return True
+
+    @staticmethod
+    def _count(rows, key_of):
+        """{key: sums} as _distinct_sums gives them, from rows read once: each case and
+        line once in its group, the shares summed."""
+        groups = {}
+        for row in rows:
+            key = key_of(row)
+            group = groups.get(key)
+            if group is None:
+                group = groups[key] = {'orders': set(), 'reworks': set(), 'lines': {},
+                                       'cases_share': 0.0, 'works_share': 0.0, 'quantity_share': 0.0,
+                                       'teeth_share': 0.0, 'share': 0.0}
+            group['orders'].add(row['order_id'])
+            if row['is_rework']:
+                group['reworks'].add(row['order_id'])
+            group['lines'][row['order_line_id']] = (row['quantity'] or 0, row['teeth_count'] or 0, row['amount'] or 0)
+            group['cases_share'] += row['case_share'] or 0
+            group['works_share'] += row['work_share'] or 0
+            group['quantity_share'] += float(row['quantity_share'] or 0)
+            group['teeth_share'] += row['teeth_share'] or 0
+            group['share'] += float(row['amount_share'] or 0)
+        result = {}
+        for key, group in groups.items():
+            lines = group['lines'].values()
+            result[key] = {
+                'cases': len(group['orders']),
+                'works': len(group['lines']),
+                'reworks': len(group['reworks']),
+                'quantity': float(sum(line[0] for line in lines)),
+                'teeth': int(sum(line[1] for line in lines)),
+                'value': float(sum(line[2] for line in lines)),
+                'cases_share': round(group['cases_share'], 2),
+                'works_share': round(group['works_share'], 2),
+                'quantity_share': round(group['quantity_share'], 2),
+                'teeth_share': round(group['teeth_share'], 2),
+                'share': round(group['share'], 2),
+            }
+        return result
+
     # ------------------------------------------------------------------ the board
     @api.model
     def get_board(self, options=None):
         opts = self._board_options(options)
-        domain = self._board_domain(opts)
+        opts['_sets'] = {key: set(opts[key]) for key in FILTERS}
         span = (opts['date_to'] - opts['date_from']).days + 1
         prev_from, prev_to = self._previous_period(opts['date_from'], opts['date_to'])
-        prev_domain = self._board_domain(opts, prev_from, prev_to)
-        group_by, field = opts['group_by'], opts['date_field']
+        group_by = opts['group_by']
 
-        totals = self._sums(domain).get((), dict.fromkeys(MEASURES.values(), 0))
-        previous = self._sums(prev_domain).get((), dict.fromkeys(MEASURES.values(), 0))
-        people = len(self._read_group(domain, ['technician_id'], ['__count']))
-        prev_people = len(self._read_group(prev_domain, ['technician_id'], ['__count']))
+        all_rows = self._board_rows(opts, opts['date_from'], opts['date_to'])
+        rows_now = [row for row in all_rows if self._passes(row, opts)]
+        rows_prev = [row for row in self._board_rows(opts, prev_from, prev_to) if self._passes(row, opts)]
 
-        groups = self._sums(domain, [group_by])
-        prev_works = {key: sums['works'] for key, sums in self._sums(prev_domain, [group_by]).items()}
+        zeros = dict.fromkeys(MEASURE_KEYS, 0)
+        totals = self._count(rows_now, lambda row: ()).get((), zeros)
+        previous = self._count(rows_prev, lambda row: ()).get((), zeros)
+        people = len({row['technician_id'] for row in rows_now})
+        prev_people = len({row['technician_id'] for row in rows_prev})
+
+        def group_of(row):
+            return row[group_by] or 0
+
+        groups = self._count(rows_now, group_of)
+        prev_works = {key: sums['works'] for key, sums in self._count(rows_prev, group_of).items()}
         unit, points = self._buckets(opts['date_from'], opts['date_to'])
         index = {point: i for i, point in enumerate(points)}
         series = defaultdict(lambda: [0] * len(points))
         active = defaultdict(int)
-        daily_total = defaultdict(int)
-        for (key, day), sums in self._sums(domain, [group_by, '%s:day' % field]).items():
+        for (key, day), sums in self._count(rows_now, lambda row: (group_of(row), row['day'])).items():
             if not day:
                 continue
             series[key][index.get(self._bucket_of(day, unit), 0)] += sums['works']
             active[key] += 1
-            daily_total[day] += sums['works']
+        daily_total = {day: sums['works'] for day, sums in self._count(rows_now, lambda row: row['day']).items() if day}
 
         names = self._names(group_by, groups)
         rows = []
@@ -238,7 +358,8 @@ class SaleTechnicianWork(models.Model):
 
         currency = self.env.company.currency_id
         return {
-            'options': {**opts, 'date_from': fields.Date.to_string(opts['date_from']),
+            'options': {**{k: v for k, v in opts.items() if k != '_sets'},
+                        'date_from': fields.Date.to_string(opts['date_from']),
                         'date_to': fields.Date.to_string(opts['date_to'])},
             'period': {
                 'label': self._period_label(opts['date_from'], opts['date_to']),
@@ -252,8 +373,8 @@ class SaleTechnicianWork(models.Model):
             'previous': dict(previous, people=prev_people),
             'rows': rows,
             'dimension': dict(DIMENSIONS)[group_by],
-            'choices': self._choices(opts),
-            'insights': self._insights(opts, rows, totals, daily_total),
+            'choices': self._choices(opts, all_rows),
+            'insights': self._insights(opts, rows, totals, daily_total, rows_now),
             'columns': [{'key': key, 'label': self.env._(label)} for key, label in COLUMNS],
             'default_columns': DEFAULT_COLUMNS,
             'dimensions': [{'key': key, 'label': self.env._(label)} for key, label in DIMENSIONS],
@@ -268,17 +389,18 @@ class SaleTechnicianWork(models.Model):
         return {record.id: record.display_name for record in records}
 
     @api.model
-    def _choices(self, opts):
+    def _choices(self, opts, all_rows):
         """What each filter offers: the values with work in the period, whatever that
         filter itself is set to, the busiest first."""
         choices = {}
         for key, fname in FILTERS.items():
             if key == 'product_ids':
                 continue
-            domain = self._board_domain(opts, skip=(key,))
-            rows = self._read_group(domain, [fname], ['work_count:sum'], order='work_count:sum desc', limit=300)
-            choices[key] = [{'id': record.id, 'name': record.display_name, 'works': works}
-                            for record, works in rows if record]
+            groups = self._count([row for row in all_rows if self._passes(row, opts, skip=key)],
+                                 lambda row, fname=fname: row[fname] or 0)
+            names = self._names(fname, groups)
+            ranked = sorted(((sums['works'], key_) for key_, sums in groups.items() if key_), reverse=True)[:300]
+            choices[key] = [{'id': key_, 'name': names.get(key_) or '', 'works': works} for works, key_ in ranked]
         return choices
 
     def _period_label(self, date_from, date_to):
@@ -296,7 +418,7 @@ class SaleTechnicianWork(models.Model):
             return _('Week of %s', format_date(self.env, point, date_format='d MMM'))
         return format_date(self.env, point, date_format='EEE d MMM')
 
-    def _insights(self, opts, rows, totals, daily_total):
+    def _insights(self, opts, rows, totals, daily_total, rows_now=()):
         """A few sentences worth reading before the table."""
         out = []
         rows = [row for row in rows if row['key']]  # "Not set" is nobody to name
@@ -331,7 +453,7 @@ class SaleTechnicianWork(models.Model):
                 'Busiest day: %(day)s, with %(works)s works.',
                 day=format_date(self.env, day, date_format='EEEE d MMM'), works=works)})
         if opts['group_by'] == 'technician_id' and opts['cases'] == 'all' and totals['cases']:
-            shared = self._sums(self._board_domain(opts) + [('technician_count', '>', 1)]).get((), {})
+            shared = self._count([row for row in rows_now if row['technician_count'] > 1], lambda row: ()).get((), {})
             if shared.get('cases'):
                 out.append({'icon': 'fa-users', 'tone': 'main', 'text': _(
                     '%(pct)s%% of the cases were shared between technicians.',
@@ -346,14 +468,14 @@ class SaleTechnicianWork(models.Model):
         opts = self._board_options(dict(options or {}, breakdown=dimension or (options or {}).get('breakdown')))
         dimension = opts['breakdown']
         domain = self._board_domain(opts) + [(opts['group_by'], '=', key or False)]
-        groups = self._sums(domain, [dimension])
+        groups = self._distinct_sums(domain, dimension)
         names = self._names(dimension, groups)
         total = sum(sums['works'] for sums in groups.values())
         rows = sorted(({**sums, 'key': key_, 'name': names.get(key_) or _('Not set')}
                        for key_, sums in groups.items()), key=lambda row: -row['works'])
         if len(rows) > TOP:
             rest = rows[TOP:]
-            rows = rows[:TOP] + [{key_: sum(row[key_] for row in rest) for key_ in MEASURES.values()}
+            rows = rows[:TOP] + [{key_: sum(row[key_] for row in rest) for key_ in MEASURE_KEYS}
                                  | {'key': None, 'name': _('%s others', len(rest))}]
         for row in rows:
             row['works_pct'] = round(100.0 * row['works'] / total, 1) if total else 0.0

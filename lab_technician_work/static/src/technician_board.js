@@ -460,7 +460,7 @@ export class TechnicianBoard extends Component {
         if (key === "trend") {
             return value > 0 ? `+${this.number(value)}` : this.number(value);
         }
-        if (key === "per_day") {
+        if (key === "per_day" || key.endsWith("_share")) {
             return this.number(value, 1);
         }
         return this.number(value, key === "quantity" ? 2 : 0);
@@ -495,14 +495,6 @@ export class TechnicianBoard extends Component {
             { key: "teeth", label: _t("Teeth"), value: this.number(t.teeth), icon: "fa-th" },
             { key: "share", label: _t("Value Share"), value: this.money(t.share), icon: "fa-inr" },
         ];
-    }
-
-    sparkPoints(series) {
-        const width = 96;
-        const height = 24;
-        const max = Math.max(1, ...series);
-        const step = series.length > 1 ? width / (series.length - 1) : width;
-        return series.map((v, i) => `${(i * step).toFixed(1)},${(height - 2 - (v / max) * (height - 4)).toFixed(1)}`).join(" ");
     }
 
     get heatRows() {
