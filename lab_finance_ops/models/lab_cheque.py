@@ -15,16 +15,18 @@ class LabCheque(models.Model):
 
     Received -> Deposited -> Cleared, or Bounced. How the books follow it (client,
     2026-11-23: "the customer invoices should be matched with postdated cheques on the
-    date of cheque received. bank account will reflect on the date when the cheque
-    deposited in the bank"), as Odoo 17 did with its "PDC - <bank>" accounts:
+    date of cheque received", then the same day: "Deposit entry will create only after
+    the cheque cleared, otherwise when it bounced the bank balance will be wrong"), as
+    Odoo 17 did with its "PDC - <bank>" accounts:
 
     * Received: a payment dated the received day settles the allocated invoices; its
       money waits in the bank journal's Cheques in Hand (PDC) account.
-    * Deposited: an entry dated the deposit day moves it from the PDC account to the
-      bank account.
-    * Cleared: the bank confirmed it - nothing more to book.
-    * Bounced (or a received cheque cancelled): both entries are reversed on that day and
-      the invoices are open again.
+    * Deposited: recorded, nothing booked. A deposited cheque is not money yet - the bank
+      credits it when it clears, or returns it - so it stays in the PDC account.
+    * Cleared: an entry dated the clearing day moves it from the PDC account to the bank
+      account. The bank account only ever shows cleared money, as the bank statement does.
+    * Bounced (or a received cheque cancelled): the receipt is reversed on that day and the
+      invoices are open again; a cheque that had cleared has its bank entry reversed too.
 
     Cheques recorded before this (`accounting = 'clearing'`) keep the old way: a payment
     made when they clear - and none at all when they already carry one, which every
@@ -62,9 +64,12 @@ class LabCheque(models.Model):
         help="The day the cheque came in: its invoices are settled on this day.")
     deposit_date = fields.Date(
         copy=False, tracking=True,
-        help="The day it goes to the bank: the bank account shows it from this day. "
-             "Left empty, Deposit uses today.")
-    clear_date = fields.Date(readonly=True, copy=False, tracking=True)
+        help="The day it went to the bank. Nothing is booked then: the bank account moves "
+             "when the cheque clears. Left empty, Deposit uses today.")
+    clear_date = fields.Date(
+        string='Cleared On', copy=False, tracking=True,
+        help="The day the bank credited the cheque: the bank account shows the money from "
+             "this day. Left empty, Mark Cleared uses today.")
     is_post_dated = fields.Boolean(compute='_compute_is_post_dated', store=True)
 
     amount = fields.Monetary(required=True, currency_field='currency_id', tracking=True)
@@ -79,7 +84,7 @@ class LabCheque(models.Model):
         'account.journal', string='Deposit Bank Account',
         domain="[('type', 'in', ('bank', 'cash'))]", tracking=True,
         help="The bank the cheque is deposited into. Its Cheques in Hand (PDC) account "
-             "holds the cheque until then.")
+             "holds the cheque until it clears.")
     collected_by_id = fields.Many2one(
         'res.users', string='Collected By', default=lambda self: self.env.user, tracking=True)
 
@@ -87,10 +92,12 @@ class LabCheque(models.Model):
         'lab.cheque.allocation', 'cheque_id', string='Invoice-wise Allocation')
     payment_id = fields.Many2one(
         'account.payment', string='Payment', copy=False, readonly=True)
+    # The field keeps its name from 20.0.1.1.0, when this entry was made on deposit.
     deposit_move_id = fields.Many2one(
-        'account.move', string='Deposit Entry', copy=False, readonly=True)
+        'account.move', string='Bank Entry', copy=False, readonly=True,
+        help="PDC account -> bank account, dated the day the cheque cleared.")
     accounting = fields.Selection(
-        [('holding', 'Settled when received, banked when deposited'),
+        [('holding', 'Settled when received, banked when cleared'),
          ('clearing', 'Booked when cleared (recorded before 2026-11-23)')],
         default='holding', required=True, readonly=True, copy=False)
     receipt_booked = fields.Boolean(
@@ -245,20 +252,20 @@ class LabCheque(models.Model):
         self._reconcile_allocations(payment)
         self.message_post(body=_(
             "Received on %(day)s: %(payment)s settles the allocated invoices; the cheque "
-            "waits in %(account)s until it is deposited.",
+            "waits in %(account)s until it clears.",
             day=self.received_date, payment=payment.name,
             account=payment.outstanding_account_id.display_name))
         return payment
 
-    def _book_deposit(self, day):
-        """From the PDC account to the bank account, dated the day it was deposited,
+    def _book_clearing(self, day):
+        """From the PDC account to the bank account, dated the day the bank cleared it,
         matched to the receipt."""
         self.ensure_one()
         holding = self.payment_id.outstanding_account_id
         bank = self.journal_id.default_account_id
         if not bank:
             raise UserError(_("The journal %s has no bank account.", self.journal_id.display_name))
-        label = _('Cheque %(num)s deposited', num=self.cheque_number)
+        label = _('Cheque %(num)s cleared', num=self.cheque_number)
         partner = self.partner_id.commercial_partner_id
         move = self.env['account.move'].create({
             'move_type': 'entry',
@@ -281,8 +288,9 @@ class LabCheque(models.Model):
         return move
 
     def _unbook(self, day, reason):
-        """Undo the receipt (and the deposit) by reversing them on `day`: the bank first,
-        then the payment, so the invoices are open again from that day."""
+        """Undo the receipt (and the bank entry of a cheque that had cleared) by reversing
+        them on `day`: the bank first, then the payment, so the invoices are open again
+        from that day."""
         self.ensure_one()
         payment = self.payment_id
         moves = self.deposit_move_id | payment.move_id
@@ -322,29 +330,42 @@ class LabCheque(models.Model):
             if day < cheque.received_date:
                 raise UserError(_("Cheque %(num)s cannot be deposited on %(day)s, before it was "
                                   "received.", num=cheque.cheque_number, day=day))
-            vals = {'state': 'deposited', 'deposit_date': day}
-            if cheque.accounting == 'holding':
-                if not cheque.payment_id:
-                    cheque._book_receipt()
-                vals['deposit_move_id'] = cheque._book_deposit(day).id
-            cheque.write(vals)
+            if cheque.accounting == 'holding' and not cheque.payment_id:
+                cheque._book_receipt()
+            # Nothing reaches the bank account yet: that is the clearing's.
+            cheque.write({'state': 'deposited', 'deposit_date': day})
         return True
 
     def action_clear(self):
-        """The bank confirms the funds. A cheque settled when received is already in the
-        bank from its deposit; one recorded the old way gets its payment now - unless it
-        already has one (every cheque brought over from Odoo 17 does)."""
+        """The bank credited the cheque, on its Cleared On day (today when empty). A cheque
+        settled when received moves from the PDC account to the bank account that day; one
+        recorded the old way gets its payment now - unless it already has one (every
+        cheque brought over from Odoo 17 does)."""
         today = fields.Date.context_today(self)
         for cheque in self:
             if cheque.state != 'deposited':
                 raise UserError(_("Deposit %s before clearing it.", cheque.cheque_number))
-            if cheque.accounting == 'clearing' and not cheque.payment_id:
-                cheque.write({'state': 'cleared', 'clear_date': today})
-                payment = cheque._create_payment()
-                cheque.payment_id = payment
+            day = cheque.clear_date or today
+            if day > today:
+                raise UserError(_("Cheque %(num)s cannot be cleared on %(day)s: that is still "
+                                  "to come.", num=cheque.cheque_number, day=day))
+            if cheque.deposit_date and day < cheque.deposit_date:
+                raise UserError(_("Cheque %(num)s cannot be cleared on %(day)s, before it was "
+                                  "deposited (%(deposit)s).", num=cheque.cheque_number, day=day,
+                                  deposit=cheque.deposit_date))
+            # Booked first and written in one go: a cleared cheque is locked, so nothing
+            # can be written on it after it becomes one.
+            vals = {'state': 'cleared', 'clear_date': day}
+            if cheque.accounting == 'holding':
+                if not cheque.payment_id:
+                    cheque._book_receipt()
+                if not cheque.deposit_move_id:
+                    vals['deposit_move_id'] = cheque._book_clearing(day).id
+            elif not cheque.payment_id:
+                payment = cheque._create_payment(day)
                 cheque._reconcile_allocations(payment)
-            else:
-                cheque.write({'state': 'cleared', 'clear_date': today})
+                vals['payment_id'] = payment.id
+            cheque.write(vals)
         return True
 
     def _get_payment_method_line(self):
@@ -435,7 +456,7 @@ class LabCheque(models.Model):
             if cheque.accounting == 'holding':
                 if cheque.state == 'deposited':
                     raise UserError(_(
-                        "Cheque %s is in the bank: mark it bounced instead of cancelling it.",
+                        "Cheque %s is with the bank: mark it bounced instead of cancelling it.",
                         cheque.cheque_number))
                 if cheque.payment_id and cheque.payment_id.state not in ('rejected', 'canceled'):
                     cheque._unbook(today, _('cancelled'))

@@ -75,7 +75,7 @@
                                        onChange="(v) => v and (this.state.receivedDate = v)"/>
                     </div>
                     <div class="o_lab_cheque_bank_note">
-                        Invoices are settled on the received date; the bank shows the money from the day it is deposited.
+                        Invoices are settled on the received date; the bank shows the money from the day it clears.
                     </div>
                 </div>
 

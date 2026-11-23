@@ -10,7 +10,7 @@
                             string="Allocate to Open Invoices" class="btn-secondary"
                             invisible="state != 'received' or receipt_booked"/>
                     <!-- Settle the allocated invoices now, dated the received day; the cheque
-                         waits in the bank's PDC account until it is deposited (2026-11-23). -->
+                         waits in the bank's PDC account until it clears (2026-11-23). -->
                     <button name="action_confirm_receipt" type="object" string="Confirm Receipt"
                             class="btn-primary"
                             invisible="state != 'received' or accounting != 'holding' or receipt_booked"/>
@@ -37,7 +37,7 @@
                         </button>
                         <button name="action_view_deposit" type="object" class="oe_stat_button"
                                 icon="fa-university" invisible="not deposit_move_id">
-                            <span class="o_stat_text">Deposit Entry</span>
+                            <span class="o_stat_text">Bank Entry</span>
                         </button>
                     </div>
                     <widget name="web_ribbon" title="Post-dated" bg_color="text-bg-warning"
@@ -48,7 +48,13 @@
                          invisible="not receipt_booked or state != 'received'">
                         <i class="fa fa-check-circle" title="Received"/>
                         <span>The allocated invoices are settled as of the received date. The cheque
-                            waits in the bank's Cheques in Hand (PDC) account until it is deposited.</span>
+                            waits in the bank's Cheques in Hand (PDC) account until it clears.</span>
+                    </div>
+                    <div class="alert alert-info d-flex align-items-center gap-2" role="status"
+                         invisible="state != 'deposited' or accounting != 'holding'">
+                        <i class="fa fa-university" title="Deposited"/>
+                        <span>Deposited: the bank account shows the money once the cheque clears -
+                            Mark Cleared, with the day the bank credited it.</span>
                     </div>
                     <div class="oe_title">
                         <label for="cheque_number"/>
@@ -72,6 +78,9 @@
                                    options="{'no_create': True}"/>
                             <field name="deposit_date" readonly="state != 'received'"
                                    placeholder="Today, when deposited"/>
+                            <field name="clear_date" readonly="state != 'deposited'"
+                                   invisible="state == 'received'"
+                                   placeholder="Today, when cleared"/>
                             <field name="accounting" invisible="1"/>
                             <field name="receipt_booked" invisible="1"/>
                             <field name="deposit_move_id" invisible="1"/>
@@ -104,7 +113,6 @@
                             <group>
                                 <field name="bounce_reason"
                                        required="state == 'bounced'"/>
-                                <field name="clear_date"/>
                                 <field name="payment_id"/>
                                 <field name="deposit_move_id"/>
                                 <field name="accounting" readonly="1"/>

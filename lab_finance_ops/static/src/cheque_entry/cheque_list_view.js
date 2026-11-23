@@ -22,7 +22,8 @@ function forCustomerCheques(resModel, context) {
 
 /**
  * The cheques at a glance, above Customer Payments and the Cheque Register: what is in
- * hand, due for deposit today, falling due this week, in the bank and bounced. Each one
+ * hand, due for deposit today, falling due this week, deposited but not cleared, and
+ * bounced. Each one
  * opens those cheques.
  */
 export class ChequeStrip extends Component {
@@ -57,7 +58,7 @@ export class ChequeStrip extends Component {
             { key: "in_hand", label: _t("In hand"), ...s.in_hand, kind: "" },
             { key: "due", label: _t("Due for deposit"), ...s.due, kind: s.due.count ? "warn" : "" },
             { key: "week", label: _t("Due in 7 days"), ...s.week, kind: "" },
-            { key: "deposited", label: _t("In the bank"), ...s.deposited, kind: "" },
+            { key: "deposited", label: _t("Deposited, not cleared"), ...s.deposited, kind: "" },
             { key: "bounced", label: _t("Bounced"), ...s.bounced, kind: s.bounced.count ? "bad" : "" },
         ];
     }

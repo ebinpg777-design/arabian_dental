@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Finance Ops — Cheques, Approvals, Daybook & EOD',
-    'version': '20.0.1.1.0',
+    'version': '20.0.1.2.0',
     'category': 'Accounting/Accounting',
     'summary': 'Cheque register with invoice-wise allocation, multi-step payment approval, '
                'daybook, doctor-wise outstanding and a consolidated end-of-day report',

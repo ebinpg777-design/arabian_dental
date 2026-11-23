@@ -162,10 +162,10 @@ class TestLabFinanceOps(TransactionCase):
         cheque = self._cheque(1000.0, cheque_date=self.today + timedelta(days=30))
         self.assertTrue(cheque.is_post_dated)
 
-    # ------------------------------------------------- settled when received, banked when deposited
+    # ------------------------------------------------- settled when received, banked when cleared
     # client, 2026-11-23: "the customer invoices should be matched with postdated cheques on
-    # the date of cheque received. bank account will reflect on the date when the cheque
-    # deposited in the bank"
+    # the date of cheque received", then: "Deposit entry will create only after the cheque
+    # cleared, otherwise when it bounced the bank balance will be wrong"
     def _lines(self, account, move=None):
         domain = [('account_id', '=', account.id), ('parent_state', '=', 'posted')]
         if move:
@@ -191,29 +191,61 @@ class TestLabFinanceOps(TransactionCase):
         self.assertFalse(self._lines(self.bank_journal.default_account_id, payment.move_id), "nothing in the bank yet")
         self.assertTrue(cheque.receipt_booked)
 
-    def test_the_bank_shows_it_from_the_day_it_is_deposited(self):
+    def test_a_deposited_cheque_is_not_in_the_bank_yet(self):
         invoice, cheque = self._received(days_ago=10)
         cheque.action_confirm_receipt()
         cheque.deposit_date = self.today - timedelta(days=3)
         cheque.action_deposit()
-        deposit = cheque.deposit_move_id
-        self.assertEqual(deposit.date, self.today - timedelta(days=3))
-        bank_line = self._lines(self.bank_journal.default_account_id, deposit)
+        self.assertEqual((cheque.state, cheque.deposit_date), ('deposited', self.today - timedelta(days=3)))
+        self.assertFalse(cheque.deposit_move_id, "nothing booked on deposit")
+        self.assertFalse(self._lines(self.bank_journal.default_account_id).filtered(
+            lambda l: l.partner_id == cheque.partner_id.commercial_partner_id), "the bank has not moved")
+        self.assertEqual(sum(self._lines(self.acc_pdc, cheque.payment_id.move_id).mapped('balance')), 2000.0,
+                         "the cheque is still in hand, in the PDC account")
+
+    def test_the_bank_shows_it_from_the_day_it_clears(self):
+        invoice, cheque = self._received(days_ago=10)
+        cheque.action_confirm_receipt()
+        cheque.deposit_date = self.today - timedelta(days=3)
+        cheque.action_deposit()
+        cheque.clear_date = self.today - timedelta(days=1)
+        cheque.action_clear()
+        entry = cheque.deposit_move_id
+        self.assertEqual(cheque.state, 'cleared')
+        self.assertEqual(entry.date, self.today - timedelta(days=1), "dated the day the bank credited it")
+        bank_line = self._lines(self.bank_journal.default_account_id, entry)
         self.assertEqual(bank_line.balance, 2000.0)
-        pdc = self._lines(self.acc_pdc, deposit) | self._lines(self.acc_pdc, cheque.payment_id.move_id)
+        pdc = self._lines(self.acc_pdc, entry) | self._lines(self.acc_pdc, cheque.payment_id.move_id)
         self.assertTrue(all(pdc.mapped('reconciled')), "the PDC account is matched out")
         self.assertEqual(sum(pdc.mapped('balance')), 0.0)
-        cheque.action_clear()
-        self.assertEqual(cheque.state, 'cleared')
         self.assertEqual(len(self.env['account.payment'].search([('cheque_id', '=', cheque.id)])), 1,
-                         "clearing books nothing more")
+                         "one receipt, never a second payment")
+
+    def test_clearing_without_a_date_clears_today(self):
+        _invoice, cheque = self._received(days_ago=4)
+        cheque.action_deposit()
+        cheque.action_clear()
+        self.assertEqual((cheque.clear_date, cheque.deposit_move_id.date), (self.today, self.today))
+
+    def test_a_clearing_date_must_be_between_deposit_and_today(self):
+        _invoice, cheque = self._received(days_ago=6)
+        cheque.deposit_date = self.today - timedelta(days=2)
+        cheque.action_deposit()
+        cheque.clear_date = self.today + timedelta(days=1)
+        with self.assertRaises(UserError):
+            cheque.action_clear()
+        cheque.clear_date = self.today - timedelta(days=3)
+        with self.assertRaises(UserError):
+            cheque.action_clear()
+        self.assertEqual(cheque.state, 'deposited')
+        self.assertFalse(cheque.deposit_move_id)
 
     def test_depositing_a_cheque_not_yet_received_receives_it_first(self):
         invoice, cheque = self._received(days_ago=4)
         cheque.action_deposit()
         invoice.invalidate_recordset()
         self.assertEqual(cheque.payment_id.date, self.today - timedelta(days=4))
-        self.assertEqual(cheque.deposit_move_id.date, self.today)
+        self.assertFalse(cheque.deposit_move_id)
         self.assertEqual(invoice.amount_residual, 0.0)
 
     def test_a_deposit_date_must_be_between_receipt_and_today(self):
@@ -225,7 +257,7 @@ class TestLabFinanceOps(TransactionCase):
         with self.assertRaises(UserError):
             cheque.action_deposit()
 
-    def test_a_bounce_reverses_the_bank_and_reopens_the_invoices(self):
+    def test_a_cheque_bounced_before_clearing_never_touches_the_bank(self):
         invoice, cheque = self._received(days_ago=10)
         cheque.action_deposit()
         cheque.bounce_reason = 'Insufficient funds'
@@ -233,15 +265,44 @@ class TestLabFinanceOps(TransactionCase):
         invoice.invalidate_recordset()
         self.assertEqual(invoice.payment_state, 'not_paid')
         self.assertEqual(cheque.payment_id.state, 'rejected')
-        self.assertEqual(sum(self._lines(self.bank_journal.default_account_id).filtered(
-            lambda l: l.move_id in (cheque.deposit_move_id | cheque.deposit_move_id.reversal_move_ids)).mapped('balance')), 0.0)
-        self.assertEqual(cheque.deposit_move_id.reversal_move_ids.date, self.today, "reversed the day it bounced")
+        self.assertFalse(cheque.deposit_move_id)
+        self.assertFalse(self._lines(self.bank_journal.default_account_id).filtered(
+            lambda l: l.partner_id == cheque.partner_id.commercial_partner_id),
+            "the bank account never showed money it did not receive")
+        pdc = self._lines(self.acc_pdc).filtered(lambda l: l.partner_id == cheque.partner_id.commercial_partner_id)
+        self.assertEqual(sum(pdc.mapped('balance')), 0.0)
+        self.assertTrue(all(pdc.mapped('reconciled')))
         # presented again: back in hand today, settled again when received
         cheque.action_draft()
         self.assertEqual((cheque.state, cheque.payment_id, cheque.received_date), ('received', self.env['account.payment'], self.today))
         cheque.action_confirm_receipt()
         invoice.invalidate_recordset()
         self.assertEqual(invoice.amount_residual, 0.0)
+
+    def test_a_cheque_bounced_after_clearing_reverses_the_bank(self):
+        invoice, cheque = self._received(days_ago=10)
+        cheque.action_deposit()
+        cheque.action_clear()
+        entry = cheque.deposit_move_id
+        cheque.bounce_reason = 'Returned by the bank after credit'
+        cheque.action_bounce()
+        invoice.invalidate_recordset()
+        self.assertEqual(invoice.payment_state, 'not_paid')
+        self.assertEqual(sum(self._lines(self.bank_journal.default_account_id).filtered(
+            lambda l: l.move_id in (entry | entry.reversal_move_ids)).mapped('balance')), 0.0)
+        self.assertEqual(entry.reversal_move_ids.date, self.today, "reversed the day it bounced")
+
+    def test_a_payment_approver_clears_a_cheque(self):
+        approver = self.env['res.users'].create({
+            'name': 'Cheque Approver', 'login': 'cheque_approver',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id,
+                                   self.env.ref('account.group_account_invoice').id,
+                                   self.env.ref('lab_finance_ops.group_lab_payment_approver').id])]})
+        _invoice, cheque = self._received(days_ago=5)
+        cheque.action_deposit()
+        cheque.with_user(approver).action_clear()
+        self.assertEqual(cheque.state, 'cleared')
+        self.assertTrue(cheque.deposit_move_id, "booked although a cleared cheque is locked to its clearer")
 
     def test_a_received_cheque_cancelled_reopens_its_invoices_but_a_deposited_one_bounces(self):
         invoice, cheque = self._received()
