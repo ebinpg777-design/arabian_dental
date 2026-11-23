@@ -461,16 +461,15 @@ class SaleOrder(models.Model):
             # somebody agreed with the doctor stands. (client, 2026-09-18)
             for order in ready.filtered(lambda o: not o.date_due):
                 order.date_due = order._due_date_on_confirm()
-            # Auto-plan the generated Manufacturing Orders (dental lab workflow).
-            #
-            # As superuser: `mrp_production_ids` is restricted to Manufacturing / User,
-            # and planning is something the lab does on the salesperson's behalf, not
-            # something the salesperson is doing. Read unprivileged, this raised an
-            # access error and a plain salesperson could not confirm an order at all.
-            for order in ready.sudo():
-                mos = order.mrp_production_ids.filtered(lambda m: m.state == 'confirmed')
-                if mos:
-                    mos.button_plan()
+            # The generated Manufacturing Orders are NOT planned any more (2026-11-23,
+            # "loading issues - fix performance issues in the server"). Planning books
+            # every step as a block on its work centre's calendar and searches past all
+            # the blocks already there for a free slot. In a lab that runs off scans
+            # nothing ever releases those blocks: live held 82,232 of them, new cases
+            # were being "planned" into May 2027, and confirming an order took 3.7 s on
+            # average, 15 s at worst, getting slower every day. Nothing here reads the
+            # planned dates - the boards work from the steps' states and the scans - and
+            # a step that starts plans itself.
         if not flagged:
             return res
         message = _("The SO created in the company %s\nPlease confirm.") % ', '.join(
