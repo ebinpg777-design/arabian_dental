@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- The search bar's arrow on every screen (2026-11-23). Odoo 20 draws the arrow of
+         the Filters / Group By / Favorites button only on a touch screen; on a desktop the
+         button is there, empty, and nobody finds the filters behind it. Without the
+         condition the button keeps Odoo's own arrow, turning as the menu opens. -->
+    <t t-inherit="web.SearchBarMenu" t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('o_searchview_dropdown_toggler')]" position="attributes">
+            <attribute name="t-att-class"/>
+        </xpath>
+    </t>
+</templates>
