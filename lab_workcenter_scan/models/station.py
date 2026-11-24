@@ -36,6 +36,9 @@ STALE_DAYS = 2
 # How many cases one search may return: enough to recognise the one on the
 # phone, the same cap Track Order uses. (client, 2026-09-14)
 FIND_LIMIT = 12
+# "A technician who scans a case takes it under their own name" - off unless the
+# lab switches it on (system parameter set to 1). See _takes_own_scan.
+TAKE_OWN_PARAM = 'lab_workcenter_scan.technician_takes_own_scan'
 
 
 class LabStation(models.AbstractModel):
@@ -884,13 +887,14 @@ class LabStation(models.AbstractModel):
     def accept(self, workorder_id, person_id=None):
         wo = self.env['mrp.workorder'].browse(int(workorder_id))
         wo.action_station_accept()
+        self._takes_own_scan(wo)
         return self.get_station(wo.workcenter_id.id, person_id)
 
     @api.model
     def handover(self, workorder_id, person_id=None):
         wo = self.env['mrp.workorder'].browse(int(workorder_id))
         workcenter_id = wo.workcenter_id.id
-        if self._needs_person(wo):
+        if self._needs_person(wo) and not self._takes_own_scan(wo):
             return self._ask_person(wo, person_id)
         if self._needs_finisher(wo):
             return self._ask_finisher(wo, person_id)
@@ -941,6 +945,31 @@ class LabStation(models.AbstractModel):
     # lead back to the card, down to the dropdown and back to the button. So the
     # refusal is returned as a QUESTION the board can ask in one tap: here is the job,
     # here are the people, who did it? (client, 2026-08-29)
+    @api.model
+    def _takes_own_scan(self, wo):
+        """Put the technician's own name on the job they have just scanned.
+
+        The board was built for a lead who stands at the station and gives the
+        work out, and it keeps that rule: who does WHICH job is the lead's call,
+        and a technician cannot put a job in a colleague's name. But a lab where
+        every technician has a login and scans their own tray has nobody to ask -
+        the case sat accepted with "choose who" on the screen and no one allowed
+        to answer. There the answer is the person holding the scanner.
+
+        Only for somebody posted to this bench as a technician, only on a job
+        nobody is named on, and only where the lab has switched it on. Returns
+        whether the job now has a name. (client, 2026-11-24)
+        """
+        if not self._needs_person(wo):
+            return bool(wo.bench_user_id)
+        raw = self.env['ir.config_parameter'].sudo().get_str(TAKE_OWN_PARAM)
+        if str(raw or '').strip().lower() not in ('1', 'true'):
+            return False
+        if self.env.user not in wo.workcenter_id.users:
+            return False
+        wo.action_take_own_job()
+        return True
+
     @api.model
     def _needs_person(self, wo):
         return bool(wo.accepted_at) and not wo.bench_user_id \
@@ -1346,7 +1375,7 @@ class LabStation(models.AbstractModel):
             wo.action_station_accept()
             # Accepted with nobody's name on it: ask now, while the card is in the
             # lead's hand, rather than at the hand-over hours later. (client, 2026-08-29)
-            if self._needs_person(wo):
+            if self._needs_person(wo) and not self._takes_own_scan(wo):
                 return self._ask_person(wo, person_id, stage='accepted')
             return {'action': 'accepted',
                     # The number on the job card, not the work order's display name:
@@ -1354,7 +1383,7 @@ class LabStation(models.AbstractModel):
                     # person just scanned. (client, 2026-08-29)
                     'message': _("%s accepted.", self._job_label(wo)),
                     'board': self.get_station(workcenter.id, person_id)}
-        if self._needs_person(wo):
+        if self._needs_person(wo) and not self._takes_own_scan(wo):
             return self._ask_person(wo, person_id)
         if self._needs_finisher(wo):
             return self._ask_finisher(wo, person_id)

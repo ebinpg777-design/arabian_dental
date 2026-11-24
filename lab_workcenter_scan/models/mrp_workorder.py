@@ -840,6 +840,35 @@ class MrpWorkorderResponsibility(models.Model):
                 production.message_post(body=body)
         return True
 
+    def action_take_own_job(self):
+        """The technician at the bench puts their OWN name on a job nobody is named on.
+
+        Not `action_assign_bench_user`: that gives work to somebody, which is the
+        lead's call. This is a technician saying "this one is mine" - they can only
+        ever name themselves, and only where they are posted.
+        """
+        now = fields.Datetime.now()
+        user = self.env.user
+        for wo in self:
+            wo._check_bench_access(_('take work'))
+            if wo.state in CLOSED:
+                raise UserError(_("%s is finished.", wo.display_name))
+            if wo.bench_user_id:
+                continue
+            if user not in wo.workcenter_id.users and user not in wo.workcenter_id.head_user_ids:
+                raise UserError(_(
+                    "You are not posted to %s, so a job there cannot go under your name.",
+                    wo.workcenter_id.display_name))
+            wo.write({'bench_user_id': user.id, 'bench_assigned_at': now,
+                      'bench_assigned_by_id': user.id})
+            if 'user_id' in wo._fields:
+                wo.user_id = user.id
+            if wo.production_id:
+                wo.production_id.message_post(body=_(
+                    "%(wo)s taken by %(who)s at %(wc)s.", wo=wo.display_name,
+                    who=user.name, wc=wo.workcenter_id.display_name))
+        return True
+
     def action_assign_bench_user(self, user_id):
         """Give the job to a named person at this bench.
 

@@ -577,6 +577,38 @@ class TestStationBoard(TransactionCase):
         self.assertEqual(ask['action'], 'needs_person')
         self.assertFalse(ask['can_assign'])
 
+    def test_a_technician_who_scans_takes_the_job_in_their_own_name_when_the_lab_says_so(self):
+        """A lab where every technician scans their own tray has no lead standing by
+        to answer "choose who". Switched on, the answer is the person scanning - and
+        only ever themselves. (client, 2026-11-24)"""
+        tech = self._bench_user('bench_own', self.wc_a)
+        station = self.env['lab.station'].with_user(tech)
+        # off, as it has always been: the question, and no way for them to answer it
+        ask = station.scan(self.mo.name, self.wc_a.id, confirmed=True)
+        self.assertEqual((ask['action'], ask['can_assign']), ('needs_person', False))
+        self.env['ir.config_parameter'].sudo().set_str(
+            'lab_workcenter_scan.technician_takes_own_scan', '1')
+        # on: the next scan puts their name on it and hands it on
+        done = station.scan(self.mo.name, self.wc_a.id, confirmed=True)
+        self.assertEqual(done['action'], 'handed')
+        self.wo_a.invalidate_recordset()
+        self.assertEqual(self.wo_a.bench_user_id, tech)
+        self.assertEqual(self.wo_a.bench_assigned_by_id, tech)
+        self.assertEqual(self.wo_a.state, 'done')
+
+    def test_taking_a_job_is_only_ever_for_yourself_at_your_own_bench(self):
+        self.env['ir.config_parameter'].sudo().set_str(
+            'lab_workcenter_scan.technician_takes_own_scan', '1')
+        # a lead is still asked who: giving work out is their call, not a default
+        ask = self.env['lab.station'].with_user(self.head).scan(
+            self.mo.name, self.wc_a.id, confirmed=True)
+        self.assertEqual(ask['action'], 'needs_person')
+        self.assertFalse(self.wo_a.bench_user_id)
+        # somebody not posted to the bench cannot put their name on its work
+        stranger = self._bench_user('bench_stranger', self.wc_b)
+        with self.assertRaises((UserError, AccessError)):
+            self.wo_a.with_user(stranger).action_take_own_job()
+
     def test_one_tap_names_who_did_it_and_hands_it_on(self):
         """The popup's answer: assign and hand over in one call, so the rule costs
         the lead a single tap instead of three."""
