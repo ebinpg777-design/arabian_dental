@@ -24,8 +24,8 @@ class SaleOrder(models.Model):
         [('visit', 'At the clinic'), ('courier', 'Courier'), ('transport', 'Transport')],
         string='Case received via', readonly=True, copy=False)
     case_received_ref = fields.Char('Docket / LR no.', readonly=True, copy=False)
-    case_contact_employee_id = fields.Many2one(
-        'hr.employee.public', string='Contact person', tracking=True, copy=False,
+    case_contact_user_id = fields.Many2one(
+        'res.users', string='Contact person', tracking=True, copy=False,
         help="The one person at the lab who should contact this doctor or clinic "
              "about this case, as the executive recorded it.")
     case_contact_note = fields.Char('Why this person', copy=False)

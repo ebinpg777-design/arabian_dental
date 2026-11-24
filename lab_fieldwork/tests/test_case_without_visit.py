@@ -128,16 +128,16 @@ class TestCaseWithoutVisit(TransactionCase):
 
     # ------------------------------------------------------------ contact person
     def test_an_executive_can_pick_the_contact_person(self):
-        """From the public employee list: hr.employee itself is closed to them, and the
-        phone's picker refused them before."""
-        found = self.env['hr.employee.public'].with_user(self.exec_user).name_search('Post Contact')
-        self.assertIn(self.contact.id, [rid for rid, _name in found])
+        """From the logins: the employee list shows an executive only themselves."""
+        found = self.env['res.users'].with_user(self.exec_user).name_search(
+            'Post Office', [('share', '=', False)])
+        self.assertIn(self.office.id, [rid for rid, _name in found])
 
     def test_the_contact_person_goes_to_the_order_with_a_to_do(self):
-        case = self._sent(contact_employee_id=self.contact.id, contact_note='Doctor talks only to her')
+        case = self._sent(contact_user_id=self.office.id, contact_note='Doctor talks only to her')
         case.action_submit()
         order = case.sudo().sale_order_id
-        self.assertEqual(order.case_contact_employee_id.id, self.contact.id)
+        self.assertEqual(order.case_contact_user_id, self.office)
         self.assertEqual(order.case_contact_note, 'Doctor talks only to her')
         todo = order.activity_ids.filtered(lambda a: a.user_id == self.office)
         self.assertTrue(todo, "the contact person has it in their own activities")

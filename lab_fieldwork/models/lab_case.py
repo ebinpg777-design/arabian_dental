@@ -171,10 +171,13 @@ class LabCase(models.Model):
     # Some doctors deal with one person at the lab and nobody else. Which person, and
     # why, is written on the case, so the office rings through the right one rather than
     # finding out from the doctor. (client, 2026-11-24)
-    # The PUBLIC employee list: an executive has no right to read hr.employee, and the
-    # phone's picker refused them outright. Same people, same ids.
-    contact_employee_id = fields.Many2one(
-        'hr.employee.public', string='Contact person', tracking=True,
+    # A login, not an employee: the lab's employee-privacy rule lets a user without HR
+    # rights find only themselves among employees, so an executive's picker came up
+    # empty - and everyone who rings doctors has a login, which is also where the
+    # to-do lands. (2026-11-24)
+    contact_user_id = fields.Many2one(
+        'res.users', string='Contact person', tracking=True,
+        domain=[('share', '=', False)],
         help="The one person at the lab who should contact this doctor or clinic "
              "about this case.")
     contact_note = fields.Char(
@@ -591,7 +594,7 @@ class LabCase(models.Model):
             'visit_id': self.visit_id.id,
             'case_received_via': self.received_via,
             'case_received_ref': self.received_ref or False,
-            'case_contact_employee_id': self.contact_employee_id.id or False,
+            'case_contact_user_id': self.contact_user_id.id or False,
             'case_contact_note': self.contact_note or False,
             'company_id': self.company_id.id,
             'patient': self.patient,
@@ -710,7 +713,7 @@ class LabCase(models.Model):
         """A to-do for the person named to contact the doctor, on the order, so it is
         in their own activities and not only written on a slip they never open."""
         self.ensure_one()
-        user = self.contact_employee_id.sudo().user_id
+        user = self.contact_user_id
         if not user:
             return
         order.sudo().activity_schedule(

@@ -213,10 +213,10 @@
                                 <div class="o_fw_sec_s">Only when the doctor or clinic deals with one particular person at the lab.</div>
                             </div>
                         </div>
-                        <field name="contact_employee_id" readonly="state != 'draft'"
+                        <field name="contact_user_id" readonly="state != 'draft'"
                                placeholder="Anyone at the lab"
                                options="{'no_create': True, 'no_open': True}"/>
-                        <div invisible="not contact_employee_id">
+                        <div invisible="not contact_user_id">
                             <div class="o_fw_sec_l">Why this person</div>
                             <field name="contact_note" class="w-100" readonly="state != 'draft'"
                                    placeholder="e.g. the doctor speaks only to her about payments"/>
@@ -333,7 +333,7 @@
                 <field name="received_via" optional="show" widget="badge"
                        decoration-warning="received_via == 'courier'"
                        decoration-info="received_via == 'transport'"/>
-                <field name="contact_employee_id" optional="hide"/>
+                <field name="contact_user_id" optional="hide"/>
                 <field name="line_count" string="Items"/>
                 <field name="priority" widget="badge" optional="show"/>
                 <field name="order_name" optional="show"/>
@@ -398,7 +398,7 @@
                 <field name="patient" filter_domain="[('patient', 'ilike', self)]"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
-                <field name="contact_employee_id"/>
+                <field name="contact_user_id"/>
                 <field name="received_ref"/>
                 <field name="order_name"/>
                 <filter name="pending" string="Not Submitted"
@@ -423,7 +423,7 @@
                             groups="lab_fieldwork.group_fieldwork_manager"/>
                     <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
                     <filter name="g_via" string="Received via" context="{'group_by': 'received_via'}"/>
-                    <filter name="g_contact" string="Contact person" context="{'group_by': 'contact_employee_id'}"/>
+                    <filter name="g_contact" string="Contact person" context="{'group_by': 'contact_user_id'}"/>
                     <filter name="g_date" string="Date" context="{'group_by': 'date'}"/>
                 </group>
             </search>
@@ -482,9 +482,9 @@
             <xpath expr="//field[@name='payment_term_id']" position="after">
                 <field name="case_received_via" invisible="case_received_via in (False, 'visit')"/>
                 <field name="case_received_ref" invisible="not case_received_ref"/>
-                <field name="case_contact_employee_id" invisible="not case_contact_employee_id"
+                <field name="case_contact_user_id" invisible="not case_contact_user_id"
                        options="{'no_create': True}"/>
-                <field name="case_contact_note" invisible="not case_contact_employee_id"/>
+                <field name="case_contact_note" invisible="not case_contact_user_id"/>
             </xpath>
         </field>
     </record>
