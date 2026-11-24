@@ -340,7 +340,7 @@
                                     <field name="patient"/>
                                     <field name="line_count" string="Items"/>
                                     <field name="priority" widget="badge" optional="show"/>
-                                    <field name="sale_order_id" optional="show"/>
+                                    <field name="order_name" optional="show"/>
                                     <field name="state" widget="badge"/>
                                     <field name="duplicate_warning" column_invisible="1"/>
                                     <field name="duplicate_ack" column_invisible="1"/>

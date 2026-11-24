@@ -43,6 +43,12 @@
                     <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger"
                             invisible="state != 'cancel'"/>
 
+                    <!-- the order this slip became, without opening it -->
+                    <div class="o_fw_order_no" invisible="not order_name">
+                        <i class="fa fa-file-text-o" title="Order"/>
+                        <span class="o_fw_order_no_l">Order</span>
+                        <field name="order_name" nolabel="1" readonly="1" class="o_fw_order_no_v"/>
+                    </div>
                     <div class="alert alert-warning m-0 mb-3 rounded"
                          role="alert" invisible="not duplicate_warning or duplicate_ack">
                         <div class="d-flex align-items-start">
@@ -72,7 +78,7 @@
                                 invisible="not sale_order_id">
                             <div class="o_stat_info">
                                 <span class="o_stat_text">Order</span>
-                                <span class="o_stat_text">Created</span>
+                                <field name="order_name" class="o_stat_value" readonly="1"/>
                             </div>
                         </button>
                         <button name="action_view_duplicates" type="object"
@@ -330,7 +336,7 @@
                 <field name="contact_employee_id" optional="hide"/>
                 <field name="line_count" string="Items"/>
                 <field name="priority" widget="badge" optional="show"/>
-                <field name="sale_order_id" optional="show"/>
+                <field name="order_name" optional="show"/>
                 <field name="state" widget="badge"/>
                 <field name="duplicate_warning" column_invisible="1"/>
                 <field name="duplicate_ack" column_invisible="1"/>
@@ -350,6 +356,7 @@
                 <field name="duplicate_ack"/>
                 <field name="received_via"/>
                 <field name="needs_doctor_call"/>
+                <field name="order_name"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="o_fw_casecard o_fw_cs_#{record.state.raw_value}">
@@ -363,6 +370,7 @@
                             <div class="text-muted small"><i class="fa fa-hospital-o me-1" title="Clinic"/><field name="partner_id"/></div>
                             <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
                                 <span class="o_fw_cs_chip o_fw_cs_items"><i class="fa fa-cubes me-1" title="Items"/><field name="line_count"/> item(s)</span>
+                                <span t-if="record.order_name.raw_value" class="o_fw_cs_chip o_fw_cs_order"><i class="fa fa-file-text-o me-1" title="Order"/><field name="order_name"/></span>
                                 <span t-if="record.received_via.raw_value === 'courier'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-archive me-1" title="Courier"/>Courier</span>
                                 <span t-if="record.received_via.raw_value === 'transport'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-bus me-1" title="Transport"/>Transport</span>
                                 <span t-if="record.needs_doctor_call.raw_value" class="o_fw_cs_chip o_fw_cs_call"><i class="fa fa-phone me-1" title="Call the doctor"/>Call doctor</span>
@@ -392,6 +400,7 @@
                 <field name="user_id"/>
                 <field name="contact_employee_id"/>
                 <field name="received_ref"/>
+                <field name="order_name"/>
                 <filter name="pending" string="Not Submitted"
                         domain="[('state', '=', 'draft')]"/>
                 <filter name="submitted" string="Submitted"

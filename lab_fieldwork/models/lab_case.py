@@ -189,6 +189,10 @@ class LabCase(models.Model):
     # --- what became of it
     sale_order_id = fields.Many2one('sale.order', readonly=True, copy=False,
                                     string='Order')
+    # The order's number, kept on the slip: an executive has no right to read sale
+    # orders, and "which order did this become" is asked at the counter the next
+    # day. Read through the related's sudo, stored. (client, 2026-11-24)
+    order_name = fields.Char(related='sale_order_id.name', store=True, string='Order No')
 
     # --- duplicate control
     duplicate_ids = fields.Many2many(

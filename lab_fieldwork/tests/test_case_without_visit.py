@@ -55,6 +55,9 @@ class TestCaseWithoutVisit(TransactionCase):
         self.assertEqual(order.case_received_via, 'transport')
         self.assertEqual(order.case_received_ref, 'LR 12')
         self.assertEqual(order.verification_state, 'to_verify')
+        # the order's number on the slip, readable by the executive who cannot read orders
+        case.invalidate_recordset()
+        self.assertEqual(case.with_user(self.exec_user).read(['order_name'])[0]['order_name'], order.name)
         self.assertTrue(order._verification_origin_requires(),
                         "work from the field is checked, visit or no visit")
 
