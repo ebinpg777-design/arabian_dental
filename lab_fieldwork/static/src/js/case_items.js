@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component, proxy, usePlugin, useProps } from "@odoo/owl";
+import { Component, proxy, signal, usePlugin, useProps } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
@@ -37,6 +37,7 @@ const LOWER_FRONT = ["43", "42", "41", "31", "32", "33"];
 export class FwCaseItems extends Component {
     static template = "lab_fieldwork.FwCaseItems";
     props = useProps({ ...standardFieldProps });
+    shadeInput = signal.ref();
 
     setup() {
         this.orm = useService("orm");
@@ -45,7 +46,7 @@ export class FwCaseItems extends Component {
             sheet: null,            // null | "product" | "shade" | "teeth"
             teethFor: null, teeth: [], extras: [], primary: false, follow: true,
             query: "", categ: null, catalog: null, loading: false, added: 0, lastAdded: "",
-            shadeFor: null, shades: [], shadeQuery: "", addingShade: false,
+            shadeFor: null, shades: [], shadeQuery: "", addingShade: false, newShade: false,
             noteFor: null,
         });
         this.search = useDebounced(() => this.loadCatalog(), 250);
@@ -336,6 +337,7 @@ export class FwCaseItems extends Component {
         }
         this.state.shadeFor = line.key;
         this.state.shadeQuery = "";
+        this.state.newShade = false;
         this.state.sheet = "shade";
         await this.loadShades();
     }
@@ -357,6 +359,19 @@ export class FwCaseItems extends Component {
         }
         const key = (name) => String(name || "").replace(/\s+/g, "").toUpperCase();
         return !this.state.shades.some((s) => key(s.name) === key(typed));
+    }
+    /**
+     * "New shade" on the picker as it opens: the way to add one is on the screen
+     * before anything is typed. The new shade is typed in the search box - which
+     * also shows it if it is on the list after all - and the button becomes
+     * "Add shade ...". (client, 2026-11-24: "able to add new shades in this view")
+     */
+    startNewShade() {
+        this.state.newShade = true;
+        this.shadeInput()?.focus();
+    }
+    get shadePlaceholder() {
+        return this.state.newShade ? _t("Type the new shade, e.g. 2L1.5") : _t("A2, 2M2, B3…");
     }
     async addShade() {
         if (!this.canAddShade || this.state.addingShade) {

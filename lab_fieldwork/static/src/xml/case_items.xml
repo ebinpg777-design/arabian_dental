@@ -159,12 +159,18 @@
             </div>
             <div class="o_fwci_search">
                 <i class="fa fa-search" title="Search"/>
-                <input type="search" placeholder="A2, 2M2, B3…" t-att-value="this.state.shadeQuery" t-on-input="this.onShadeQuery"/>
+                <input type="search" t-ref="this.shadeInput" t-att-placeholder="this.shadePlaceholder"
+                       t-att-value="this.state.shadeQuery" t-on-input="this.onShadeQuery"/>
             </div>
             <!-- the doctor's shade is not on the list: put it there, from here -->
             <button t-if="this.canAddShade" type="button" class="o_fwci_newshade" t-att-disabled="this.state.addingShade"
                     t-on-click="this.addShade">
                 <i class="fa fa-plus-circle me-1" title="Add"/>Add shade “<t t-out="this.shadeQueryClean"/>”
+            </button>
+            <!-- before anything is typed: the way to add one, in sight -->
+            <button t-elif="!this.readonly and !this.shadeQueryClean" type="button" class="o_fwci_newshade"
+                    t-on-click="this.startNewShade">
+                <i class="fa fa-plus-circle me-1" title="New"/>New shade
             </button>
             <div class="o_fwci_sheet_b">
                 <div class="o_fwci_shelf o_fwci_shelf_top" t-if="!this.state.shadeQuery"><i class="fa fa-star me-1" title="Most used"/>Most used first</div>
