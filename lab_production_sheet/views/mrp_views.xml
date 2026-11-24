@@ -100,4 +100,16 @@
             </xpath>
         </field>
     </record>
+
+    <!-- In the list: the job sheets of the jobs ticked, two to a page. (client, 2026-11-24) -->
+    <record id="view_production_list_job_sheet" model="ir.ui.view">
+        <field name="name">mrp.production.list.job.sheet</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_print_job_sheet" type="object" string="Job Sheet" icon="fa-barcode"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

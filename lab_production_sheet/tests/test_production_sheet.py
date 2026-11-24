@@ -230,3 +230,18 @@ class TestProductionSheet(TransactionCase):
         empty = self.env['sale.order'].create({'partner_id': self.clinic.id})
         with self.assertRaises(UserError):
             empty.action_print_job_sheets()
+
+    def test_the_job_list_prints_the_jobs_ticked(self):
+        jobs = self._order('MC-BSC')[1] | self._order('MC-BSC')[1]
+        dead = self._order('MC-BSC')[1]
+        dead.action_cancel()
+        action = (jobs | dead).action_print_job_sheet()
+        self.assertEqual(action['report_name'], 'lab_production_sheet.report_job_sheet')
+        self.assertEqual(sorted(action['context']['active_ids']), sorted(jobs.ids),
+                         "a cancelled job's sheet is not printed")
+        with self.assertRaises(UserError):
+            dead.action_print_job_sheet()
+        arch = self.env['mrp.production'].get_view(
+            self.env.ref('mrp.mrp_production_tree_view').id, 'list')['arch']
+        self.assertIn('name="action_print_job_sheet"', arch, "the button in the list's header")
+

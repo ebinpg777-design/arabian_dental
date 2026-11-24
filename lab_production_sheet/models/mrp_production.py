@@ -7,6 +7,7 @@ dictionary rather than a PDF - what a sheet says can be checked without
 printing one.
 """
 from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 from odoo.addons.sale_custom.models.account_move import dental_palmer
 
 YES_NO = [('Yes', 'Yes'), ('No', 'No')]
@@ -81,8 +82,14 @@ class MrpProduction(models.Model):
             'lab_production_sheet.action_report_production_report').report_action(self)
 
     def action_print_job_sheet(self):
+        """The job sheets of these jobs - from the form, or the jobs ticked in the
+        list. A cancelled job is left out: its sheet would send a dead case to a
+        bench."""
+        jobs = self.filtered(lambda p: p.state != 'cancel')
+        if not jobs:
+            raise UserError(_("Nothing to print: the selected jobs are cancelled."))
         return self.env.ref(
-            'lab_production_sheet.action_report_job_sheet').report_action(self)
+            'lab_production_sheet.action_report_job_sheet').report_action(jobs)
 
     # ------------------------------------------------------------- what it says
     @api.model

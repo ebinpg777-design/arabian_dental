@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Production Sheet',
-    'version': '20.0.1.3.0',
+    'version': '20.0.1.3.1',
     'summary': "The lab's Daily Production Report and the technician's job sheet, "
                "printed from the manufacturing order",
     'description': """
