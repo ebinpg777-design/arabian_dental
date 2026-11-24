@@ -84,6 +84,8 @@
 
             <field name="partner_id" position="after">
                 <field name="patient"/>
+                <!-- the case's shade: every line takes it, a line may differ -->
+                <field name="color_scheme" options="{'no_create': True}"/>
                 <!-- On the face of the order, not in a tab: who worked the case is asked
                      about every day (client, 2026-10-20). -->
                 <!-- Technicians only, and a New button beside them that makes one
@@ -183,10 +185,12 @@
                 <field name="ul" optional="show"/>
                 <field name="teeth" optional="show" widget="fdi_teeth"/>
                 <field name="cast" optional="show"/>
-                <!-- Shades are picked, not invented: typing a new name here created a
-                     shade for every spelling of a combination (762 on the live list).
-                     New shades are added under Sales > Configuration > Dental Masters.
-                     (client, 2026-10-21) -->
+            </xpath>
+            <!-- Shade after Quantity (client, 2026-11-24). Shades are picked, not
+                 invented: typing a new name here created a shade for every spelling of
+                 a combination (762 on the live list). New shades are added under
+                 Sales > Configuration > Dental Masters. (client, 2026-10-21) -->
+            <xpath expr="//field[@name='order_line']/list/column[@name='sol_qty']" position="after">
                 <field name="color_scheme" optional="show" options="{'no_create': True}"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/form//div[@name='ordered_qty']" position="after">

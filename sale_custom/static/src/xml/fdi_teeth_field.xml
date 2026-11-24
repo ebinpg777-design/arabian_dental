@@ -6,7 +6,17 @@
              t-ref="this.rootRef" t-on-click="this.openChart" t-on-focusin="this.onFocusIn">
             <t t-if="this.props.readonly">
                 <span t-if="!this.chips.length" class="text-muted">—</span>
-                <span t-foreach="this.chips" t-as="chip" t-key="chip" class="o_fdi_chip"><t t-out="chip"/></span>
+                <t t-else="">
+                    <t t-set="cross" t-value="this.cross"/>
+                    <!-- the dentist's cross: upper above the line, the patient's right on the left -->
+                    <div t-if="cross.any" class="o_fdi_cross" t-att-title="this.value">
+                        <span class="o_fdi_q o_fdi_ur" t-out="cross.ur"/>
+                        <span class="o_fdi_q o_fdi_ul" t-out="cross.ul"/>
+                        <span class="o_fdi_q o_fdi_lr" t-out="cross.lr"/>
+                        <span class="o_fdi_q o_fdi_ll" t-out="cross.ll"/>
+                    </div>
+                    <span t-if="cross.extras" class="o_fdi_extras" t-out="cross.extras"/>
+                </t>
             </t>
             <t t-else="">
                 <span t-foreach="this.chips" t-as="chip" t-key="chip" class="o_fdi_chip">

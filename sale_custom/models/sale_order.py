@@ -25,6 +25,12 @@ class SaleOrder(models.Model):
 
     # --- Patient / clinical data -------------------------------------------------
     patient = fields.Char(string='Patient', tracking=True, index=True)
+    # The case's shade. Every line takes it unless the line says otherwise, so a
+    # bridge of four units is one choice and not four. (client, 2026-11-24)
+    color_scheme = fields.Many2one(
+        'product.colour', string='Shade', tracking=True,
+        help="The shade of the case. Each line takes it; change a line's own shade "
+             "where one unit differs.")
     age = fields.Integer(string='Age', tracking=True)
     gender = fields.Selection(
         [('male', 'Male'), ('female', 'Female')],
@@ -963,3 +969,51 @@ class SendThrough(models.Model):
     name = fields.Char(string='Name', required=True)
     description = fields.Text(string='Description')
     active = fields.Boolean(string='Active', default=True)
+
+
+class SaleOrderShade(models.Model):
+    """The order's shade, carried to its lines.
+
+    A line with no shade of its own takes the order's (the line's compute). When the
+    order's shade changes, the lines that were on the OLD order shade follow it; a
+    line somebody set to something else keeps its own.
+    """
+    _inherit = 'sale.order'
+
+    @api.onchange('color_scheme')
+    def _onchange_color_scheme_lines(self):
+        old = self._origin.color_scheme
+        for line in self.order_line:
+            if line.display_type:
+                continue
+            if not line.color_scheme or (old and line.color_scheme == old):
+                line.color_scheme = self.color_scheme
+
+    def write(self, vals):
+        if 'color_scheme' not in vals:
+            return super().write(vals)
+        old = {order.id: order.color_scheme for order in self}
+        result = super().write(vals)
+        for order in self:
+            was = old[order.id]
+            if was and was != order.color_scheme:
+                order.order_line.filtered(
+                    lambda l: not l.display_type and l.color_scheme == was
+                ).write({'color_scheme': order.color_scheme.id or False})
+        return result
+
+
+class SaleOrderLineShade(models.Model):
+    _inherit = 'sale.order.line'
+
+    color_scheme = fields.Many2one(
+        'product.colour', string='Shade', compute='_compute_color_scheme',
+        store=True, readonly=False, precompute=True)
+
+    @api.depends('order_id.color_scheme')
+    def _compute_color_scheme(self):
+        """The order's shade, for a line that has none of its own. Not assigning
+        keeps what the line has."""
+        for line in self:
+            if not line.color_scheme and not line.display_type and line.order_id.color_scheme:
+                line.color_scheme = line.order_id.color_scheme

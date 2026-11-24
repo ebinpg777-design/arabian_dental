@@ -23,3 +23,4 @@ from . import test_salesperson_summary_lab
 from . import test_order_material
 from . import test_technicians
 from . import test_route_place_of_supply
+from . import test_order_shade

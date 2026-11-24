@@ -233,3 +233,28 @@
         &:focus { outline: none; border-bottom-color: var(--fdi-brand); }
     }
 }
+
+// The teeth as a cross, read-only (list cells, a locked form). Only the two lines that
+// divide the mouth are drawn; an empty quadrant keeps its place so the cross stays a
+// cross.
+.o_fdi_cross {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    font-size: .82rem;
+    font-weight: 600;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+    color: var(--body-color, #212529);
+    vertical-align: middle;
+
+    .o_fdi_q {
+        min-width: 1.6em;
+        min-height: 1.25em;
+        padding: 1px 5px;
+        white-space: nowrap;
+    }
+    .o_fdi_ur, .o_fdi_lr { text-align: right; border-right: 1.5px solid currentColor; }
+    .o_fdi_ul, .o_fdi_ll { text-align: left; }
+    .o_fdi_ur, .o_fdi_ul { border-bottom: 1.5px solid currentColor; }
+}
+.o_fdi_extras { margin-left: 6px; font-size: .78rem; color: var(--secondary-color, #6c757d); }

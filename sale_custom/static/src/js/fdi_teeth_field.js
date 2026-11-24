@@ -199,6 +199,29 @@ export class FdiTeethField extends Component {
     }
 
     /**
+     * The teeth as a dentist writes them: a cross, the patient's right on the left
+     * of it, upper above the line. Each quadrant reads towards the midline, so the
+     * tooth nearest the vertical line is the front one (client, 2026-11-24).
+     */
+    get cross() {
+        const { teeth, extras } = this.parsed;
+        const cells = { ur: [], ul: [], lr: [], ll: [] };
+        const of = { 1: "ur", 5: "ur", 2: "ul", 6: "ul", 4: "lr", 8: "lr", 3: "ll", 7: "ll" };
+        for (const tooth of teeth) {
+            cells[of[tooth[0]]].push(tooth);
+        }
+        const towardsMidline = (side) => (a, b) => (side === "right" ? Number(b) - Number(a) : Number(a) - Number(b));
+        return {
+            ur: cells.ur.sort(towardsMidline("right")).join(" "),
+            ul: cells.ul.sort(towardsMidline("left")).join(" "),
+            lr: cells.lr.sort(towardsMidline("right")).join(" "),
+            ll: cells.ll.sort(towardsMidline("left")).join(" "),
+            extras: extras.join(", "),
+            any: teeth.length > 0,
+        };
+    }
+
+    /**
      * The chart has just closed - by a click outside it, or Escape.
      *
      * As a popover goes, the web client hands the focus back to whatever had it
