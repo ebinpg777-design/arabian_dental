@@ -43,7 +43,7 @@
             /* the dentist's cross: only the two lines that divide the mouth are drawn */
             .ps table.ps-cross { float: right; width: 46mm; margin: 0 0 1mm 2mm; }
             .ps .ps-box .ps-cross td { width: 23mm; height: 7.5mm; font-size: 8.5pt; font-weight: bold;
-                                       padding: .6mm 1.2mm; border: 0 none; }
+                                       padding: .6mm 1.2mm; border: 0 none; white-space: nowrap; }
             .ps .ps-box .ps-cross td.tl { border-right: 1.3px solid #222; border-bottom: 1.3px solid #222;
                                           text-align: right; vertical-align: bottom; }
             .ps .ps-box .ps-cross td.tr { border-bottom: 1.3px solid #222; text-align: left;
@@ -73,9 +73,47 @@
             .ps .ps-brk { page-break-before: always; }
             .ps .ps-scan { border: 1.5px solid #111; padding: 3mm; margin-top: 4mm; }
             .ps .ps-scan td { border: none; vertical-align: middle; }
-            .ps .ps-note { border: 1px solid #333; min-height: 26mm; padding: 1.5mm 2mm; }
-            .ps .ps-urgent { display: inline-block; background: #b00020; color: #fff;
-                             font-weight: bold; padding: .4mm 2mm; font-size: 9pt; }
+            /* Rushed work, seen across the bench: a solid block that a black-and-white
+               printer still prints solid. */
+            .ps .ps-rush { display: inline-block; background: #b00020; color: #fff; border: 1.5px solid #6d0014;
+                           font-weight: bold; font-size: 12pt; letter-spacing: .1em; padding: .8mm 3mm; }
+            .ps .ps-kv { margin-top: 1mm; }
+            .ps .ps-teeth-rest { clear: both; font-size: 8pt; color: #444; }
+
+            /* THE TECHNICIAN JOB SHEET, two to an A4 page: the same heading, smaller,
+               and each sheet exactly half the printable height, so the cut is always
+               in the middle of the paper. Its paper format prints a millimetre here as
+               a millimetre (paperformat_job_sheet). (client, 2026-11-24) */
+            .ps-compact { font-size: 8pt; }
+            .ps-compact .ps-half { height: 142mm; overflow: hidden; }
+            .ps-compact .ps-half-second { border-top: 1px dashed #888; padding-top: 4mm; height: 137.7mm; }
+            .ps-compact .ps-logo { max-height: 8mm; max-width: 55mm; }
+            .ps-compact .ps-cert { max-height: 6.5mm; max-width: 36mm; }
+            .ps-compact .ps-where { font-size: 6pt; margin-top: .3mm; }
+            .ps-compact .ps-title { font-size: 10pt; margin: .8mm 0; }
+            .ps-compact .ps-file { font-size: 9pt; }
+            .ps-compact .ps-rush { font-size: 10pt; padding: .4mm 2.5mm; }
+            .ps-compact .ps-box td, .ps-compact .ps-box th { padding: .6mm 1.4mm; }
+            .ps-compact .ps-row td { height: 5.4mm; }
+            .ps-compact .ps-k { width: 26mm; }
+            .ps-compact .ps-work { height: 28mm; }
+            .ps-compact .ps-work-name { font-size: 9.5pt; margin-top: .4mm; }
+            .ps-compact table.ps-cross { width: auto; }
+            .ps-compact .ps-box .ps-cross td { width: auto; min-width: 16mm; height: 5.5mm; font-size: 8.5pt; }
+            .ps-compact .ps-cb { width: 2.6mm; height: 2.6mm; line-height: 2.4mm; font-size: 6.5pt;
+                                 margin: 0 1.4mm 0 .6mm; }
+            .ps-compact .ps-scan { padding: 1.5mm; margin-top: 2mm; text-align: center; }
+            /* The sheet is a table as high as the half page: the heading takes what it
+               needs, the stamp sits at the foot, and the Notes box takes the rest - a
+               long special instruction shortens Notes rather than spilling. */
+            .ps-compact table.ps-fill { height: 100%; table-layout: fixed;
+                                        border-collapse: separate; border-spacing: 0; }
+            .ps-compact .ps-fill td.ps-fill-top { height: 1px; vertical-align: top; padding: 0; }
+            .ps-compact .ps-fill td.ps-fill-notes { border: 1px solid #333; vertical-align: top;
+                                                    padding: 0; color: #555; }
+            .ps-compact .ps-fill-notes div { padding: .8mm 1.5mm; }
+            .ps-compact .ps-fill td.ps-fill-foot { height: 1px; vertical-align: bottom; padding: 1mm 0 0 0; }
+            .ps-compact .ps-stamp { margin: 0; font-size: 6.5pt; }
         </style>
     </template>
 
@@ -109,7 +147,9 @@
         </div>
         <table class="ps-top" style="margin-top:1mm;">
             <tr>
-                <td style="width:25%;"/>
+                <td style="width:25%;">
+                    <span t-if="s['rush']" class="ps-rush" t-out="s['rush']"/>
+                </td>
                 <td style="width:50%;"><div class="ps-title" t-out="title"/></td>
                 <td style="width:25%;text-align:right;" class="ps-file">File No : <t t-out="s['file_no']"/></td>
             </tr>
@@ -129,10 +169,11 @@
                     <div>
                         <t t-out="s['quantity']"/> <t t-out="s['uom']"/>
                         <t t-if="s['arch']"> · <t t-out="s['arch']"/></t>
-                        <span t-if="s['urgent']" class="ps-urgent">URGENT</span>
                     </div>
-                    <div t-if="s['due']" class="ps-muted">Due <t t-out="s['due']"/></div>
-                    <div style="clear:both;margin-top:5mm;">Shade : <b t-out="s['shade']"/></div>
+                    <div t-if="s['teeth']['rest']" class="ps-teeth-rest" t-out="s['teeth']['rest']"/>
+                    <div class="ps-kv" style="clear:both;">Expected Date : <b t-out="s['due']"/></div>
+                    <div class="ps-kv">Priority : <b t-out="s['priority']"/></div>
+                    <div class="ps-kv">Shade : <b t-out="s['shade']"/></div>
                 </td>
             </tr>
             <tr class="ps-row">
@@ -320,71 +361,59 @@
         The sheet that goes into the tray with the work. The same heading, no stage
         and no name on it: which bench the case is at is the station board's to say,
         and it says it when this barcode is scanned there.
+
+        Half an A4 page: two orders' sheets to a page, cut along the dashed line.
+        (client, 2026-11-24: smaller heading, no QR code, no Teeth / Came with the
+        case / Modifications rows - the teeth are in the cross.)
     -->
     <template id="report_job_sheet_document">
         <t t-set="s" t-value="sheets[o.id]"/>
-        <!-- one order to a page -->
-        <div class="article" t-att-style="'page-break-before: always;' if o_index else None">
-            <div class="page ps">
-                <t t-call="lab_production_sheet.sheet_css"/>
-                <t t-call="lab_production_sheet.sheet_heading" title.f="TECHNICIAN JOB SHEET"/>
+        <table class="ps-fill">
+            <tr>
+                <td class="ps-fill-top">
+                    <t t-call="lab_production_sheet.sheet_heading" title.f="TECHNICIAN JOB SHEET"/>
 
-                <div class="ps-scan">
-                    <table>
-                        <tr>
-                            <td style="width:66%;text-align:center;">
-                                <div t-out="o.name"
-                                     t-options="{'widget': 'barcode', 'symbology': 'Code128', 'width': 900, 'height': 150, 'img_style': 'width:112mm;height:20mm;'}"/>
-                                <div style="font-size:15pt;font-weight:bold;letter-spacing:.12em;margin-top:1mm;"
-                                     t-out="o.name"/>
-                            </td>
-                            <td style="width:14%;text-align:center;">
-                                <div t-out="o.name"
-                                     t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:24mm;height:24mm;'}"/>
-                            </td>
-                            <td style="font-size:8.5pt;">
-                                <b>Scan at your station board</b><br/>
-                                first scan: you have the case<br/>
-                                second scan: it goes to the next bench
-                            </td>
+                    <div class="ps-scan">
+                        <div t-out="o.name"
+                             t-options="{'widget': 'barcode', 'symbology': 'Code128', 'width': 900, 'height': 150, 'img_style': 'width:96mm;height:13mm;'}"/>
+                        <div style="font-size:12pt;font-weight:bold;letter-spacing:.12em;margin-top:.5mm;"
+                             t-out="o.name"/>
+                    </div>
+
+                    <table class="ps-box" style="margin:2mm 0;">
+                        <tr class="ps-row">
+                            <td class="ps-k">Special instructions</td>
+                            <td class="ps-v" t-out="s['instruction']"/>
                         </tr>
                     </table>
-                </div>
-
-                <table class="ps-box" style="margin-top:4mm;">
-                    <tr class="ps-row">
-                        <td class="ps-k" style="width:34mm;">Teeth</td>
-                        <td class="ps-v" t-out="s['teeth_text']"/>
-                    </tr>
-                    <tr class="ps-row">
-                        <td class="ps-k">Came with the case</td>
-                        <td class="ps-v" t-out="s['bag']"/>
-                    </tr>
-                    <tr class="ps-row">
-                        <td class="ps-k">Modifications</td>
-                        <td class="ps-v" t-out="s['modification']"/>
-                    </tr>
-                    <tr class="ps-row">
-                        <td class="ps-k">Special instructions</td>
-                        <td class="ps-v" t-out="s['instruction']"/>
-                    </tr>
-                </table>
-
-                <div style="margin-top:4mm;">Notes</div>
-                <div class="ps-note"/>
-
-                <div class="ps-stamp">
-                    Printed <t t-out="stamp['at']"/> by <t t-out="stamp['by']"/>.
-                    Writing on this sheet does not move the case: scanning it does.
-                </div>
-            </div>
-        </div>
+                </td>
+            </tr>
+            <tr><td class="ps-fill-notes"><div>Notes</div></td></tr>
+            <tr>
+                <td class="ps-fill-foot">
+                    <div class="ps-stamp">
+                        Printed <t t-out="stamp['at']"/> by <t t-out="stamp['by']"/>.
+                        Writing on this sheet does not move the case: scanning it does.
+                    </div>
+                </td>
+            </tr>
+        </table>
     </template>
 
     <template id="report_job_sheet">
         <t t-call="web.html_container">
-            <t t-foreach="docs" t-as="o">
-                <t t-call="lab_production_sheet.report_job_sheet_document"/>
+            <!-- one article is one PDF page body: two sheets in each -->
+            <t t-foreach="range(0, len(docs), 2)" t-as="at">
+                <div class="article">
+                    <div class="page ps ps-compact">
+                        <t t-call="lab_production_sheet.sheet_css"/>
+                        <t t-foreach="docs[at:at + 2]" t-as="o">
+                            <div t-att-class="'ps-half ps-half-second' if o_index else 'ps-half'">
+                                <t t-call="lab_production_sheet.report_job_sheet_document"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
             </t>
         </t>
     </template>

@@ -55,15 +55,35 @@ class TestProductionSheet(TransactionCase):
         self.assertEqual(sheet['shade'], 'ZZ-SHEET-A2')
         self.assertEqual(sheet['quantity'], '2')
         self.assertEqual(sheet['officer'], 'Sheet Officer', "the route's executive")
+        self.assertEqual(sheet['teeth']['upper_right'], '4 3', "17-style numbers lose the quadrant")
         self.assertEqual(sheet['prepared_by'], order.create_uid.name
                          if not order.create_uid._is_superuser() else '',
                          "never the system's own name")
 
     def test_the_teeth_go_in_the_cross(self):
+        """Palmer, as the invoice draws it: the cell is the quadrant, so 14 is a 4."""
         cross = self.env['mrp.production']._lab_sheet_teeth('14, 13, 46, 21, 22, 31 and 55')
-        self.assertEqual(cross, {'upper_right': '55 14 13', 'upper_left': '21 22',
-                                 'lower_right': '46', 'lower_left': '31'})
+        self.assertEqual(cross, {'upper_right': 'E 4 3', 'upper_left': '1 2',
+                                 'lower_right': '6', 'lower_left': '1', 'rest': 'and'})
         self.assertEqual(self.env['mrp.production']._lab_sheet_teeth(False)['upper_left'], '')
+        self.assertEqual(self.env['mrp.production']._lab_sheet_teeth('upper arch')['rest'],
+                         'upper arch', "no tooth at all: the text is printed as written")
+
+    def test_the_priority_and_the_day_the_work_is_owed(self):
+        order, production = self._order('MC-BSC')
+        order.date_due = '2026-11-26'
+        sheet = production._lab_sheet()
+        self.assertEqual((sheet['due'], sheet['priority'], sheet['rush']),
+                         ('26-11-2026', 'Normal', ''))
+        order.order_line.is_urgent = True
+        self.assertEqual(production._lab_sheet()['rush'], 'URGENT', "a line ticked urgent")
+        order.order_line.is_urgent = False
+        order.priority = 'urgent'
+        self.assertEqual(production._lab_sheet()['rush'], 'URGENT')
+        if 'emergency' in dict(order._fields['priority']._description_selection(self.env)):
+            order.priority = 'emergency'
+            sheet = production._lab_sheet()
+            self.assertEqual((sheet['priority'], sheet['rush']), ('Emergency', 'EMERGENCY'))
 
     def test_an_answer_changed_on_the_job_is_changed_on_the_order(self):
         """By somebody with no right to edit a sale order."""
@@ -178,8 +198,27 @@ class TestProductionSheet(TransactionCase):
         self.assertIn(production.name, text)
         self.assertNotIn('Particulars', text, "no stage table on the technician's sheet")
         self.assertNotIn('Casting', text)
-        self.assertIn('alt="Barcode %s"' % production.name, text,
-                      "the barcode the station board reads")
+        self.assertEqual(text.count('alt="Barcode %s"' % production.name), 1,
+                         "the barcode the station board reads, and no QR code beside it")
+        for gone in ('Came with the case', 'Modifications', '>Teeth<'):
+            self.assertNotIn(gone, text)
+        for there in ('Expected Date', 'Priority', 'Special instructions'):
+            self.assertIn(there, text)
+        self.assertNotIn('class="ps-rush"', text, "a normal order carries no rush label")
+
+    def test_two_job_sheets_to_a_page(self):
+        productions = self.env['mrp.production']
+        for _i in range(3):
+            productions |= self._order('MC-BSC')[1]
+        productions[1].sale_id.priority = 'urgent'
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            'lab_production_sheet.report_job_sheet', productions.ids)
+        text = html.decode()
+        self.assertEqual(text.count('<div class="article"'), 2, "one page body per pair")
+        self.assertEqual(text.count('class="ps-half"'), 2)
+        self.assertEqual(text.count('class="ps-half ps-half-second"'), 1)
+        self.assertEqual(text.count('class="ps-rush"'), 1)
+        self.assertIn('>URGENT<', text)
 
     def test_the_order_prints_the_sheets_of_all_its_jobs(self):
         order, production = self._order('MC-BSC')

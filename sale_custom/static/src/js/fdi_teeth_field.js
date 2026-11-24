@@ -210,12 +210,19 @@ export class FdiTeethField extends Component {
         for (const tooth of teeth) {
             cells[of[tooth[0]]].push(tooth);
         }
-        const towardsMidline = (side) => (a, b) => (side === "right" ? Number(b) - Number(a) : Number(a) - Number(b));
+        // Palmer, as the invoice prints it: the cell already says the quadrant, so a
+        // tooth is written by its own number - 7, not 17 - and a milk tooth by its
+        // letter A-E (client, 2026-11-24). The full numbers stay in the tooltip.
+        const mark = (tooth) => (Number(tooth[0]) >= 5 ? "ABCDE"[Number(tooth[1]) - 1] : tooth[1]);
+        const position = (a, b) => Number(a[1]) - Number(b[1]) || Number(a[0]) - Number(b[0]);
+        const towardsMidline = (side) => (a, b) => (side === "right" ? position(b, a) : position(a, b));
+        // a thin space: a whole arch, 8 7 6 5 4 3 2 1 | 1 2 3 4 5 6 7 8, fits a list column
+        const write = (cell, side) => cell.sort(towardsMidline(side)).map(mark).join("\u2009");
         return {
-            ur: cells.ur.sort(towardsMidline("right")).join(" "),
-            ul: cells.ul.sort(towardsMidline("left")).join(" "),
-            lr: cells.lr.sort(towardsMidline("right")).join(" "),
-            ll: cells.ll.sort(towardsMidline("left")).join(" "),
+            ur: write(cells.ur, "right"),
+            ul: write(cells.ul, "left"),
+            lr: write(cells.lr, "right"),
+            ll: write(cells.ll, "left"),
             extras: extras.join(", "),
             any: teeth.length > 0,
         };
@@ -299,6 +306,8 @@ export const fdiTeethField = {
     displayName: _t("Teeth (FDI chart)"),
     supportedTypes: ["char"],
     extractProps: ({ attrs }) => ({ placeholder: attrs.placeholder }),
+    // Room in a list for the cross of a full arch, so no quadrant ends in "..."
+    listViewWidth: [160, 260],
 };
 
 registry.category("fields").add("fdi_teeth", fdiTeethField);

@@ -15,6 +15,24 @@
         <field name="dpi">90</field>
     </record>
 
+    <!-- The technician's job sheet: two to an A4 page, cut in the middle. Smart
+         shrinking off and 96 dpi, so a millimetre in the template is a millimetre on
+         the paper and each sheet can be exactly half the printable height
+         (297 - 2 x 6 = 285 mm: 142 mm a sheet, a millimetre spare). -->
+    <record id="paperformat_job_sheet" model="report.paperformat">
+        <field name="name">Lab Job Sheet (two to an A4)</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">6</field>
+        <field name="margin_bottom">6</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="True"/>
+    </record>
+
     <record id="action_report_production_report" model="ir.actions.report">
         <field name="name">Daily Production Report</field>
         <field name="model">mrp.production</field>
@@ -34,6 +52,6 @@
         <field name="print_report_name">'Job Sheet - %s' % (object.name or '').replace('/', '-')</field>
         <field name="binding_model_id" ref="mrp.model_mrp_production"/>
         <field name="binding_type">report</field>
-        <field name="paperformat_id" ref="paperformat_production_sheet"/>
+        <field name="paperformat_id" ref="paperformat_job_sheet"/>
     </record>
 </odoo>

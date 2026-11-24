@@ -6,9 +6,8 @@ plain dictionary. The templates only lay it out, and the tests read the
 dictionary rather than a PDF - what a sheet says can be checked without
 printing one.
 """
-import re
-
 from odoo import _, api, fields, models
+from odoo.addons.sale_custom.models.account_move import dental_palmer
 
 YES_NO = [('Yes', 'Yes'), ('No', 'No')]
 
@@ -23,12 +22,9 @@ ORDER_ANSWERS = {
     'lab_impression_tray': 'impression_tray',
 }
 
-# FDI: the first digit is the quadrant (5-8 for baby teeth), the second the tooth.
-TOOTH = re.compile(r'(?<!\d)([1-8])([1-8])(?!\d)')
-# The four cells of the cross a dentist draws, read facing the patient: the
-# patient's right is on the left of the page.
-QUADRANTS = {'1': 'upper_right', '5': 'upper_right', '2': 'upper_left', '6': 'upper_left',
-             '4': 'lower_right', '8': 'lower_right', '3': 'lower_left', '7': 'lower_left'}
+# The order's priorities that are rushed work, as sale_custom's RUSH: emergency (the
+# patient in the chair, from lab_order_control) above urgent.
+RUSH_LABELS = {'emergency': 'EMERGENCY', 'urgent': 'URGENT'}
 
 
 class MrpProduction(models.Model):
@@ -93,18 +89,19 @@ class MrpProduction(models.Model):
     def _lab_sheet_teeth(self, text):
         """The teeth of a line, in the four cells of the cross.
 
-        Upper right and lower right read towards the midline (18 ... 11), the left
-        side away from it (21 ... 28), as on any chart.
+        Palmer, as the lab's invoices draw it (sale_custom's `dental_palmer`): the
+        cell is the quadrant, so a tooth is written by its own number, 7 and not 17,
+        and a milk tooth by its letter A-E. Upper right and lower right read towards
+        the midline (8 ... 1), the left side away from it (1 ... 8). What is not a
+        tooth is kept in `rest`, printed under the cross. (client, 2026-11-24: "not
+        needed first digit")
         """
-        cells = {'upper_right': [], 'upper_left': [], 'lower_right': [], 'lower_left': []}
-        for quadrant, tooth in TOOTH.findall(text or ''):
-            number = quadrant + tooth
-            cell = cells[QUADRANTS[quadrant]]
-            if number not in cell:
-                cell.append(number)
-        for name, numbers in cells.items():
-            numbers.sort(reverse=name.endswith('right'))
-        return {name: ' '.join(numbers) for name, numbers in cells.items()}
+        cross = dental_palmer(text) or {}
+        return {
+            'upper_right': cross.get('ur', ''), 'upper_left': cross.get('ul', ''),
+            'lower_right': cross.get('lr', ''), 'lower_left': cross.get('ll', ''),
+            'rest': cross.get('rest', '') if cross else (text or '').strip(),
+        }
 
     @api.model
     def _lab_sheet_label(self, name, department):
@@ -249,6 +246,12 @@ class MrpProduction(models.Model):
                                  self._fields[field]._description_selection(self.env)]
         due = order and ('date_due' in order._fields and order.date_due
                          or order.commitment_date) or False
+        # How rushed the work is, in print big enough to be seen across the bench:
+        # the order's Priority, or a line ticked Urgent on a normal order.
+        priority = order.priority if order and 'priority' in order._fields else False
+        priority_label = priority and dict(
+            order._fields['priority']._description_selection(self.env)).get(priority, '') or ''
+        rush = RUSH_LABELS.get(priority) or (line and line.is_urgent and RUSH_LABELS['urgent']) or ''
         bag = []
         if order:
             for name in ('is_screw', 'is_bite', 'is_bands', 'is_wires', 'is_teeth', 'is_facebow',
@@ -277,11 +280,13 @@ class MrpProduction(models.Model):
             'quantity': ('%.2f' % self.product_qty).rstrip('0').rstrip('.'),
             'uom': self.uom_id.name or '',
             'arch': dict(self._fields['ul']._description_selection(self.env)).get(self.ul, ''),
-            'teeth_text': line.teeth or '',
             'teeth': self._lab_sheet_teeth(line.teeth),
             'shade': self.color_scheme or '',
+            # the day the work is owed: the order's Due Date (sale_custom sets it on
+            # confirming - the same day for rushed work, two days later otherwise)
             'due': due and fields.Date.to_date(due).strftime('%d-%m-%Y') or '',
-            'urgent': bool(line and line.is_urgent),
+            'priority': priority_label,
+            'rush': rush,
             'bag': ', '.join(bag),
             'modification': order.modification or '',
             'instruction': order.instruction or '',

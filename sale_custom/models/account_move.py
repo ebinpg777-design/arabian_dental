@@ -456,6 +456,49 @@ class AccountMove(models.Model):
         return (old or 0.0, (old or 0.0) + mine)
 
 
+# The four cells of the Palmer cross, by FDI quadrant (5-8 are the milk teeth).
+_DENTAL_PALMER_CELL = {1: 'ur', 2: 'ul', 3: 'll', 4: 'lr', 5: 'ur', 6: 'ul', 7: 'll', 8: 'lr'}
+
+
+def dental_palmer(teeth):
+    """The teeth as the lab's invoices always drew them: a Palmer cross, each tooth
+    in its quadrant (client, 2026-10-19, "the teeth map in the column").
+
+    Drawn as the dentist faces the patient: the patient's RIGHT on the left of the
+    cross. The cell already says the quadrant, so a tooth is written by its own
+    number only - 7, not 17 - running outward from the midline: the right-hand cells
+    read 8..1 towards the centre line, the left-hand ones 1..8 away from it. Milk
+    teeth (FDI 5x-8x) take Palmer's letters A-E. The job sheet and the production
+    report draw the same cross from here (client, 2026-11-24).
+
+    Returns {'ur', 'ul', 'lr', 'll': text, 'rest': text}, or None when the text
+    holds no FDI number at all (it is then printed as written). Anything that is
+    not a tooth - a lone digit, a word - is kept in `rest` and printed under the
+    cross, never dropped: the note is the lab's own writing.
+    """
+    cells = {'ur': [], 'ul': [], 'lr': [], 'll': []}
+    rest = []
+    for token in re.split(r'[\s,;/]+', (teeth or '').strip()):
+        if not token:
+            continue
+        match = re.fullmatch(r'([1-8])([1-8])', token)
+        quadrant, tooth = (int(match.group(1)), int(match.group(2))) if match else (0, 0)
+        if not match or (quadrant >= 5 and tooth > 5):
+            rest.append(token)
+            continue
+        cell = _DENTAL_PALMER_CELL[quadrant]
+        if (tooth, quadrant) not in cells[cell]:
+            cells[cell].append((tooth, quadrant))
+    if not any(cells.values()):
+        return None
+    result = {'rest': ' '.join(rest)}
+    for cell, found in cells.items():
+        found = sorted(found, reverse=cell in ('ur', 'lr'))
+        result[cell] = ' '.join(
+            'ABCDE'[tooth - 1] if quadrant >= 5 else str(tooth) for tooth, quadrant in found)
+    return result
+
+
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
@@ -465,43 +508,12 @@ class AccountMoveLine(models.Model):
     teeth = fields.Char('Teeth (FDI)')  # no size: 19 silently cut it at 64 characters
     work_number = fields.Char(string='Work Number')
 
-    # The teeth as the lab's invoices always drew them: a Palmer cross, each tooth's
-    # number in its quadrant (client, 2026-10-19, "the teeth map in the column").
-    # Drawn as the dentist faces the patient: the patient's RIGHT on the left of the
-    # cross. Numbers run outward from the midline, so the right-hand quadrants read
-    # 8..1 towards the centre line and the left-hand ones 1..8 away from it. Milk
-    # teeth (FDI 5x-8x) take Palmer's letters A-E.
-    _DENTAL_PALMER_CELL = {1: 'ur', 2: 'ul', 3: 'll', 4: 'lr', 5: 'ur', 6: 'ul', 7: 'll', 8: 'lr'}
-
     def _dental_palmer(self):
         """{'ur', 'ul', 'lr', 'll': text, 'rest': text} for the cross, or None when the
-        teeth text holds no FDI number at all (it is then printed as written).
-
-        Anything that is not a tooth - a lone digit, a word - is kept in `rest` and
-        printed under the cross, never dropped: the note is the lab's own writing.
-        """
+        teeth text holds no FDI number at all (it is then printed as written)."""
         self.ensure_one()
-        cells = {'ur': [], 'ul': [], 'lr': [], 'll': []}
-        rest = []
-        for token in re.split(r'[\s,;/]+', (self.teeth or '').strip()):
-            if not token:
-                continue
-            match = re.fullmatch(r'([1-8])([1-8])', token)
-            quadrant, tooth = (int(match.group(1)), int(match.group(2))) if match else (0, 0)
-            if not match or (quadrant >= 5 and tooth > 5):
-                rest.append(token)
-                continue
-            cell = self._DENTAL_PALMER_CELL[quadrant]
-            if (tooth, quadrant) not in cells[cell]:
-                cells[cell].append((tooth, quadrant))
-        if not any(cells.values()):
-            return None
-        result = {'rest': ' '.join(rest)}
-        for cell, teeth in cells.items():
-            teeth = sorted(teeth, reverse=cell in ('ur', 'lr'))
-            result[cell] = ' '.join(
-                'ABCDE'[tooth - 1] if quadrant >= 5 else str(tooth) for tooth, quadrant in teeth)
-        return result
+        return dental_palmer(self.teeth)
+
     # The invoice's patient list, read from the move that already stores it.
     #
     # This used to be a STORED column on account_move_line with
