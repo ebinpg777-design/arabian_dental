@@ -2,17 +2,18 @@
 <templates xml:space="preserve">
 
 <t t-name="lab_fieldwork.NavBar" t-inherit="web.NavBar" t-inherit-mode="extension">
-    <xpath expr="//div[hasclass('o_navbar_breadcrumbs')]" position="before">
+    <!-- First on the bar, before the apps menu: the one place a thumb finds without looking. -->
+    <xpath expr="//t[@t-call='web.NavBar.AppsMenu']" position="before">
         <!-- Phone only: the desktop bar already shows the app name and its menus. -->
-        <div t-if="this.ui.isSmall and this.currentApp" class="o_fw_mobile_nav d-flex align-items-center">
-            <button type="button" class="o_fw_mobile_btn" title="Back"
+        <div t-if="this.ui.isSmall and this.fwHasHome" class="o_fw_mobile_nav d-flex align-items-center">
+            <button type="button" class="o_fw_mobile_home" title="Home" aria-label="Home"
+                    t-on-click="() => this.fwGoHome()">
+                <i class="fa fa-home" aria-hidden="true"/>
+            </button>
+            <!-- Only where the screen has no back arrow of its own (see mobile_home.scss). -->
+            <button type="button" class="o_fw_mobile_btn o_fw_mobile_back" title="Back"
                     aria-label="Back" t-on-click="() => this.fwGoBack()">
                 <i class="fa fa-chevron-left" aria-hidden="true"/>
-            </button>
-            <button type="button" class="o_fw_mobile_btn o_fw_mobile_home"
-                    t-att-title="this.currentApp.name" t-on-click="() => this.fwGoHome()">
-                <i class="fa fa-home me-1" aria-hidden="true"/>
-                <span class="o_fw_mobile_app" t-out="this.currentApp.name"/>
             </button>
         </div>
     </xpath>
