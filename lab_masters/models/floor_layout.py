@@ -5,8 +5,9 @@ The first layout (2026-09-25) followed the SOP sheets: fifty-seven benches, one
 for every stage a document named, and a metal ceramic crown crossing thirty-two
 of them. Nobody on the floor fills in thirty-two lines. The paper the technicians
 actually sign has four versions - metal and ceramic, zirconia, orthodontic,
-acrylic - and between them twenty-seven rows. Those rows are the benches now,
-with the final check and the packing the acrylic sheet signs for at its foot.
+acrylic - and between them the rows that are the benches now: each sheet's model
+preparation, the rows of each department's table, and the final check and the
+packing the acrylic sheet signs for at its foot. Thirty-one in all.
 (client, 2026-11-24)
 
 What a merged bench carries
@@ -32,46 +33,67 @@ _logger = logging.getLogger(__name__)
 
 LABOUR = 105.77
 
-# key, xmlid, name, code, department xmlid, hourly rate for a bench that is new.
+# key, xmlid, the row's name on the sheet, code, department xmlid, hourly rate for a
+# bench that is new, and whether the row's name is one several departments share.
+#
 # A bench that already exists keeps the rate the lab has on it.
+#
+# "Trimming" is a row of the metal table, the ceramic table, the orthodontic sheet
+# and the acrylic sheet, and they are four different benches with four different
+# people at them - as are the model preparation of each sheet, the two polishings
+# and the two packings. Those are named for their department as well, the way the
+# lab asked: "Metal/Trimming", "Acrylic/Model Preparation". A row only one
+# department has keeps its plain name. (client, 2026-11-24)
 BENCHES = [
-    ('model_preparation', 'wc_model_preparation', 'Model Preparation', 'MP-01', 'dept_wax_up', LABOUR),
+    ('model_preparation', 'wc_model_preparation', 'Model Preparation', 'WX-01', 'dept_wax_up', LABOUR, True),
     # ---- CAD / CAM: the white sheet's "3D" column and the blue sheet
-    ('scanning', 'wc_scanning', 'Scanning', 'CC-01', 'dept_cadcam', 0.0),
-    ('designing', 'wc_designing', 'Designing', 'CC-02', 'dept_cadcam', 0.0),
-    ('printing', 'wc_resin_printing', 'Printing', 'CC-03', 'dept_cadcam', 0.0),
-    ('light_curing', 'wc_light_curing', 'Light Curing', 'CC-04', 'dept_cadcam', 0.0),
-    ('milling', 'wc_milling', 'Milling', 'CC-05', 'dept_cadcam', 0.0),
-    ('sintering', 'wc_sintering', 'Sintering', 'CC-06', 'dept_cadcam', 0.0),
+    ('scanning', 'wc_scanning', 'Scanning', 'CC-01', 'dept_cadcam', 0.0, False),
+    ('designing', 'wc_designing', 'Designing', 'CC-02', 'dept_cadcam', 0.0, False),
+    ('printing', 'wc_resin_printing', 'Printing', 'CC-03', 'dept_cadcam', 0.0, False),
+    ('light_curing', 'wc_light_curing', 'Light Curing', 'CC-04', 'dept_cadcam', 0.0, False),
+    ('milling', 'wc_milling', 'Milling', 'CC-05', 'dept_cadcam', 0.0, False),
+    ('sintering', 'wc_sintering', 'Sintering', 'CC-06', 'dept_cadcam', 0.0, False),
     # ---- Wax up
-    ('spruing', 'wc_spruing', 'Spruing', 'WX-01', 'dept_wax_up', LABOUR),
-    ('investing', 'wc_investing', 'Investing', 'WX-02', 'dept_wax_up', LABOUR),
+    ('spruing', 'wc_spruing', 'Spruing', 'WX-02', 'dept_wax_up', LABOUR, False),
+    ('investing', 'wc_investing', 'Investing', 'WX-03', 'dept_wax_up', LABOUR, False),
     # ---- Metal
-    ('casting', 'wc_casting', 'Casting', 'MT-01', 'dept_metal', 0.0),
-    ('metal_trimming', 'wc_metal_trimming', 'Metal Trimming', 'MT-02', 'dept_metal', LABOUR),
-    ('metal_polishing', 'wc_metal_polishing', 'Metal Polishing', 'MT-03', 'dept_metal', LABOUR),
+    ('casting', 'wc_casting', 'Casting', 'MT-01', 'dept_metal', 0.0, False),
+    ('metal_trimming', 'wc_metal_trimming', 'Trimming', 'MT-02', 'dept_metal', LABOUR, True),
+    ('metal_polishing', 'wc_metal_polishing', 'Polishing', 'MT-03', 'dept_metal', LABOUR, True),
     # ---- Ceramic
-    ('opaque_buildup', 'wc_opaque_buildup', 'Opaque & Buildup', 'CR-01', 'dept_ceramic', LABOUR),
-    ('ceramic_trimming', 'wc_trimming_carving', 'Ceramic Trimming', 'CR-02', 'dept_ceramic', LABOUR),
-    ('ceramic_finishing', 'wc_ceramic_finishing', 'Ceramic Finishing', 'CR-03', 'dept_ceramic', LABOUR),
+    ('opaque_buildup', 'wc_opaque_buildup', 'Opaque & Buildup', 'CR-01', 'dept_ceramic', LABOUR, False),
+    ('ceramic_trimming', 'wc_trimming_carving', 'Trimming', 'CR-02', 'dept_ceramic', LABOUR, True),
+    ('ceramic_finishing', 'wc_ceramic_finishing', 'Finishing', 'CR-03', 'dept_ceramic', LABOUR, False),
     # ---- Orthodontic
-    ('wire_bending', 'wc_wire_bending', 'Wire Bending', 'OR-01', 'dept_ortho', LABOUR),
-    ('acrylization', 'wc_acrylisation', 'Acrylization', 'OR-02', 'dept_ortho', LABOUR),
-    ('ortho_trimming', 'wc_ortho_trimming', 'Ortho Trimming', 'OR-03', 'dept_ortho', LABOUR),
+    ('ortho_model_preparation', 'wc_ortho_model_prep', 'Model Preparation', 'OR-01', 'dept_ortho', LABOUR, True),
+    ('wire_bending', 'wc_wire_bending', 'Wire Bending', 'OR-02', 'dept_ortho', LABOUR, False),
+    ('acrylization', 'wc_acrylisation', 'Acrylization', 'OR-03', 'dept_ortho', LABOUR, False),
+    ('ortho_trimming', 'wc_ortho_trimming', 'Trimming', 'OR-04', 'dept_ortho', LABOUR, True),
     # ---- Acrylic
-    ('special_tray', 'wc_special_tray', 'Special Tray', 'AC-01', 'dept_acrylic', LABOUR),
-    ('wax_bite', 'wc_wax_bite', 'Wax Bite', 'AC-02', 'dept_acrylic', LABOUR),
-    ('teeth_setting', 'wc_teeth_setting', 'Teeth Setting', 'AC-03', 'dept_acrylic', LABOUR),
-    ('flasking', 'wc_flasking', 'Flasking', 'AC-04', 'dept_acrylic', LABOUR),
-    ('de_waxing', 'wc_acr_dewaxing', 'De Waxing', 'AC-05', 'dept_acrylic', LABOUR),
-    ('acrylic_packing', 'wc_packing_material', 'Acrylic Packing', 'AC-06', 'dept_acrylic', LABOUR),
-    ('curing', 'wc_curing', 'Curing', 'AC-07', 'dept_acrylic', 0.0),
-    ('acrylic_trimming', 'wc_acr_trimming', 'Acrylic Trimming', 'AC-08', 'dept_acrylic', LABOUR),
-    ('acrylic_polishing', 'wc_acr_polishing', 'Acrylic Polishing', 'AC-09', 'dept_acrylic', LABOUR),
-    # ---- The foot of the sheet: "Final Checked by", "Packed by"
-    ('final_check', 'wc_quality_control', 'Final Check', 'QC-01', 'dept_qc', LABOUR),
-    ('packing', 'wc_packing', 'Packing', 'PK-01', 'dept_packing', LABOUR),
+    ('acrylic_model_preparation', 'wc_acr_model_prep', 'Model Preparation', 'AC-01', 'dept_acrylic', LABOUR, True),
+    ('special_tray', 'wc_special_tray', 'Special Tray', 'AC-02', 'dept_acrylic', LABOUR, False),
+    ('wax_bite', 'wc_wax_bite', 'Wax Bite', 'AC-03', 'dept_acrylic', LABOUR, False),
+    ('teeth_setting', 'wc_teeth_setting', 'Teeth Setting', 'AC-04', 'dept_acrylic', LABOUR, False),
+    ('flasking', 'wc_flasking', 'Flasking', 'AC-05', 'dept_acrylic', LABOUR, False),
+    ('de_waxing', 'wc_acr_dewaxing', 'De Waxing', 'AC-06', 'dept_acrylic', LABOUR, False),
+    ('acrylic_packing', 'wc_packing_material', 'Packing', 'AC-07', 'dept_acrylic', LABOUR, True),
+    ('curing', 'wc_curing', 'Curing', 'AC-08', 'dept_acrylic', 0.0, False),
+    ('acrylic_trimming', 'wc_acr_trimming', 'Trimming', 'AC-09', 'dept_acrylic', LABOUR, True),
+    ('acrylic_polishing', 'wc_acr_polishing', 'Polishing', 'AC-10', 'dept_acrylic', LABOUR, True),
+    # ---- The foot of the sheet: "Final Checked by", "Packed by". The packing
+    # department's own Packing is not prefixed with itself.
+    ('final_check', 'wc_quality_control', 'Final Check', 'QC-01', 'dept_qc', LABOUR, False),
+    ('packing', 'wc_packing', 'Packing', 'PK-01', 'dept_packing', LABOUR, False),
 ]
+
+
+def bench_name(row, department, shared):
+    """A bench's name: its row on the sheet, with its department in front when
+    other departments have a row of the same name."""
+    if shared and department and department.name:
+        return '%s/%s' % (department.name.strip(), row)
+    return row
+
 
 # Where each bench of the old layout went: the new stages that took its work,
 # the likeliest first. More than one, because the same old bench served several
@@ -81,9 +103,10 @@ STAGE_OF = {
     'wc_model_preparation': ['model_preparation'],
     'wc_margin_scooping': ['model_preparation'],
     'wc_undercut_blocking': ['model_preparation'],
-    'wc_articulation': ['model_preparation'],
-    'wc_acr_model_prep': ['model_preparation'],
-    'wc_ortho_model_prep': ['model_preparation'],
+    # the twin block is articulated at the orthodontic model bench
+    'wc_articulation': ['model_preparation', 'ortho_model_preparation'],
+    'wc_acr_model_prep': ['acrylic_model_preparation'],
+    'wc_ortho_model_prep': ['ortho_model_preparation'],
     'wc_spruing': ['spruing'],
     'wc_investing': ['investing'],
     'wc_scanning': ['scanning'],
@@ -152,11 +175,12 @@ ROUTES = {
                 'spruing', 'investing', 'casting', 'metal_trimming',
                 'opaque_buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the yellow sheet
-    'orthodontic': ['model_preparation', 'wire_bending', 'acrylization', 'ortho_trimming'] + FOOT,
+    'orthodontic': ['ortho_model_preparation', 'wire_bending', 'acrylization',
+                    'ortho_trimming'] + FOOT,
     # an Essix splint is formed and trimmed: there is no wire in it
-    'splint': ['model_preparation', 'acrylization', 'ortho_trimming'] + FOOT,
+    'splint': ['ortho_model_preparation', 'acrylization', 'ortho_trimming'] + FOOT,
     # the pink sheet
-    'acrylic': ['model_preparation', 'special_tray', 'wax_bite', 'teeth_setting', 'flasking',
+    'acrylic': ['acrylic_model_preparation', 'special_tray', 'wax_bite', 'teeth_setting', 'flasking',
                 'de_waxing', 'acrylic_packing', 'curing', 'acrylic_trimming',
                 'acrylic_polishing'] + FOOT,
 }
@@ -196,10 +220,11 @@ class LabMastersLoader(models.AbstractModel):
         """
         Workcenter = self.env['mrp.workcenter'].sudo().with_context(active_test=False)
         benches = {}
-        for sequence, (key, xmlid, name, code, department, rate) in enumerate(BENCHES, start=1):
+        for sequence, (key, xmlid, row, code, department, rate, shared) in enumerate(BENCHES, start=1):
             dept = self.env.ref('lab_masters.%s' % department, raise_if_not_found=False)
             bench = self.env.ref('lab_masters.%s' % xmlid, raise_if_not_found=False)
-            vals = {'name': name, 'code': code, 'sequence': sequence * 10, 'active': True}
+            vals = {'name': bench_name(row, dept, shared), 'code': code,
+                    'sequence': sequence * 10, 'active': True}
             if dept:
                 vals['department_id'] = dept.id
             if bench:
@@ -392,30 +417,3 @@ class LabMastersLoader(models.AbstractModel):
                 order.action_update_bom()
         return len(self._floor_stale_order_ids()) if ids else 0
 
-
-class MrpProduction(models.Model):
-    _inherit = 'mrp.production'
-
-    def _derive_department(self):
-        """The first department that works on the case, model preparation aside.
-
-        A job is filed under where it begins, and every job now begins at the one
-        Model Preparation bench - so, read plainly, a Hawley retainer and a denture
-        would both be Wax Up's, where they used to be Orthodontic's and Acrylic's
-        when each department had a model bench of its own. Model preparation is
-        the room every case passes through, not whose case it is: the job is filed
-        under the step after it.
-        """
-        self.ensure_one()
-        common = self.env.ref('lab_masters.wc_model_preparation', raise_if_not_found=False)
-        if common:
-            steps = self.workorder_ids.filtered(lambda w: w.state != 'cancel')
-            after = steps.filtered(lambda w: w.workcenter_id != common)[:1]
-            if after and steps[:1].workcenter_id == common and after.workcenter_id.department_id:
-                return after.workcenter_id.department_id
-            operations = self.bom_id.operation_ids
-            later = operations.filtered(lambda o: o.workcenter_id != common)[:1]
-            if not steps and later and operations[:1].workcenter_id == common \
-                    and later.workcenter_id.department_id:
-                return later.workcenter_id.department_id
-        return super()._derive_department()

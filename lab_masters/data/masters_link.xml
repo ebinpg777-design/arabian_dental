@@ -16,7 +16,7 @@
         4. The floor is put on the rows of the lab's own production sheets
            (models/floor_layout.py). On a new database only: the data files above
            still describe every stage the SOP names, because that is where each
-           row's minutes come from, and this folds them into the twenty-nine
+           row's minutes come from, and this folds them into the thirty-one
            benches the floor signs for. A database that already runs gets the
            same from migrations/20.0.1.1.0, once.
     -->

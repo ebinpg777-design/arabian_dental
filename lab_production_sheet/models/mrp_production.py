@@ -108,15 +108,24 @@ class MrpProduction(models.Model):
 
     @api.model
     def _lab_sheet_label(self, name, department):
-        """A step's name as the sheet prints it: "Metal Trimming" is the Trimming
-        row of the Metal table, and the table already says Metal."""
-        words = (name or '').split()
+        """A step's name as the sheet prints it: "Metal/Trimming" is the Trimming
+        row of the Metal table, and the table already says Metal.
+
+        The lab names a bench that several departments have as Department/Row.
+        The older spelling, "Metal Trimming", is read the same way.
+        """
+        name = (name or '').strip()
         dept = (department.name or '').strip().lower()
-        if len(words) > 1 and dept:
+        if not dept:
+            return name
+        if name.lower().startswith(dept + '/'):
+            return name[len(dept) + 1:].strip()
+        words = name.split()
+        if len(words) > 1:
             first = words[0].lower()
             if first == dept or (len(first) >= 4 and dept.startswith(first)):
                 return ' '.join(words[1:])
-        return name or ''
+        return name
 
     def _lab_sheet_step(self, step):
         """One step: who did it, and when they handed it on."""

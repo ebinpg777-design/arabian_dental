@@ -3,8 +3,9 @@
     <!-- Once, at install: the lab may move a bench's line afterwards, and an
          upgrade must not move it back. -->
     <data noupdate="1">
+        <!-- each sheet's own model preparation -->
         <function model="mrp.workcenter" name="write"
-                  eval="[[ref('lab_masters.wc_model_preparation')], {'sheet_position': 'model'}]"/>
+                  eval="[[ref('lab_masters.wc_model_preparation'), ref('lab_masters.wc_ortho_model_prep'), ref('lab_masters.wc_acr_model_prep')], {'sheet_position': 'model'}]"/>
         <function model="mrp.workcenter" name="write"
                   eval="[[ref('lab_masters.wc_quality_control')], {'sheet_position': 'check'}]"/>
         <function model="mrp.workcenter" name="write"

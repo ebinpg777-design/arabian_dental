@@ -2,7 +2,7 @@
 """The floor as the lab's production sheets lay it out (models/floor_layout.py)."""
 from odoo.tests import TransactionCase, tagged
 
-from ..models.floor_layout import BENCHES, BOM_ROUTE, ROUTES
+from ..models.floor_layout import BENCHES, BOM_ROUTE, ROUTES, bench_name
 
 
 @tagged('post_install', '-at_install')
@@ -12,10 +12,25 @@ class TestFloorLayout(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Loader = cls.env['lab.masters.loader']
-        cls.names = {key: name for key, _xmlid, name, _code, _dept, _rate in BENCHES}
+        cls.names = {
+            key: bench_name(row, cls.env.ref('lab_masters.%s' % dept), shared)
+            for key, _xmlid, row, _code, dept, _rate, shared in BENCHES}
+
+    def test_a_row_several_departments_have_is_a_bench_in_each(self):
+        """Named Department/Row, as the lab asked; a row only one department has
+        keeps its plain name."""
+        names = self.env['mrp.workcenter'].search([]).mapped('name')
+        for name in ('Wax Up/Model Preparation', 'Orthodontic/Model Preparation',
+                     'Acrylic/Model Preparation', 'Metal/Trimming', 'Ceramic/Trimming',
+                     'Orthodontic/Trimming', 'Acrylic/Trimming', 'Metal/Polishing',
+                     'Acrylic/Polishing', 'Acrylic/Packing', 'Packing', 'Scanning', 'Finishing'):
+            self.assertIn(name, names)
+        self.assertEqual(len(names), len(set(names)), "no two benches share a name")
+        self.assertEqual(len(names), 31)
 
     def test_the_benches_are_the_rows_of_the_sheets(self):
-        for _key, xmlid, name, code, _dept, _rate in BENCHES:
+        for key, xmlid, _row, code, _dept, _rate, _shared in BENCHES:
+            name = self.names[key]
             bench = self.env.ref('lab_masters.%s' % xmlid)
             self.assertTrue(bench.active, "%s is not on the floor" % name)
             self.assertEqual((bench.name, bench.code), (name, code))
@@ -69,10 +84,11 @@ class TestFloorLayout(TransactionCase):
         self.assertTrue(used.active, "a route still walks it")
         self.assertFalse(loose.active)
 
-    def test_a_job_is_filed_under_the_department_that_makes_it(self):
-        """Not under Wax Up because model preparation happens to come first."""
+    def test_a_job_is_filed_under_the_department_it_starts_in(self):
+        """Each sheet has its own model preparation, so a retainer starts in
+        Orthodontic and a denture in Acrylic."""
         expected = {'bom_hawleys': 'dept_ortho', 'bom_rpd': 'dept_acrylic',
-                    'bom_zirconia_basic': 'dept_cadcam', 'bom_metal_ceramic': 'dept_cadcam'}
+                    'bom_zirconia_basic': 'dept_wax_up'}
         for bom_xmlid, department in expected.items():
             bom = self.env.ref('lab_masters.%s' % bom_xmlid)
             order = self.env['mrp.production'].create({
@@ -98,13 +114,16 @@ class TestFloorLayout(TransactionCase):
             'workcenter_id': self.env.ref('lab_masters.wc_casting').id})
         self.assertIn(order.id, self.Loader._floor_stale_order_ids())
 
-        self.Loader.reroute_open_orders()
+        # Newest first, one order: this one. Without the limit the test would move
+        # every open order of whatever database it runs on.
+        self.assertEqual(self.Loader._floor_stale_order_ids(limit=1), [order.id])
+        self.Loader.reroute_open_orders(limit=1)
         self.assertNotIn(order.id, self.Loader._floor_stale_order_ids())
         steps = order.workorder_ids.filtered(lambda w: w.state != 'cancel').sorted(
             lambda w: (w.sequence, w.id))
         self.assertEqual(steps.mapped('name'),
-                         ['Model Preparation', 'Casting', 'Acrylization', 'Ortho Trimming',
-                          'Final Check', 'Packing'])
+                         ['Orthodontic/Model Preparation', 'Casting', 'Acrylization',
+                          'Orthodontic/Trimming', 'Final Check', 'Packing'])
         self.assertEqual(steps[0].state, 'ready', "the case is at its first step")
         self.assertEqual(set(steps[1:].mapped('state')), {'blocked'})
         self.assertFalse(order.is_outdated_bom)

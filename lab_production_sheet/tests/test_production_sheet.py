@@ -107,6 +107,26 @@ class TestProductionSheet(TransactionCase):
                          ['Special Tray', 'Wax Bite', 'Teeth Setting', 'Flasking', 'De Waxing',
                           'Packing', 'Curing', 'Trimming', 'Polishing'])
 
+    def test_a_bench_named_for_its_department_prints_as_its_row(self):
+        label = self.env['mrp.production']._lab_sheet_label
+        metal = self.env.ref('lab_masters.dept_metal')
+        ortho = self.env.ref('lab_masters.dept_ortho')
+        self.assertEqual(label('Metal/Trimming', metal), 'Trimming')
+        self.assertEqual(label('%s/Model Preparation' % ortho.name, ortho), 'Model Preparation')
+        self.assertEqual(label('Metal Trimming', metal), 'Trimming', "the older spelling too")
+        self.assertEqual(label('Casting', metal), 'Casting')
+        cadcam = self.env.ref('lab_masters.dept_cadcam')
+        self.assertEqual(label('Scanning', cadcam), 'Scanning')
+
+    def test_every_sheet_has_its_own_model_preparation_line(self):
+        for code in ('MC-BSC', 'OR-HAW', 'AC-RPD'):
+            _order, production = self._order(code)
+            sheet = production._lab_sheet()
+            self.assertTrue(sheet['model'], code)
+            self.assertEqual(sheet['model']['label'], 'Model Preparation', code)
+            self.assertNotIn('Model Preparation',
+                             [r['label'] for s in sheet['sections'] for r in s['rows']], code)
+
     def test_a_step_says_who_did_it_and_when(self):
         _order, production = self._order('MC-BSC')
         casting = production.workorder_ids.filtered(lambda w: w.name == 'Casting')

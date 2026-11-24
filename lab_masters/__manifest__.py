@@ -19,11 +19,13 @@ Where it comes from
   Production SOP (Wax Up, CAD/CAM, Metal, Ceramic, Acrylic, Orthodontic) and the
   support functions named in the ERP proposal, arranged as a tree of twenty-three
   with one cost centre each, in a plan of their own.
-* **Work centres** - twenty-nine benches: the rows of the lab's own Daily
-  Production Report (metal and ceramic, zirconia, orthodontic, acrylic), with
-  model preparation ahead of them and the final check and packing after. The
-  fifty-seven stages of the SOPs they were first laid out by are folded into
-  these (models/floor_layout.py) and kept, archived.
+* **Work centres** - thirty-one benches: the rows of the lab's own Daily
+  Production Report (metal and ceramic, zirconia, orthodontic, acrylic), each
+  sheet's model preparation ahead of them and the final check and packing
+  after. A row several departments share is a bench in each, named for its
+  department ("Metal/Trimming"). The fifty-seven stages of the SOPs they were
+  first laid out by are folded into these (models/floor_layout.py) and kept,
+  archived.
 * **Consumption materials** - forty-four, with the rate each one costs, from
   *PRODUCTION DETAILS.xlsx*.
 * **Bills of materials** - fifteen: the six zirconia grades, metal ceramic, full
