@@ -97,6 +97,8 @@ class LabMyDay(models.AbstractModel):
         # (client, 2026-09-12)
         Collection = self.env['lab.cash.collection']
         loose = Collection._collected_for([self.env.uid], today).get(self.env.uid, 0.0)
+        by_post = self.env['lab.case']._without_visit([self.env.uid], today).get(
+            self.env.uid, {'cases': 0, 'orders': 0, 'value': 0.0})
         # ONE figure for the lab's money in this person's hands - pocket, float,
         # or an envelope on the office desk waiting to be counted - read from
         # the same place the desks and the reminders read it. Two figures with
@@ -121,8 +123,9 @@ class LabMyDay(models.AbstractModel):
             'summary': {
                 'planned': len(visits),
                 'done': len(done),
-                'cases': sum(done.mapped('order_count')),
-                'value': sum(done.mapped('order_value')),
+                # plus the cases that came by courier or transport, with no visit
+                'cases': sum(done.mapped('order_count')) + by_post['orders'],
+                'value': sum(done.mapped('order_value')) + by_post['value'],
                 'collected': sum(done.mapped('collected')) + loose,
                 'cash_in_hand': position['available'],
                 # The hand counts, over EVERY visit of the day and not only the

@@ -45,7 +45,7 @@ export class FwCaseItems extends Component {
             sheet: null,            // null | "product" | "shade" | "teeth"
             teethFor: null, teeth: [], extras: [], primary: false, follow: true,
             query: "", categ: null, catalog: null, loading: false, added: 0, lastAdded: "",
-            shadeFor: null, shades: [], shadeQuery: "",
+            shadeFor: null, shades: [], shadeQuery: "", addingShade: false,
             noteFor: null,
         });
         this.search = useDebounced(() => this.loadCatalog(), 250);
@@ -293,8 +293,25 @@ export class FwCaseItems extends Component {
         this.state.categ = this.state.categ === id ? null : id;
         this.loadCatalog();
     }
+    /** How many of this product are on the case, in units. */
     inCase(productId) {
-        return this.lines.filter((l) => l.productId === productId).length;
+        return this.lines.filter((l) => l.productId === productId).reduce((t, l) => t + (l.qty || 0), 0);
+    }
+    /** One less of it: off the last card that has it - a unit, or the card when it is its last. */
+    async takeOne(product) {
+        if (this.readonly) {
+            return;
+        }
+        const line = this.lines.filter((l) => l.productId === product.id).pop();
+        if (!line) {
+            return;
+        }
+        if (line.qty > 1) {
+            line.record.update({ quantity: line.qty - 1 });
+        } else {
+            await this.list.delete(line.record);
+        }
+        this.state.added = Math.max(0, this.state.added - 1);
     }
     async add(product) {
         const lines = this.lines;
@@ -328,6 +345,33 @@ export class FwCaseItems extends Component {
     onShadeQuery(ev) {
         this.state.shadeQuery = ev.target.value;
         this.searchShades();
+    }
+    get shadeQueryClean() {
+        return this.state.shadeQuery.trim().replace(/\s+/g, " ");
+    }
+    /** Offer "Add shade" when what was typed is not, in any spelling, on the list. */
+    get canAddShade() {
+        const typed = this.shadeQueryClean;
+        if (!typed || this.readonly) {
+            return false;
+        }
+        const key = (name) => String(name || "").replace(/\s+/g, "").toUpperCase();
+        return !this.state.shades.some((s) => key(s.name) === key(typed));
+    }
+    async addShade() {
+        if (!this.canAddShade || this.state.addingShade) {
+            return;
+        }
+        this.state.addingShade = true;
+        try {
+            const shade = await this.orm.call("lab.case", "picker_add_colour", [this.shadeQueryClean]);
+            if (shade.created) {
+                this.notification.add(_t("Shade %s added to the list.", shade.name), { type: "success" });
+            }
+            this.pickShade(shade);
+        } finally {
+            this.state.addingShade = false;
+        }
     }
     get shadeLine() {
         return this.lines.find((l) => l.key === this.state.shadeFor);

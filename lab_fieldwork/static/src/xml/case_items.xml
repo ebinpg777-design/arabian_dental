@@ -15,6 +15,7 @@
             <i class="fa fa-medkit" title="Nothing yet"/>
             <div class="o_fwci_empty_t">Nothing on this case yet</div>
             <div class="o_fwci_empty_s" t-if="!this.readonly">Tap the green button and pick what the doctor handed over.</div>
+            <div class="o_fwci_empty_s o_fwci_empty_call" t-if="!this.readonly"><i class="fa fa-phone me-1" title="Call the doctor"/>Not sure what is to be made? Save it as it is: the lab will call the doctor and ask.</div>
         </div>
 
         <div t-foreach="this.lines" t-as="l" t-key="l.key" t-att-class="'o_fwci_card o_fwci_t_' + l.tone + (l.urgent ? ' o_fwci_card_urgent' : '')">
@@ -160,6 +161,11 @@
                 <i class="fa fa-search" title="Search"/>
                 <input type="search" placeholder="A2, 2M2, B3…" t-att-value="this.state.shadeQuery" t-on-input="this.onShadeQuery"/>
             </div>
+            <!-- the doctor's shade is not on the list: put it there, from here -->
+            <button t-if="this.canAddShade" type="button" class="o_fwci_newshade" t-att-disabled="this.state.addingShade"
+                    t-on-click="this.addShade">
+                <i class="fa fa-plus-circle me-1" title="Add"/>Add shade “<t t-out="this.shadeQueryClean"/>”
+            </button>
             <div class="o_fwci_sheet_b">
                 <div class="o_fwci_shelf o_fwci_shelf_top" t-if="!this.state.shadeQuery"><i class="fa fa-star me-1" title="Most used"/>Most used first</div>
                 <div class="o_fwci_shades">
@@ -168,7 +174,7 @@
                         <t t-out="s.name"/>
                     </button>
                 </div>
-                <div t-if="!this.state.shades.length" class="o_fwci_none">No shade with that name.</div>
+                <div t-if="!this.state.shades.length" class="o_fwci_none">No shade with that name<t t-if="this.canAddShade">. Add it with the button above.</t><t t-else="">.</t></div>
             </div>
         </div>
 
@@ -227,15 +233,22 @@
 </t>
 
 <t t-name="lab_fieldwork.FwCaseItems.Product">
-    <button type="button" t-att-class="'o_fwci_prod o_fwci_t_' + this.tone(p.categ_id)" t-on-click="() => this.add(p)">
-        <span class="o_fwci_prod_dot"/>
-        <span class="o_fwci_prod_main">
-            <span class="o_fwci_prod_name" t-out="p.name"/>
-            <span class="o_fwci_prod_sub"><t t-out="p.categ"/><t t-if="p.uses"> · ordered <t t-out="p.uses"/>×</t></span>
-        </span>
-        <span class="o_fwci_prod_in" t-if="this.inCase(p.id)">× <t t-out="this.inCase(p.id)"/></span>
-        <span class="o_fwci_prod_add"><i class="fa fa-plus" title="Add"/></span>
-    </button>
+    <!-- A tap adds one; once it is on the case, the minus beside it takes one back
+         off, so a double tap is undone here rather than by closing the picker and
+         finding the card. (client, 2026-11-24) -->
+    <div class="o_fwci_prodrow">
+        <button type="button" t-att-class="'o_fwci_prod o_fwci_t_' + this.tone(p.categ_id)" t-on-click="() => this.add(p)">
+            <span class="o_fwci_prod_dot"/>
+            <span class="o_fwci_prod_main">
+                <span class="o_fwci_prod_name" t-out="p.name"/>
+                <span class="o_fwci_prod_sub"><t t-out="p.categ"/><t t-if="p.uses"> · ordered <t t-out="p.uses"/>×</t></span>
+            </span>
+            <span class="o_fwci_prod_in" t-if="this.inCase(p.id)">× <t t-out="this.qtyLabel(this.inCase(p.id))"/></span>
+            <span class="o_fwci_prod_add"><i class="fa fa-plus" title="Add"/></span>
+        </button>
+        <button t-if="this.inCase(p.id)" type="button" class="o_fwci_prod_less" aria-label="One less"
+                t-on-click="() => this.takeOne(p)"><i class="fa fa-minus" title="One less"/></button>
+    </div>
 </t>
 
 </templates>

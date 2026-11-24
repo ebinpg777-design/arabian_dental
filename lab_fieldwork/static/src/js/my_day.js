@@ -825,6 +825,11 @@ export class LabMyDay extends Component {
         this.action.doAction("lab_fieldwork.action_visit_my");
     }
 
+    /** A blank slip with no visit behind it: the case came by courier or transport. */
+    openSentCase() {
+        this.action.doAction("lab_fieldwork.action_case_new_sent");
+    }
+
     openQuickEntry() {
         // One tap from the home screen — the same wizard from a menu would be a
         // second thing to find on a screen used at a clinic door.

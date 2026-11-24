@@ -310,6 +310,9 @@ class LabDailyUpdate(models.Model):
                 [('user_id', '=', sheet.user_id.id), ('date', '=', sheet.date),
                  ('state', '!=', 'cancel')])
             start, end = sheet._day_bounds_utc()
+            # Cases that came by courier or transport, with no visit to count them.
+            loose = self.env['lab.case']._without_visit([sheet.user_id.id], sheet.date).get(
+                sheet.user_id.id, {'cases': 0, 'orders': 0, 'value': 0.0})
 
             vals = {
                 'visit_count': len(visits),
@@ -320,11 +323,11 @@ class LabDailyUpdate(models.Model):
                 'gps_nopin_count': len(done.filtered(
                     lambda v: v.gps_state == 'nopin')),
                 'minutes_at_clinics': sum(done.mapped('minutes')),
-                'case_count': sum(done.mapped('case_count')),
+                'case_count': sum(done.mapped('case_count')) + loose['cases'],
                 'cases_counted': sum(done.mapped('cases_counted')),
                 'reworks_collected': sum(done.mapped('reworks_collected')),
-                'order_count': sum(done.mapped('order_count')),
-                'order_value': sum(done.mapped('order_value')),
+                'order_count': sum(done.mapped('order_count')) + loose['orders'],
+                'order_value': sum(done.mapped('order_value')) + loose['value'],
                 # Plus what was collected away from a visit: the sheet is the
                 # day as it happened, and that money happened. (client, 2026-09-12)
                 'collected': sum(done.mapped('collected')) + self.env[

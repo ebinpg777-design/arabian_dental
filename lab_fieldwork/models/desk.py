@@ -321,7 +321,9 @@ class LabDesk(models.AbstractModel):
         # envelope on the desk - from the one reading My Day uses, so the board
         # and the phone never disagree. (client, 2026-09-18)
         positions = self.env['lab.cash.handover'].cash_position(users)
+        loose_by_user = self.env['lab.case']._without_visit(users.ids, today)
         for user in users:
+            loose = loose_by_user.get(user.id, {'orders': 0, 'value': 0.0})
             mine = visits.filtered(lambda v: v.user_id == user)
             done = mine.filtered(lambda v: v.state == 'done')
             here = mine.filtered(lambda v: v.state == 'open')[:1]
@@ -386,8 +388,8 @@ class LabDesk(models.AbstractModel):
                 'at_clinic_id': here.id if here else False,
                 'since': fields.Datetime.to_string(here.check_in)
                          if here and here.check_in else '',
-                'cases': sum(done.mapped('order_count')),
-                'value': sum(done.mapped('order_value')),
+                'cases': sum(done.mapped('order_count')) + loose['orders'],
+                'value': sum(done.mapped('order_value')) + loose['value'],
                 'collected': sum(done.mapped('collected')),
                 'unbanked': unbanked,
                 'cash_in_hand': unbanked,

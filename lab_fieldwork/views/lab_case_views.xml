@@ -86,6 +86,36 @@
                     </div>
 
                     <field name="visit_id" invisible="1"/>
+                    <field name="user_id" invisible="1"/>
+
+                    <!-- 0. A case with no visit behind it: it came by courier or on a
+                         bus, and the slip says from where and on which day.
+                         (client, 2026-11-24) -->
+                    <div class="o_fw_sec o_fw_sec_orange" invisible="visit_id">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-archive" title="Sent to the lab"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">How it came</div>
+                                <div class="o_fw_sec_s">No visit: the case was sent to the lab.</div>
+                            </div>
+                        </div>
+                        <field name="received_via" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'exclude': ['visit'], 'colors': {'courier': 'orange', 'transport': 'teal'}}"/>
+                        <div class="o_fw_sec_l">Clinic</div>
+                        <field name="partner_id" readonly="state != 'draft'" placeholder="Which clinic sent it"
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <div class="o_fw_sec_l">Received on</div>
+                        <field name="date" readonly="state != 'draft'"/>
+                        <div class="o_fw_sec_l" groups="lab_fieldwork.group_fieldwork_manager">Executive</div>
+                        <field name="allowed_user_ids" invisible="1"/>
+                        <field name="user_id" readonly="state != 'draft'"
+                               groups="lab_fieldwork.group_fieldwork_manager"
+                               domain="[('id', 'in', allowed_user_ids)]"
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <div class="o_fw_sec_l">Docket / LR no.</div>
+                        <field name="received_ref" readonly="state != 'draft'"
+                               placeholder="Courier docket or transport LR number"/>
+                    </div>
                     <field name="patient_key" invisible="1"/>
                     <field name="duplicate_ids" invisible="1" widget="many2many_tags"/>
                     <field name="company_id" invisible="1"/>
@@ -98,7 +128,7 @@
                             <span class="o_fw_sec_i"><i class="fa fa-user" title="Patient"/></span>
                             <div>
                                 <div class="o_fw_sec_t">Patient</div>
-                                <div class="o_fw_where">
+                                <div class="o_fw_where" invisible="not visit_id">
                                     <span class="o_fw_where_c"><i class="fa fa-hospital-o me-1" title="Clinic"/><field name="partner_id" readonly="1" nolabel="1" options="{'no_open': True}"/></span>
                                     <span class="o_fw_where_d"><i class="fa fa-calendar-o me-1" title="Date"/><field name="date" readonly="1" nolabel="1" class="oe_inline"/></span>
                                 </div>
@@ -166,6 +196,26 @@
                                readonly="state != 'draft'"
                                placeholder="What does the lab need to ask? e.g. confirm shade on 21, or which clasp design"/>
                     </group>
+
+                    <!-- 4b. Who at the lab deals with this doctor, when it has to be one
+                         particular person. (client, 2026-11-24) -->
+                    <div class="o_fw_sec o_fw_sec_slate">
+                        <div class="o_fw_sec_h">
+                            <span class="o_fw_sec_i"><i class="fa fa-user-circle" title="Contact person"/></span>
+                            <div>
+                                <div class="o_fw_sec_t">Who contacts this doctor</div>
+                                <div class="o_fw_sec_s">Only when the doctor or clinic deals with one particular person at the lab.</div>
+                            </div>
+                        </div>
+                        <field name="contact_employee_id" readonly="state != 'draft'"
+                               placeholder="Anyone at the lab"
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <div invisible="not contact_employee_id">
+                            <div class="o_fw_sec_l">Why this person</div>
+                            <field name="contact_note" class="w-100" readonly="state != 'draft'"
+                                   placeholder="e.g. the doctor speaks only to her about payments"/>
+                        </div>
+                    </div>
 
                     <!-- 5. What came with it. -->
                     <div class="o_fw_sec o_fw_sec_teal">
@@ -274,6 +324,10 @@
                 <field name="partner_id"/>
                 <field name="user_id" optional="show"
                        groups="lab_fieldwork.group_fieldwork_manager"/>
+                <field name="received_via" optional="show" widget="badge"
+                       decoration-warning="received_via == 'courier'"
+                       decoration-info="received_via == 'transport'"/>
+                <field name="contact_employee_id" optional="hide"/>
                 <field name="line_count" string="Items"/>
                 <field name="priority" widget="badge" optional="show"/>
                 <field name="sale_order_id" optional="show"/>
@@ -294,6 +348,8 @@
             <kanban quick_create="false" class="o_fw_kanban" default_order="id desc">
                 <field name="state"/>
                 <field name="duplicate_ack"/>
+                <field name="received_via"/>
+                <field name="needs_doctor_call"/>
                 <templates>
                     <t t-name="card">
                         <div t-attf-class="o_fw_casecard o_fw_cs_#{record.state.raw_value}">
@@ -307,6 +363,9 @@
                             <div class="text-muted small"><i class="fa fa-hospital-o me-1" title="Clinic"/><field name="partner_id"/></div>
                             <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
                                 <span class="o_fw_cs_chip o_fw_cs_items"><i class="fa fa-cubes me-1" title="Items"/><field name="line_count"/> item(s)</span>
+                                <span t-if="record.received_via.raw_value === 'courier'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-archive me-1" title="Courier"/>Courier</span>
+                                <span t-if="record.received_via.raw_value === 'transport'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-bus me-1" title="Transport"/>Transport</span>
+                                <span t-if="record.needs_doctor_call.raw_value" class="o_fw_cs_chip o_fw_cs_call"><i class="fa fa-phone me-1" title="Call the doctor"/>Call doctor</span>
                                 <span t-if="record.duplicate_warning.raw_value and !record.duplicate_ack.raw_value"
                                       class="o_fw_cs_chip o_fw_cs_dup"><i class="fa fa-clone me-1" title="Possible duplicate"/>Possible duplicate</span>
                                 <field name="state" widget="badge" class="ms-auto"
@@ -331,6 +390,8 @@
                 <field name="patient" filter_domain="[('patient', 'ilike', self)]"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
+                <field name="contact_employee_id"/>
+                <field name="received_ref"/>
                 <filter name="pending" string="Not Submitted"
                         domain="[('state', '=', 'draft')]"/>
                 <filter name="submitted" string="Submitted"
@@ -340,12 +401,20 @@
                 <separator/>
                 <filter name="dups" string="Possible Duplicates"
                         domain="[('duplicate_ack', '=', False)]"/>
+                <filter name="sent" string="Courier / Transport"
+                        domain="[('visit_id', '=', False)]"/>
+                <filter name="call" string="Call the Doctor"
+                        domain="[('needs_doctor_call', '=', True)]"/>
+                <filter name="no_items" string="Nothing Listed"
+                        domain="[('line_count', '=', 0)]"/>
                 <filter name="this_month" string="This Month" date="date"/>
                 <group>
                     <filter name="g_clinic" string="Clinic" context="{'group_by': 'partner_id'}"/>
                     <filter name="g_user" string="Executive" context="{'group_by': 'user_id'}"
                             groups="lab_fieldwork.group_fieldwork_manager"/>
                     <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="g_via" string="Received via" context="{'group_by': 'received_via'}"/>
+                    <filter name="g_contact" string="Contact person" context="{'group_by': 'contact_employee_id'}"/>
                     <filter name="g_date" string="Date" context="{'group_by': 'date'}"/>
                 </group>
             </search>
@@ -357,16 +426,17 @@
         <field name="res_model">lab.case</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('user_id', '=', uid)]</field>
-        <!-- No New here. A slip belongs to a visit - visit_id is required and the
-             form keeps it invisible - so this button opened a record that could
-             never be saved: "Missing required value for the field 'Visit'". Cases
-             are registered from the visit, which is also where the check-in rule
-             is enforced. (from the sister project, 2026-09-29) -->
-        <field name="context">{'create': False}</field>
+        <!-- New is back (2026-11-24): a case may now come without a visit - by
+             courier or transport - and New opens exactly that. A case handed over at
+             a clinic is still registered from the visit, where the check-in rule
+             lives. -->
+        <field name="context">{'default_received_via': 'courier'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No cases registered yet</p>
             <p>Register a case from the visit you are on. It becomes an order when you
                finish the visit.</p>
+            <p>A case that came by courier or transport, with no visit: tap
+               <b>New</b>. It becomes an order as soon as you submit it.</p>
         </field>
     </record>
 
@@ -374,12 +444,39 @@
         <field name="name">Case Slips</field>
         <field name="res_model">lab.case</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="context">{'search_default_g_user': 1, 'create': False}</field>
+        <field name="context">{'search_default_g_user': 1, 'default_received_via': 'courier'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No case slips yet</p>
             <p>A slip is registered from the visit it was handed over on - open the
                visit and use <b>Register a Case</b>. That is also where the rule lives
-               that a case cannot be taken before checking in at the clinic.</p>
+               that a case cannot be taken before checking in at the clinic. A case
+               that came by courier or transport is entered here with <b>New</b>.</p>
+        </field>
+    </record>
+
+    <!-- My Day's "Case by courier" button: a blank slip with no visit behind it. -->
+    <record id="action_case_new_sent" model="ir.actions.act_window">
+        <field name="name">Case by courier / transport</field>
+        <field name="res_model">lab.case</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'default_received_via': 'courier'}</field>
+    </record>
+
+    <!-- The order the office works from says where the case came from and who
+         deals with the doctor. -->
+    <record id="view_order_form_case_origin" model="ir.ui.view">
+        <field name="name">sale.order.form.case.origin</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="case_received_via" invisible="case_received_via in (False, 'visit')"/>
+                <field name="case_received_ref" invisible="not case_received_ref"/>
+                <field name="case_contact_employee_id" invisible="not case_contact_employee_id"
+                       options="{'no_create': True}"/>
+                <field name="case_contact_note" invisible="not case_contact_employee_id"/>
+            </xpath>
         </field>
     </record>
 </odoo>

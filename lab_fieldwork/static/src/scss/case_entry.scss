@@ -224,6 +224,15 @@ $fwc-line: #e2e8f0;
 .o_fwci_prod_sub { font-size: .6875rem; color: var(--fwc); font-weight: 600; }
 .o_fwci_prod_in { flex: 0 0 auto; background: #f0fdf4; color: #15803d; font-weight: 800; border-radius: .75rem; padding: .125rem .5rem; font-size: .75rem; }
 .o_fwci_prod_add { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; background: #16a34a; color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+// the product row: the add target, and once the item is on the case a minus beside it
+.o_fwci_prodrow { display: flex; align-items: stretch; gap: .375rem; margin-bottom: .375rem;
+    .o_fwci_prod { flex: 1 1 auto; min-width: 0; margin-bottom: 0; } }
+.o_fwci_prod_less { flex: 0 0 52px; border: 1.5px solid #fde68a; border-radius: .75rem; background: #fffbeb; color: #b45309; font-size: 1rem;
+    &:active { background: #f59e0b; color: #fff; } }
+.o_fwci_newshade { display: block; width: calc(100% - 1.5rem); margin: .5rem .75rem 0; min-height: 48px; border-radius: .875rem;
+    border: 1.5px dashed #db2777; background: #fdf2f8; color: #9d174d; font-weight: 800; font-size: .9375rem;
+    &:disabled { opacity: .6; } }
+.o_fwci_empty .o_fwci_empty_s.o_fwci_empty_call { margin-top: .375rem; color: #b91c1c; .fa { font-size: inherit; } }
 .o_fwci_none, .o_fwci_wait { text-align: center; color: $fwc-muted; padding: 1.5rem .5rem; font-size: .875rem; }
 .o_fwci_shades { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: .5rem; }
 .o_fwci_shade { min-height: 52px; border-radius: .875rem; border: 1.5px solid #fbcfe8; background: #fff; color: #9d174d; font-weight: 800; font-size: .9375rem;
@@ -246,4 +255,5 @@ $fwc-line: #e2e8f0;
     &.o_fw_cs_draft { border-left-color: #f59e0b; } &.o_fw_cs_submitted { border-left-color: #2563eb; }
     &.o_fw_cs_registered { border-left-color: #16a34a; } &.o_fw_cs_cancel { border-left-color: #dc2626; opacity: .7; }
     .o_fw_cs_chip { border-radius: .75rem; padding: .0625rem .5rem; font-size: .6875rem; font-weight: 700; }
-    .o_fw_cs_items { background: #eef2ff; color: #4f46e5; } .o_fw_cs_rush { background: #dc2626; color: #fff; } .o_fw_cs_dup { background: #fffbeb; color: #b45309; } }
+    .o_fw_cs_items { background: #eef2ff; color: #4f46e5; } .o_fw_cs_rush { background: #dc2626; color: #fff; } .o_fw_cs_dup { background: #fffbeb; color: #b45309; }
+    .o_fw_cs_sent { background: #fff7ed; color: #c2410c; } .o_fw_cs_call { background: #fef2f2; color: #b91c1c; } }

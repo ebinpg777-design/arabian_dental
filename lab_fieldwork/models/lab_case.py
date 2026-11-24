@@ -49,7 +49,9 @@ class LabCase(models.Model):
     _name = 'lab.case'
     _description = 'Case Registration'
     _order = 'id desc'
-    _inherit = ['lab.lock.mixin', 'mail.thread']
+    # The own-records rule: since a case can stand without a visit its executive is
+    # its own field, and an executive may not put one in a colleague's name.
+    _inherit = ['lab.lock.mixin', 'mail.thread', 'lab.own.record.mixin']
 
     # Submitted is locked as well as registered. The executive has said the slip is
     # complete, so changing it silently afterwards would make "submitted" mean nothing —
@@ -60,14 +62,38 @@ class LabCase(models.Model):
     _lock_bypass_groups = ('lab_fieldwork.group_fieldwork_manager',)
 
     name = fields.Char(compute='_compute_name', store=True)
+    # Not every case is handed over at a counter. Some arrive by courier or on a bus
+    # parcel with no visit behind them, and making the executive invent a visit to
+    # register one put a call on their day that never happened. A case taken at a
+    # visit still takes its clinic, executive and day from it; one without a visit
+    # says them itself. (client, 2026-11-24)
     visit_id = fields.Many2one(
-        'lab.visit', required=True, ondelete='cascade', index=True,
+        'lab.visit', ondelete='cascade', index=True,
         string='Visit', copy=False)
+    received_via = fields.Selection(
+        [('visit', 'At the clinic'), ('courier', 'Courier'), ('transport', 'Transport')],
+        string='Received via', compute='_compute_received_via', store=True,
+        readonly=False, precompute=True, required=True, tracking=True,
+        help="How the case reached the lab: handed over at a visit, or sent by "
+             "courier or transport.")
+    received_ref = fields.Char(
+        'Docket / LR no.', tracking=True,
+        help="The courier's docket number or the transport's LR number, so the "
+             "parcel can be traced if it goes missing.")
     partner_id = fields.Many2one(
-        related='visit_id.partner_id', store=True, index=True, string='Clinic')
-    user_id = fields.Many2one(related='visit_id.user_id', store=True, string='Executive')
-    date = fields.Date(related='visit_id.date', store=True, index=True)
-    company_id = fields.Many2one(related='visit_id.company_id', store=True)
+        'res.partner', compute='_compute_partner_from_visit', store=True, readonly=False,
+        precompute=True, required=True, index=True, string='Clinic', tracking=True,
+        # The clinics this person may work, as on a visit.
+        domain="[('lab_on_my_route', '=', True)]")
+    user_id = fields.Many2one(
+        'res.users', compute='_compute_user_from_visit', store=True, readonly=False,
+        precompute=True, string='Executive', index=True)
+    date = fields.Date(
+        compute='_compute_date_from_visit', store=True, readonly=False, precompute=True,
+        index=True)
+    company_id = fields.Many2one(
+        'res.company', compute='_compute_company_from_visit', store=True, readonly=False,
+        precompute=True)
     currency_id = fields.Many2one(related='company_id.currency_id')
 
     state = fields.Selection(
@@ -142,6 +168,19 @@ class LabCase(models.Model):
         help="What the lab needs to settle on that call. Without it the message reaches "
              "production as 'ring the doctor' and nobody knows what about.")
 
+    # Some doctors deal with one person at the lab and nobody else. Which person, and
+    # why, is written on the case, so the office rings through the right one rather than
+    # finding out from the doctor. (client, 2026-11-24)
+    # The PUBLIC employee list: an executive has no right to read hr.employee, and the
+    # phone's picker refused them outright. Same people, same ids.
+    contact_employee_id = fields.Many2one(
+        'hr.employee.public', string='Contact person', tracking=True,
+        help="The one person at the lab who should contact this doctor or clinic "
+             "about this case.")
+    contact_note = fields.Char(
+        'Why this person', tracking=True,
+        help="e.g. the doctor speaks only to her about payments.")
+
     modification = fields.Char('Modifications')
     instruction = fields.Char('Special Instructions')
     note = fields.Text('Notes')
@@ -164,6 +203,53 @@ class LabCase(models.Model):
              "entered twice.")
 
     # ------------------------------------------------------------------ computes
+    # One compute per field, deliberately. With one shared method, Odoo treats the
+    # four as a group at create: giving the clinic (which a case without a visit
+    # does) leaves the executive, day and company EMPTY rather than computing them.
+    #
+    # From the visit when there is one. Without one, the case keeps what was entered
+    # on it - not assigning keeps the stored value - and the person entering it,
+    # today and their company fill in what was left empty.
+    @api.depends('visit_id.partner_id')
+    def _compute_partner_from_visit(self):
+        for case in self:
+            if case.visit_id:
+                case.partner_id = case.visit_id.partner_id
+            elif not case.partner_id:
+                case.partner_id = False
+
+    @api.depends('visit_id.user_id')
+    def _compute_user_from_visit(self):
+        for case in self:
+            if case.visit_id:
+                case.user_id = case.visit_id.user_id
+            elif not case.user_id:
+                case.user_id = self.env.user
+
+    @api.depends('visit_id.date')
+    def _compute_date_from_visit(self):
+        for case in self:
+            if case.visit_id:
+                case.date = case.visit_id.date
+            elif not case.date:
+                case.date = fields.Date.context_today(case)
+
+    @api.depends('visit_id.company_id')
+    def _compute_company_from_visit(self):
+        for case in self:
+            if case.visit_id:
+                case.company_id = case.visit_id.company_id
+            elif not case.company_id:
+                case.company_id = self.env.company
+
+    @api.depends('visit_id')
+    def _compute_received_via(self):
+        for case in self:
+            if case.visit_id:
+                case.received_via = 'visit'
+            elif case.received_via not in ('courier', 'transport'):
+                case.received_via = 'courier'
+
     @api.depends('patient', 'partner_id')
     def _compute_name(self):
         for case in self:
@@ -331,20 +417,47 @@ class LabCase(models.Model):
         return orders, slips
 
     # ------------------------------------------------------------------ integrity
-    @api.constrains('line_ids', 'state')
-    def _check_has_work(self):
-        """A slip records what the doctor handed over, so a slip with nothing on it is
-        not an incomplete case — it is not a case at all.
-
-        Checked on save rather than only at check-out: an empty slip that survives until
-        the end of the visit has already cost the executive the trip back through the
-        form, and by then the doctor has gone.
-        """
+    @api.constrains('visit_id', 'received_via')
+    def _check_received_via(self):
         for case in self:
-            if case.state != 'cancel' and not case.line_ids:
+            if not case.visit_id and case.received_via == 'visit':
                 raise ValidationError(_(
-                    "Add what is being made for %s before saving — a case with no work "
-                    "on it cannot become an order.", case.patient or _('this patient')))
+                    "%s was not taken at a visit: say whether it came by courier or by "
+                    "transport.", case.patient or _('This case')))
+
+    # ------------------------------------------------------------------ nothing listed
+    # A case may be registered with nothing on it: the box came by courier with no
+    # prescription, or the doctor said "the usual" and the executive does not know what
+    # that is. The lab cannot start it, so it goes to the office with the doctor call
+    # on - whoever picks it up rings the doctor and writes what is to be made. The
+    # flag stays on while the slip is empty; it was a hard refusal to save until
+    # 2026-11-24, and that refusal is what made executives keep cases off the system.
+    def _ask_doctor_when_empty(self):
+        empty = self.filtered(lambda c: c.state == 'draft' and not c.line_ids
+                              and not c.needs_doctor_call)
+        for case in empty:
+            vals = {'needs_doctor_call': True}
+            if not case.doctor_call_note:
+                vals['doctor_call_note'] = _(
+                    "Nothing is listed on the case: ask the doctor what is to be made.")
+            case.with_context(fw_empty_checked=True).write(vals)
+
+    # Deliberately no onchange doing the same in the form: Odoo runs every onchange
+    # when a NEW form opens, with no lines yet, so every case opened with the call
+    # switched on. The save does it; the empty items box says so beforehand.
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        cases = super().create(vals_list)
+        cases._ask_doctor_when_empty()
+        return cases
+
+    def write(self, vals):
+        result = super().write(vals)
+        if ('line_ids' in vals or 'needs_doctor_call' in vals) \
+                and not self.env.context.get('fw_empty_checked'):
+            self._ask_doctor_when_empty()
+        return result
 
     def unlink(self):
         """A slip that produced an order is not deletable, by anyone.
@@ -383,9 +496,12 @@ class LabCase(models.Model):
         for case in self:
             if case.state != 'draft':
                 raise UserError(_("%s has already been submitted.", case.patient))
+            case._ask_doctor_when_empty()
             case._check_ready()
             case.state = 'submitted'
-            if case.visit_id.state == 'done':
+            # No visit means no check-out to wait for: a case that came by courier
+            # or transport becomes an order as soon as it is submitted.
+            if not case.visit_id or case.visit_id.state == 'done':
                 late |= case
             else:
                 case.message_post(body=_("Case submitted. It becomes an order when "
@@ -402,6 +518,7 @@ class LabCase(models.Model):
                     "%(n)s case(s) handed over after the visit was finished, sent "
                     "for verification: %(refs)s",
                     n=len(orders), refs=', '.join(orders.mapped('name'))))
+        late.filtered(lambda c: not c.visit_id).action_create_order()
         return True
 
     def action_reset_to_draft(self):
@@ -438,9 +555,8 @@ class LabCase(models.Model):
     def _check_ready(self):
         """Everything that would make an unusable order, said before it is created."""
         for case in self:
-            if not case.line_ids:
-                raise UserError(_(
-                    "Add what is being made for %s before submitting it.", case.patient))
+            # An empty case is allowed (see _ask_doctor_when_empty); a line that
+            # names nothing is not.
             missing = case.line_ids.filtered(lambda l: not l.product_id)
             if missing:
                 raise UserError(_("A line on %s has no product.", case.patient))
@@ -469,6 +585,10 @@ class LabCase(models.Model):
         return {
             'partner_id': self.partner_id.id,
             'visit_id': self.visit_id.id,
+            'case_received_via': self.received_via,
+            'case_received_ref': self.received_ref or False,
+            'case_contact_employee_id': self.contact_employee_id.id or False,
+            'case_contact_note': self.contact_note or False,
             'company_id': self.company_id.id,
             'patient': self.patient,
             'age': self.age,
@@ -538,9 +658,18 @@ class LabCase(models.Model):
             # Nothing user-supplied reaches these values except the slip's own fields,
             # which the executive is entitled to set. (client, 2026-08-24)
             order = self.env['sale.order'].sudo().create(case._order_values())
-            # Reuse the existing maker-checker entry point rather than writing the
-            # field: that method owns what "submitted" means, including its own checks.
-            order.action_submit_for_verification()
+            if order.order_line:
+                # Reuse the existing maker-checker entry point rather than writing
+                # the field: that method owns what "submitted" means, including its
+                # own checks.
+                order.action_submit_for_verification()
+            else:
+                # Nothing listed: that entry point refuses an order without lines,
+                # and rightly for one keyed at the counter. This one is in the queue
+                # FOR the doctor call - the call gate stops it being verified, and
+                # sale.order.action_verify (below) refuses it while it is still empty.
+                order.write({'verification_state': 'to_verify', 'verification_note': False})
+            case._tell_contact_person(order)
             # sudo for the same reason as the create above, and because the lock
             # mixin treats a submitted slip as read-only: this is the system
             # stamping the outcome of the executive's own action onto the slip, not
@@ -551,6 +680,42 @@ class LabCase(models.Model):
             created |= order
         return created
 
+
+    @api.model
+    def _without_visit(self, user_ids, day):
+        """Cases with no visit behind them, per executive, for one day.
+
+        Everything that counts an executive's day counts visits, so a case that came
+        by courier would otherwise be done and never seen. Each counter adds this to
+        its visit figures: {user_id: {'cases', 'orders', 'value'}}.
+        """
+        out = {}
+        cases = self.sudo().search([
+            ('visit_id', '=', False), ('user_id', 'in', list(user_ids)),
+            ('date', '=', day), ('state', '!=', 'cancel')])
+        for case in cases:
+            row = out.setdefault(case.user_id.id, {'cases': 0, 'orders': 0, 'value': 0.0})
+            row['cases'] += 1
+            order = case.sale_order_id
+            if order and order.state != 'cancel':
+                row['orders'] += 1
+                row['value'] += order.amount_untaxed
+        return out
+
+    def _tell_contact_person(self, order):
+        """A to-do for the person named to contact the doctor, on the order, so it is
+        in their own activities and not only written on a slip they never open."""
+        self.ensure_one()
+        user = self.contact_employee_id.sudo().user_id
+        if not user:
+            return
+        order.sudo().activity_schedule(
+            'mail.mail_activity_data_todo', user_id=user.id,
+            summary=_("Contact %s about this case", self.partner_id.display_name),
+            note=self.contact_note or _(
+                "%(who)s named you as the person to contact %(clinic)s about %(patient)s.",
+                who=self.env.user.name, clinic=self.partner_id.display_name,
+                patient=self.patient))
 
     # ------------------------------------------------------------------ the phone's item picker
     @api.model
@@ -624,6 +789,40 @@ class LabCase(models.Model):
         return [{'id': c.id, 'name': c.name, 'uses': usage.get(c.id, 0)} for c in ranked]
 
 
+    @api.model
+    def picker_add_colour(self, name):
+        """Put a shade the doctor asked for on the list, from the case.
+
+        The shade list is the office's (Sales managers create shades), so an
+        executive at a counter met a doctor's shade that was not on it and had to
+        leave the shade off. Created in sudo, for the field roles only, and through
+        the list's own rule: another spelling of a shade that exists ("A2 ,A3" for
+        "A2, A3") hands back that shade instead of adding a twin. (client, 2026-11-24)
+        """
+        if not (self.env.user.has_group('lab_fieldwork.group_fieldwork_executive')
+                or self.env.user.has_group('lab_fieldwork.group_fieldwork_manager')):
+            raise UserError(_("Only field work users can add a shade from a case."))
+        name = ' '.join((name or '').split())
+        if not name:
+            raise UserError(_("Type the shade first."))
+        if len(name) > 40:
+            raise UserError(_("A shade name is a few letters, e.g. A2 or 2M2."))
+        Colour = self.env['product.colour'].sudo().with_context(active_test=False)
+        key = Colour._shade_key(name)
+        twin = Colour.search([('name', '=ilike', name[:1] + '%')]).filtered(
+            lambda c: Colour._shade_key(c.name) == key)[:1]
+        if twin:
+            if not twin.active:
+                twin.active = True
+            shade = twin
+        else:
+            shade = Colour.create({
+                'name': name,
+                'description': _("Added from a case by %s", self.env.user.name),
+            })
+        return {'id': shade.id, 'name': shade.name, 'uses': 0, 'created': not twin}
+
+
 class LabCaseLine(models.Model):
     """One appliance, and which arch it is for."""
     _name = 'lab.case.line'
@@ -677,18 +876,12 @@ class LabCaseLine(models.Model):
 
     def unlink(self):
         self._check_parent_open()
-        # The case's own constraint cannot see this: `@api.constrains('line_ids')` fires
-        # on writes to the CASE, and deleting a line straight out of the o2m never
-        # touches it. Without this the last line can be removed and the slip is left
-        # describing no work at all.
-        emptied = self.mapped('case_id').filtered(
-            lambda c: c.state != 'cancel' and not (c.line_ids - self))
-        if emptied:
-            raise ValidationError(_(
-                "%s would be left with no work on it. A case must say what is being "
-                "made — delete the whole slip instead.",
-                ', '.join(emptied.mapped('patient'))))
-        return super().unlink()
+        cases = self.case_id
+        result = super().unlink()
+        # The last line taken off: the slip is empty now, and an empty slip goes to
+        # the office with the doctor call on (LabCase._ask_doctor_when_empty).
+        cases.exists()._ask_doctor_when_empty()
+        return result
 
     def _line_values(self):
         self.ensure_one()

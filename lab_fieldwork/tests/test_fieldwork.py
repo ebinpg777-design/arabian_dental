@@ -1262,8 +1262,7 @@ class TestFieldwork(TransactionCase):
         return self._cached_product
 
     def _case(self, visit, patient='Anu Raj', submit=True, **vals):
-        """Lines are created WITH the case: a slip with no work on it cannot be saved,
-        so the two-step creation this used to do is no longer legal."""
+        """Lines are created WITH the case, as the form saves them."""
         case = self.env['lab.case'].create(dict({
             'visit_id': visit.id, 'patient': patient,
             'line_ids': [(0, 0, {'product_id': self._product().id,
@@ -1436,19 +1435,18 @@ class TestFieldwork(TransactionCase):
         v2.do_check_out(LAT, LON)
         self.assertTrue(other.sale_order_id)
 
-    def test_a_slip_with_no_work_on_it_cannot_even_be_saved(self):
-        """Caught on save, not at check-out: an empty slip that survives to the end of
-        the visit has already cost the executive the trip back through the form, and by
-        then the doctor has gone."""
+    def test_a_slip_with_no_work_on_it_goes_to_the_doctor_call(self):
+        """Allowed since 2026-11-24 (client): an empty slip is saved with the doctor
+        call on, rather than refused - the refusal kept cases off the system."""
         v = self._open_visit()
-        with self.assertRaises(ValidationError):
-            self.env['lab.case'].create({'visit_id': v.id, 'patient': 'Empty Slip'})
+        case = self.env['lab.case'].create({'visit_id': v.id, 'patient': 'Empty Slip'})
+        self.assertTrue(case.needs_doctor_call)
 
-    def test_the_last_line_cannot_be_taken_off_a_slip(self):
+    def test_the_last_line_can_be_taken_off_a_slip(self):
         v = self._open_visit()
         case = self._case(v, 'Stripped', submit=False)
-        with self.assertRaises(ValidationError):
-            case.line_ids.unlink()
+        case.line_ids.unlink()
+        self.assertTrue(case.needs_doctor_call, "emptied, it asks for the call")
 
     def test_an_unsubmitted_slip_stops_the_visit_finishing(self):
         """Never silently swept into an order: the executive either finished it or did

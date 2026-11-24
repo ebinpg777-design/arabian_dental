@@ -27,7 +27,12 @@ import { useSpecialData } from "@web/views/fields/relational_utils";
 // ---------------------------------------------------------------------------
 export class FwChoice extends Component {
     static template = "lab_fieldwork.FwChoice";
-    props = useProps({ ...standardFieldProps, colors: t.object().optional() });
+    props = useProps({
+        ...standardFieldProps,
+        colors: t.object().optional(),
+        // options this form does not offer, e.g. "At the clinic" on a case with no visit
+        exclude: t.array().optional(),
+    });
 
     /** The colour class of one option: `options="{'colors': {'urgent': 'amber'}}"`. */
     tone(value) {
@@ -36,8 +41,9 @@ export class FwChoice extends Component {
     }
 
     get choices() {
+        const exclude = this.props.exclude || [];
         return this.props.record.fields[this.props.name].selection.filter(
-            ([value]) => value
+            ([value]) => value && !exclude.includes(value)
         );
     }
 
@@ -51,8 +57,10 @@ export class FwChoice extends Component {
         }
         // Tapping the current choice clears it, so a mis-tap is undone with the same
         // finger rather than by finding a dropdown and scrolling to the empty row.
+        // ...unless the field must have an answer: then the tap just keeps it.
+        const required = this.props.record.fields[this.props.name].required;
         this.props.record.update({
-            [this.props.name]: this.value === value ? false : value,
+            [this.props.name]: this.value === value && !required ? false : value,
         });
     }
 }
@@ -62,7 +70,10 @@ export const fwChoice = {
     displayName: _t("Touch choice"),
     supportedTypes: ["selection"],
     isEmpty: (record, fieldName) => record.data[fieldName] === false,
-    extractProps: ({ options }) => ({ colors: options && options.colors }),
+    extractProps: ({ options }) => ({
+        colors: options && options.colors,
+        exclude: (options && options.exclude) || undefined,
+    }),
 };
 registry.category("fields").add("fw_choice", fwChoice);
 

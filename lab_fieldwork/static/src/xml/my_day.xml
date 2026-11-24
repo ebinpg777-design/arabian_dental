@@ -359,6 +359,12 @@
                             <i class="fa fa-pencil-square-o" title="Quick entry"/>
                             <span>Quick entry</span>
                         </button>
+                        <!-- A case that came by courier or on a bus: no visit to
+                             open it from. (client, 2026-11-24) -->
+                        <button class="o_fw_qa" t-on-click="() => this.openSentCase()">
+                            <i class="fa fa-archive" title="Case by courier or transport"/>
+                            <span>Case by courier</span>
+                        </button>
                         <button class="o_fw_qa" t-on-click="() => this.toggleTrack()">
                             <i class="fa fa-search" title="Track order"/>
                             <span>Track order</span>
