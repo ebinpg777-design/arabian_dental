@@ -13,7 +13,7 @@
                 <field name="partner_id" optional="show"/>
                 <field name="product_id"/>
                 <field name="department_id" optional="show"/>
-                <field name="teeth" optional="show"/>
+                <field name="teeth" optional="show" widget="fdi_teeth"/>
                 <field name="quantity" sum="Total"/>
                 <field name="teeth_count" sum="Total" optional="show"/>
                 <field name="amount" sum="Total" optional="hide"/>

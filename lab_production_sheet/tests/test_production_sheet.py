@@ -2,6 +2,7 @@
 """What the two sheets say, read off `_lab_sheet` rather than off a PDF."""
 from datetime import datetime
 
+from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -179,3 +180,14 @@ class TestProductionSheet(TransactionCase):
         self.assertNotIn('Casting', text)
         self.assertIn('alt="Barcode %s"' % production.name, text,
                       "the barcode the station board reads")
+
+    def test_the_order_prints_the_sheets_of_all_its_jobs(self):
+        order, production = self._order('MC-BSC')
+        action = order.action_print_job_sheets()
+        self.assertEqual(action['report_name'], 'lab_production_sheet.report_job_sheet')
+        self.assertEqual(action['context']['active_ids'], production.ids)
+        action = order.action_print_production_reports()
+        self.assertEqual(action['report_name'], 'lab_production_sheet.report_production_report')
+        empty = self.env['sale.order'].create({'partner_id': self.clinic.id})
+        with self.assertRaises(UserError):
+            empty.action_print_job_sheets()

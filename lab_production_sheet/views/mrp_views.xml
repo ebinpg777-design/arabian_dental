@@ -2,8 +2,8 @@
 <odoo>
     <!--
         The manufacturing order: the two sheets one click away, and the heading of
-        the production sheet as a tab - so whoever prints it can see, and correct,
-        what it is about to say.
+        the production sheet on the form - so whoever prints it can see, and
+        correct, what it is about to say.
     -->
     <record id="view_production_form_sheet" model="ir.ui.view">
         <field name="name">mrp.production.form.production.sheet</field>
@@ -18,30 +18,74 @@
                         icon="fa-print" invisible="state in ('draft', 'cancel')"
                         help="The Daily Production Report: every stage, who did it and when."/>
             </xpath>
-            <xpath expr="//notebook" position="inside">
-                <page string="Production Sheet" name="lab_production_sheet" invisible="not sale_id">
-                    <group>
-                        <group string="The case">
-                            <field name="sale_id" readonly="1" string="Order No"/>
-                            <field name="clinic_id" readonly="1" string="Doctor / Clinic"/>
-                            <field name="patient" readonly="1"/>
-                            <field name="color_scheme" readonly="1"/>
-                            <field name="ul" readonly="1"/>
-                            <field name="lab_teeth" readonly="1"/>
-                        </group>
-                        <group string="What came with it">
-                            <field name="lab_impression_type"/>
-                            <field name="lab_impression_tray"/>
-                            <field name="lab_wax_bite" widget="radio" options="{'horizontal': true}"/>
-                            <field name="lab_opposing_model" widget="radio" options="{'horizontal': true}"/>
-                            <field name="lab_pre_cutting_model" widget="radio" options="{'horizontal': true}"/>
-                        </group>
-                    </group>
-                    <div class="text-muted">
-                        These five answers are the order's: changing one here changes it on the
-                        order and on every other manufacturing order of the same case.
+            <!-- The case, on the form itself rather than in a tab: whoever opens a job
+                 wants who it is for and what came with it before anything else.
+                 (client, 2026-11-24) -->
+            <xpath expr="//notebook" position="before">
+                <div class="o_lps_case" invisible="not sale_id">
+                    <div class="o_lps_head">
+                        <div class="o_lps_who">
+                            <div class="o_lps_label">Patient</div>
+                            <field name="patient" class="o_lps_patient" readonly="1" nolabel="1"/>
+                            <div class="o_lps_where">
+                                <i class="fa fa-hospital-o" title="Doctor / Clinic"/>
+                                <field name="clinic_id" readonly="1" nolabel="1" options="{'no_open': True}"/>
+                                <span class="o_lps_dot">·</span>
+                                <field name="sale_id" readonly="1" nolabel="1" class="o_lps_order"/>
+                            </div>
+                        </div>
+                        <div class="o_lps_chips">
+                            <div class="o_lps_chip o_lps_chip_shade" invisible="not color_scheme">
+                                <span class="o_lps_chip_k">Shade</span>
+                                <field name="color_scheme" readonly="1" nolabel="1"/>
+                            </div>
+                            <div class="o_lps_chip" invisible="not ul">
+                                <span class="o_lps_chip_k">Jaw</span>
+                                <field name="ul" readonly="1" nolabel="1"/>
+                            </div>
+                            <div class="o_lps_chip o_lps_chip_teeth" invisible="not lab_teeth">
+                                <span class="o_lps_chip_k">Teeth</span>
+                                <field name="lab_teeth" readonly="1" nolabel="1" widget="fdi_teeth"/>
+                            </div>
+                        </div>
                     </div>
-                </page>
+                    <div class="o_lps_answers">
+                        <div class="o_lps_answer o_lps_wide">
+                            <div class="o_lps_label">Impression</div>
+                            <field name="lab_impression_type" widget="badges_selection" nolabel="1"/>
+                        </div>
+                        <div class="o_lps_answer o_lps_wide">
+                            <div class="o_lps_label">Impression Tray</div>
+                            <field name="lab_impression_tray" widget="badges_selection" nolabel="1"/>
+                        </div>
+                        <div class="o_lps_answer">
+                            <div class="o_lps_label">Wax Bite</div>
+                            <field name="lab_wax_bite" widget="badges_selection" nolabel="1"/>
+                        </div>
+                        <div class="o_lps_answer">
+                            <div class="o_lps_label">Opposing Model</div>
+                            <field name="lab_opposing_model" widget="badges_selection" nolabel="1"/>
+                        </div>
+                        <div class="o_lps_answer">
+                            <div class="o_lps_label">Pre Cutting Model</div>
+                            <field name="lab_pre_cutting_model" widget="badges_selection" nolabel="1"/>
+                        </div>
+                    </div>
+                    <div class="o_lps_note">
+                        <i class="fa fa-info-circle me-1" title="Saved on the order"/>
+                        Saved on the order: every job of this case shows the same answers.
+                    </div>
+                </div>
+            </xpath>
+            <!-- shown in the panel above; on the Bill of Material line they were squeezed in -->
+            <xpath expr="//field[@name='bom_id']/following-sibling::field[@name='sale_id']" position="attributes">
+                <attribute name="invisible">sale_id</attribute>
+            </xpath>
+            <xpath expr="//field[@name='bom_id']/following-sibling::field[@name='color_scheme']" position="attributes">
+                <attribute name="invisible">sale_id</attribute>
+            </xpath>
+            <xpath expr="//field[@name='bom_id']/following-sibling::field[@name='ul']" position="attributes">
+                <attribute name="invisible">sale_id</attribute>
             </xpath>
         </field>
     </record>

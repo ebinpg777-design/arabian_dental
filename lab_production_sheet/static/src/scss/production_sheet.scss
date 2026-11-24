@@ -1,0 +1,104 @@
+// The case panel on the manufacturing order. Flat: a white card, 1px borders,
+// tonal chips, the theme's own primary for the chosen answer.
+.o_form_view .o_lps_case {
+    margin: 4px 0 18px;
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 10px;
+    background: var(--body-bg, #fff);
+    overflow: hidden;
+
+    .o_lps_label {
+        font-size: .76rem;
+        font-weight: 600;
+        color: var(--secondary-color, #6c757d);
+        margin-bottom: 4px;
+    }
+
+    // ---- who it is for
+    .o_lps_head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px 24px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color, #dee2e6);
+        background: var(--tertiary-bg, #f8f9fa);
+    }
+    .o_lps_who { min-width: 0; }
+    .o_lps_patient {
+        display: block;
+        font-size: 1.45rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .o_lps_where {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+        color: var(--secondary-color, #6c757d);
+        .fa { color: $o-brand-primary; }
+        .o_field_widget { width: auto; }
+    }
+    .o_lps_dot { opacity: .6; }
+    .o_lps_order { font-weight: 600; }
+
+    .o_lps_chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .o_lps_chip {
+        display: flex;
+        flex-direction: column;
+        min-width: 86px;
+        padding: 6px 12px;
+        border: 1px solid var(--border-color, #dee2e6);
+        border-radius: 8px;
+        background: var(--body-bg, #fff);
+        .o_field_widget { width: auto; font-weight: 700; font-size: 1rem; }
+    }
+    .o_lps_chip_k {
+        font-size: .7rem;
+        font-weight: 600;
+        color: var(--secondary-color, #6c757d);
+    }
+    .o_lps_chip_shade { border-left: 4px solid #c99a2e; }
+    .o_lps_chip_teeth {
+        border-left: 4px solid $o-brand-primary;
+        .o_fdi_cross { font-size: .95rem; font-weight: 700; margin-top: 2px; }
+    }
+
+    // ---- what came with it
+    // one row that wraps, each answer as wide as its badges
+    .o_lps_answers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 28px;
+        padding: 14px 18px 6px;
+        .o_field_widget { width: auto; }
+        .o_selection_badge {
+            border: 1px solid var(--border-color, #ced4da);
+            background: var(--body-bg, #fff);
+            color: inherit;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 16px;
+            &:hover { border-color: $o-brand-primary; }
+            &.active {
+                background: $o-brand-primary;
+                border-color: $o-brand-primary;
+                color: #fff;
+            }
+        }
+    }
+    .o_lps_note {
+        padding: 4px 18px 12px;
+        font-size: .76rem;
+        color: var(--secondary-color, #6c757d);
+    }
+
+    @include media-breakpoint-down(md) {
+        .o_lps_head { padding: 12px; }
+        .o_lps_answers { padding: 12px 12px 4px; gap: 12px; }
+        .o_lps_chips { width: 100%; }
+    }
+}

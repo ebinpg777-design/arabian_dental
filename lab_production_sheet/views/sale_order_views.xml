@@ -12,4 +12,35 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Both sheets for every job of the order, from the order itself. -->
+    <record id="view_order_form_sheet_buttons" model="ir.ui.view">
+        <field name="name">sale.order.form.production.sheet.buttons</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="mrp_production_count" invisible="1"/>
+                <button name="action_print_job_sheets" type="object" string="Job Sheet"
+                        icon="fa-barcode" invisible="not mrp_production_count"
+                        help="The technician's sheet of every job of this order, with its barcode."/>
+                <button name="action_print_production_reports" type="object" string="Production Report"
+                        icon="fa-print" invisible="not mrp_production_count"
+                        help="The Daily Production Report of every job of this order."/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- In the order lists: for the orders ticked. -->
+    <record id="view_order_list_sheet_buttons" model="ir.ui.view">
+        <field name="name">sale.order.list.production.sheet.buttons</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_print_job_sheets" type="object" string="Job Sheets" icon="fa-barcode"/>
+                <button name="action_print_production_reports" type="object" string="Production Reports" icon="fa-print"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Technician Work',
-    'version': '20.0.2.1.0',
+    'version': '20.0.2.1.1',
     'category': 'Sales/Reporting',
     'summary': "How much work each technician did: cases, order lines, units and teeth, "
                "from the Technicians named on the orders",

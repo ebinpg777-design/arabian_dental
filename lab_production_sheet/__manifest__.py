@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Production Sheet',
-    'version': '20.0.1.0.0',
+    'version': '20.0.1.2.0',
     'summary': "The lab's Daily Production Report and the technician's job sheet, "
                "printed from the manufacturing order",
     'description': """
@@ -30,6 +30,7 @@ order's number as its file number.
     'depends': [
         'lab_workcenter_scan',   # the station board: who did each step, and when
         'lab_masters',           # the benches and departments the sheet is laid out by
+        'sale_mrp',              # an order's jobs, for its print buttons
     ],
     'data': [
         'data/sheet_positions.xml',
@@ -38,6 +39,11 @@ order's number as its file number.
         'views/sale_order_views.xml',
         'views/mrp_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'lab_production_sheet/static/src/scss/production_sheet.scss',
+        ],
+    },
     'installable': True,
     'application': False,
 }
