@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "Lab Master Data",
-    'version': '20.0.1.0.2',
+    'version': '20.0.1.1.0',
     'summary': "The lab's departments, cost centres, benches, raw materials and "
                "bills of materials, as the SOPs describe them",
     'description': """
@@ -19,8 +19,11 @@ Where it comes from
   Production SOP (Wax Up, CAD/CAM, Metal, Ceramic, Acrylic, Orthodontic) and the
   support functions named in the ERP proposal, arranged as a tree of twenty-three
   with one cost centre each, in a plan of their own.
-* **Work centres** - fifty-seven benches, one per stage of the Ceramic, Zirconia,
-  Veneer, Acrylic and Orthodontic SOPs.
+* **Work centres** - twenty-nine benches: the rows of the lab's own Daily
+  Production Report (metal and ceramic, zirconia, orthodontic, acrylic), with
+  model preparation ahead of them and the final check and packing after. The
+  fifty-seven stages of the SOPs they were first laid out by are folded into
+  these (models/floor_layout.py) and kept, archived.
 * **Consumption materials** - forty-four, with the rate each one costs, from
   *PRODUCTION DETAILS.xlsx*.
 * **Bills of materials** - fifteen: the six zirconia grades, metal ceramic, full

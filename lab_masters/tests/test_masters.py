@@ -186,7 +186,9 @@ class TestBillsOfMaterials(TransactionCase):
                         "a job with a bill of materials has no department")
         self.assertTrue(production.cost_centre_id,
                         "a job with a department has no cost centre")
-        expected = bom.operation_ids[0].workcenter_id.department_id
+        # The first step after model preparation: that bench is the room every
+        # case passes through, not whose case it is (models/floor_layout.py).
+        expected = bom.operation_ids[1].workcenter_id.department_id
         self.assertEqual(production.department_id, expected)
 
     def test_a_work_order_belongs_to_its_own_bench(self):

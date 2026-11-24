@@ -13,10 +13,17 @@
         3. Every bench gets the analytic distribution its department implies. A
            data file creates records without firing an onchange, so this is the
            only place the benches can get one.
+        4. The floor is put on the rows of the lab's own production sheets
+           (models/floor_layout.py). On a new database only: the data files above
+           still describe every stage the SOP names, because that is where each
+           row's minutes come from, and this folds them into the twenty-nine
+           benches the floor signs for. A database that already runs gets the
+           same from migrations/20.0.1.1.0, once.
     -->
     <data noupdate="1">
         <function model="lab.masters.loader" name="link_departments"/>
         <function model="lab.masters.loader" name="link_categories"/>
         <function model="lab.masters.loader" name="stamp_workcenter_analytic"/>
+        <function model="lab.masters.loader" name="apply_floor_layout"/>
     </data>
 </odoo>
