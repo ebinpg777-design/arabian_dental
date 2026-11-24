@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- A4, with the letterhead drawn in the body: the sheet's own heading is taller
+         than the band wkhtmltopdf leaves for a page header. -->
+    <record id="paperformat_production_sheet" model="report.paperformat">
+        <field name="name">Lab Production Sheet (A4)</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">8</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_production_report" model="ir.actions.report">
+        <field name="name">Daily Production Report</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_production_sheet.report_production_report</field>
+        <field name="print_report_name">'Production Report - %s' % (object.name or '').replace('/', '-')</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_production_sheet"/>
+    </record>
+
+    <record id="action_report_job_sheet" model="ir.actions.report">
+        <field name="name">Technician Job Sheet</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">lab_production_sheet.report_job_sheet</field>
+        <field name="print_report_name">'Job Sheet - %s' % (object.name or '').replace('/', '-')</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="paperformat_production_sheet"/>
+    </record>
+</odoo>

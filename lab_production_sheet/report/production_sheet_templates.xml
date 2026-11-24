@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        THE LAB'S OWN FORM, printed.
+
+        The layout is the paper Daily Production Report's, line for line: the heading
+        block, the model preparation line, then a table for each department the case
+        passes through - Particulars, Technician, Date, Time - with the material used
+        and a place to approve under each. What the paper leaves for a pen is filled
+        in from what the floor recorded; what it has not recorded yet is left blank at
+        the same height, so a half-finished sheet can still be finished by hand.
+
+        Sizes are in mm and pt: wkhtmltopdf lays an A4 page out about 1,220 px wide
+        and rounds px font sizes, so a px here is not the px a browser preview shows.
+    -->
+    <template id="sheet_css">
+        <style>
+            .ps { font-size: 9.5pt; color: #111; font-family: Arial, Helvetica, sans-serif; }
+            /* The report assets draw pale borders on rows and table bodies, which a
+               collapsed table shows as a frame. Off, so the only lines on the sheet are
+               the ones the form has. */
+            .ps table, .ps thead, .ps tbody, .ps tfoot, .ps tr, .ps th, .ps td {
+                border-style: none; border-width: 0; }
+            .ps table { border-collapse: collapse; width: 100%; }
+            .ps .ps-top td { border: none; padding: 0; vertical-align: middle; }
+            .ps .ps-logo { max-height: 15mm; max-width: 95mm; }
+            .ps .ps-cert { max-height: 12mm; max-width: 60mm; }
+            .ps .ps-where { font-size: 7.5pt; color: #444; text-align: center; margin-top: 1mm; }
+            .ps .ps-title { text-align: center; font-size: 12pt; font-weight: bold;
+                            text-decoration: underline; letter-spacing: .04em; margin: 2mm 0; }
+            .ps .ps-file { font-size: 10.5pt; font-weight: bold; white-space: nowrap; }
+            .ps .ps-box td, .ps .ps-box th { border: 1px solid #333; padding: 1.2mm 1.8mm;
+                                             vertical-align: middle; }
+            .ps .ps-k { width: 31mm; color: #222; white-space: nowrap; }
+            .ps .ps-v { font-weight: bold; }
+            .ps .ps-row td { height: 7mm; }
+            .ps .ps-work { vertical-align: top !important; height: 36mm; }
+            .ps .ps-work-name { font-weight: bold; font-size: 11pt; margin-top: 1mm; }
+            .ps .ps-muted { color: #555; font-size: 8pt; }
+            .ps .ps-cb { display: inline-block; width: 3.2mm; height: 3.2mm; border: 1px solid #222;
+                         vertical-align: middle; text-align: center; line-height: 3mm;
+                         font-size: 7.5pt; font-weight: bold; margin: 0 2.2mm 0 .8mm; }
+            /* the dentist's cross: only the two lines that divide the mouth are drawn */
+            .ps table.ps-cross { float: right; width: 46mm; margin: 0 0 1mm 2mm; }
+            .ps .ps-box .ps-cross td { width: 23mm; height: 7.5mm; font-size: 8.5pt; font-weight: bold;
+                                       padding: .6mm 1.2mm; border: 0 none; }
+            .ps .ps-box .ps-cross td.tl { border-right: 1.3px solid #222; border-bottom: 1.3px solid #222;
+                                          text-align: right; vertical-align: bottom; }
+            .ps .ps-box .ps-cross td.tr { border-bottom: 1.3px solid #222; text-align: left;
+                                          vertical-align: bottom; }
+            .ps .ps-box .ps-cross td.bl { border-right: 1.3px solid #222; text-align: right;
+                                          vertical-align: top; }
+            .ps .ps-box .ps-cross td.br { text-align: left; vertical-align: top; }
+            .ps .ps-bar { background: #2f5d9b; color: #fff; text-align: center; font-weight: bold;
+                          letter-spacing: .06em; padding: 1.3mm; font-size: 10pt; margin-top: 3.5mm; }
+            .ps .ps-bar small { font-weight: normal; letter-spacing: 0; font-size: 8.5pt; }
+            .ps .ps-sec th { background: #f1f4f8; font-weight: normal; text-align: center;
+                             font-size: 8.5pt; }
+            .ps .ps-sec td { height: 7mm; }
+            .ps .ps-sec .ps-p { width: 34mm; }
+            .ps .ps-sec .ps-d { width: 21mm; text-align: center; font-size: 8.5pt; }
+            .ps .ps-sec .ps-t { width: 13mm; text-align: center; font-size: 8.5pt; }
+            .ps .ps-mat td { height: 9mm; font-size: 8.5pt; }
+            .ps .ps-sign { margin-top: 2mm; font-size: 9pt; }
+            .ps .ps-line { display: inline-block; border-bottom: 1px solid #555; min-width: 38mm;
+                           padding: 0 1.5mm; font-weight: bold; }
+            .ps .ps-pair td.ps-half { width: 50%; vertical-align: top; border: none; padding: 0; }
+            .ps .ps-foot td { border: none; padding: 5mm 0 0 0; font-size: 9pt; vertical-align: bottom; }
+            .ps .ps-officer { display: inline-block; border: 1px solid #333; min-width: 38mm;
+                              height: 9mm; line-height: 9mm; padding: 0 2mm; font-weight: bold;
+                              vertical-align: middle; text-align: center; }
+            .ps .ps-stamp { color: #777; font-size: 7pt; margin-top: 2mm; }
+            .ps .ps-brk { page-break-before: always; }
+            .ps .ps-scan { border: 1.5px solid #111; padding: 3mm; margin-top: 4mm; }
+            .ps .ps-scan td { border: none; vertical-align: middle; }
+            .ps .ps-note { border: 1px solid #333; min-height: 26mm; padding: 1.5mm 2mm; }
+            .ps .ps-urgent { display: inline-block; background: #b00020; color: #fff;
+                             font-weight: bold; padding: .4mm 2mm; font-size: 9pt; }
+        </style>
+    </template>
+
+    <!-- A tick box, crossed when it is the answer. (Odoo 20: what a sub-template is
+         given goes on the t-call as attributes; a t-set in its body no longer reaches it.) -->
+    <template id="sheet_tick">
+        <span class="ps-cb"><t t-if="on">X</t></span>
+    </template>
+
+    <!-- The letterhead, the title and the heading block: the same on both sheets. -->
+    <template id="sheet_heading">
+        <t t-set="company" t-value="o.company_id.sudo()"/>
+        <table class="ps-top">
+            <tr>
+                <td>
+                    <img t-if="company.logo1 or company.logo" class="ps-logo"
+                         t-att-src="image_data_uri(company.logo1 or company.logo)"/>
+                    <b t-else="" style="font-size:16pt;" t-out="company.name"/>
+                </td>
+                <td style="text-align:right;">
+                    <img t-if="company.logo2" class="ps-cert" t-att-src="image_data_uri(company.logo2)"/>
+                </td>
+            </tr>
+        </table>
+        <div class="ps-where">
+            <t t-set="where" t-value="[x.strip(' ,') for x in [company.street or '', company.street2 or '', company.city or '', company.zip or ''] if x and x.strip(' ,')]"/>
+            <t t-set="reach" t-value="[x for x in [company.phone, company.email, company.website] if x]"/>
+            <span t-out="', '.join(where)"/>
+            <t t-if="where and reach"> &#160;·&#160; </t>
+            <span t-out="'  ·  '.join(reach)"/>
+        </div>
+        <table class="ps-top" style="margin-top:1mm;">
+            <tr>
+                <td style="width:25%;"/>
+                <td style="width:50%;"><div class="ps-title" t-out="title"/></td>
+                <td style="width:25%;text-align:right;" class="ps-file">File No : <t t-out="s['file_no']"/></td>
+            </tr>
+        </table>
+
+        <table class="ps-box">
+            <tr class="ps-row">
+                <td class="ps-k">Order No</td>
+                <td class="ps-v" colspan="3" t-out="s['order_no']"/>
+                <td class="ps-work" rowspan="6" style="width:50%;">
+                    <table class="ps-cross">
+                        <tr><td class="tl" t-out="s['teeth']['upper_right']"/><td class="tr" t-out="s['teeth']['upper_left']"/></tr>
+                        <tr><td class="bl" t-out="s['teeth']['lower_right']"/><td class="br" t-out="s['teeth']['lower_left']"/></tr>
+                    </table>
+                    <div>Type of work :</div>
+                    <div class="ps-work-name" t-out="s['work']"/>
+                    <div>
+                        <t t-out="s['quantity']"/> <t t-out="s['uom']"/>
+                        <t t-if="s['arch']"> · <t t-out="s['arch']"/></t>
+                        <span t-if="s['urgent']" class="ps-urgent">URGENT</span>
+                    </div>
+                    <div t-if="s['due']" class="ps-muted">Due <t t-out="s['due']"/></div>
+                    <div style="clear:both;margin-top:5mm;">Shade : <b t-out="s['shade']"/></div>
+                </td>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Doctor / Clinic</td>
+                <td class="ps-v" colspan="3" t-out="s['clinic']"/>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Patient Name</td>
+                <td class="ps-v" colspan="3">
+                    <t t-out="s['patient']"/>
+                    <span t-if="s['age'] or s['gender']" class="ps-muted">
+                        (<t t-out="' · '.join([str(x) for x in [s['age'], s['gender']] if x])"/>)
+                    </span>
+                </td>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Impression type</td>
+                <td colspan="3">
+                    <t t-foreach="s['impression_types']" t-as="choice">
+                        <t t-out="choice[1]"/><t t-call="lab_production_sheet.sheet_tick" on="s['impression_type'] == choice[0]"/>
+                    </t>
+                </td>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Wax Bite</td>
+                <td colspan="3">
+                    Yes<t t-call="lab_production_sheet.sheet_tick" on="s['wax_bite'] == 'Yes'"/>
+                    No<t t-call="lab_production_sheet.sheet_tick" on="s['wax_bite'] == 'No'"/>
+                </td>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Opposing Model</td>
+                <td colspan="3">
+                    Yes<t t-call="lab_production_sheet.sheet_tick" on="s['opposing_model'] == 'Yes'"/>
+                    No<t t-call="lab_production_sheet.sheet_tick" on="s['opposing_model'] == 'No'"/>
+                </td>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Prepared By</td>
+                <td class="ps-v" colspan="3" t-out="s['prepared_by']"/>
+                <td style="padding:0;">
+                    <table><tr>
+                        <td style="border:none;border-right:1px solid #333;width:36mm;">Pre Cutting Model</td>
+                        <td style="border:none;">
+                            Yes<t t-call="lab_production_sheet.sheet_tick" on="s['pre_cutting_model'] == 'Yes'"/>
+                            No<t t-call="lab_production_sheet.sheet_tick" on="s['pre_cutting_model'] == 'No'"/>
+                        </td>
+                    </tr></table>
+                </td>
+            </tr>
+            <tr class="ps-row">
+                <td class="ps-k">Date</td>
+                <td class="ps-v" t-out="s['date']"/>
+                <td style="width:13mm;">Time</td>
+                <td class="ps-v" style="width:17mm;" t-out="s['time']"/>
+                <td style="padding:0;">
+                    <table><tr>
+                        <td style="border:none;border-right:1px solid #333;width:36mm;">Impression Tray</td>
+                        <td style="border:none;">
+                            <t t-foreach="s['impression_trays']" t-as="choice">
+                                <t t-out="choice[1]"/><t t-call="lab_production_sheet.sheet_tick" on="s['impression_tray'] == choice[0]"/>
+                            </t>
+                        </td>
+                    </tr></table>
+                </td>
+            </tr>
+        </table>
+    </template>
+
+    <!-- One department's table. `wide` is a table that has the page to itself. -->
+    <template id="sheet_section">
+        <div class="ps-bar">
+            <t t-out="section['title']"/>
+            <small t-if="section['subtitle']"> &#160;—&#160; <t t-out="section['subtitle']"/></small>
+        </div>
+        <table class="ps-box ps-sec">
+            <thead>
+                <tr>
+                    <th class="ps-p">Particulars</th>
+                    <th>Technician</th>
+                    <th t-if="wide" style="width:44mm;">Remarks</th>
+                    <th class="ps-d">Date</th>
+                    <th class="ps-t">Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr t-foreach="section['rows']" t-as="row">
+                    <td class="ps-p" t-out="row['label']"/>
+                    <td>
+                        <b t-out="row['technician']"/>
+                        <div t-if="not wide and row['remarks']" class="ps-muted" t-out="row['remarks']"/>
+                    </td>
+                    <td t-if="wide" class="ps-muted" t-out="row['remarks']"/>
+                    <td class="ps-d" t-out="row['date']"/>
+                    <td class="ps-t" t-out="row['time']"/>
+                </tr>
+                <tr class="ps-mat">
+                    <td class="ps-p">Material Used</td>
+                    <td t-att-colspan="4 if wide else 3" t-out="section['materials']"/>
+                </tr>
+            </tbody>
+        </table>
+        <div class="ps-sign">Approved by : <span class="ps-line">&#160;</span></div>
+    </template>
+
+    <!-- ============================================= DAILY PRODUCTION REPORT -->
+    <template id="report_production_report_document">
+        <t t-set="s" t-value="sheets[o.id]"/>
+        <!-- one order to a page -->
+        <div class="article" t-att-style="'page-break-before: always;' if o_index else None">
+            <div class="page ps">
+                <t t-call="lab_production_sheet.sheet_css"/>
+                <t t-call="lab_production_sheet.sheet_heading" title.f="DAILY PRODUCTION REPORT"/>
+
+                <!-- model preparation: a line of its own, as on the form -->
+                <table class="ps-box" style="margin-top:3mm;">
+                    <tr class="ps-row">
+                        <td class="ps-k" style="width:34mm;">Model Preparation</td>
+                        <td class="ps-v" t-out="s['model'] and s['model']['technician'] or ''"/>
+                        <td style="width:13mm;">Date</td>
+                        <td class="ps-v" style="width:26mm;" t-out="s['model'] and s['model']['date'] or ''"/>
+                        <td style="width:13mm;">Time</td>
+                        <td class="ps-v" style="width:18mm;" t-out="s['model'] and s['model']['time'] or ''"/>
+                    </tr>
+                </table>
+
+                <!-- The department tables. Two of them stand one under the other, as on
+                     the zirconia sheet; more than two go side by side in pairs, as on the
+                     metal and ceramic sheet, or the page would not hold them. -->
+                <t t-set="sections" t-value="s['sections']"/>
+                <t t-if="len(sections) &lt;= 2">
+                    <t t-foreach="sections" t-as="section">
+                        <t t-call="lab_production_sheet.sheet_section" section="section" wide="True"/>
+                    </t>
+                </t>
+                <t t-else="">
+                    <table class="ps-pair">
+                        <tr t-foreach="range(0, len(sections), 2)" t-as="at">
+                            <td class="ps-half" style="padding-right:2mm;">
+                                <t t-call="lab_production_sheet.sheet_section" section="sections[at]" wide="False"/>
+                            </td>
+                            <td class="ps-half" style="padding-left:2mm;">
+                                <t t-if="at + 1 &lt; len(sections)">
+                                    <t t-call="lab_production_sheet.sheet_section" section="sections[at + 1]" wide="False"/>
+                                </t>
+                            </td>
+                        </tr>
+                    </table>
+                </t>
+                <div t-if="not sections" class="ps-muted" style="margin-top:4mm;">
+                    This order has no stages: its product has no route, so there is no
+                    production to record.
+                </div>
+                <div t-if="s['other_materials']" class="ps-muted" style="margin-top:2mm;">
+                    Other material : <t t-out="s['other_materials']"/>
+                </div>
+
+                <table class="ps-foot">
+                    <tr>
+                        <td style="width:36%;">Final Checked by :
+                            <span class="ps-line" t-out="s['checked'] and s['checked']['technician'] or '&#160;'"/></td>
+                        <td style="width:30%;">Packed by :
+                            <span class="ps-line" style="min-width:30mm;" t-out="s['packed'] and s['packed']['technician'] or '&#160;'"/></td>
+                        <td style="text-align:right;">Marketing Officer
+                            <span class="ps-officer" t-out="s['officer']"/></td>
+                    </tr>
+                </table>
+                <div class="ps-stamp">
+                    Printed <t t-out="stamp['at']"/> by <t t-out="stamp['by']"/> from the manufacturing order.
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_production_report">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="lab_production_sheet.report_production_report_document"/>
+            </t>
+        </t>
+    </template>
+
+    <!-- ================================================ TECHNICIAN JOB SHEET -->
+    <!--
+        The sheet that goes into the tray with the work. The same heading, no stage
+        and no name on it: which bench the case is at is the station board's to say,
+        and it says it when this barcode is scanned there.
+    -->
+    <template id="report_job_sheet_document">
+        <t t-set="s" t-value="sheets[o.id]"/>
+        <!-- one order to a page -->
+        <div class="article" t-att-style="'page-break-before: always;' if o_index else None">
+            <div class="page ps">
+                <t t-call="lab_production_sheet.sheet_css"/>
+                <t t-call="lab_production_sheet.sheet_heading" title.f="TECHNICIAN JOB SHEET"/>
+
+                <div class="ps-scan">
+                    <table>
+                        <tr>
+                            <td style="width:66%;text-align:center;">
+                                <div t-out="o.name"
+                                     t-options="{'widget': 'barcode', 'symbology': 'Code128', 'width': 900, 'height': 150, 'img_style': 'width:112mm;height:20mm;'}"/>
+                                <div style="font-size:15pt;font-weight:bold;letter-spacing:.12em;margin-top:1mm;"
+                                     t-out="o.name"/>
+                            </td>
+                            <td style="width:14%;text-align:center;">
+                                <div t-out="o.name"
+                                     t-options="{'widget': 'barcode', 'symbology': 'QR', 'width': 300, 'height': 300, 'img_style': 'width:24mm;height:24mm;'}"/>
+                            </td>
+                            <td style="font-size:8.5pt;">
+                                <b>Scan at your station board</b><br/>
+                                first scan: you have the case<br/>
+                                second scan: it goes to the next bench
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <table class="ps-box" style="margin-top:4mm;">
+                    <tr class="ps-row">
+                        <td class="ps-k" style="width:34mm;">Teeth</td>
+                        <td class="ps-v" t-out="s['teeth_text']"/>
+                    </tr>
+                    <tr class="ps-row">
+                        <td class="ps-k">Came with the case</td>
+                        <td class="ps-v" t-out="s['bag']"/>
+                    </tr>
+                    <tr class="ps-row">
+                        <td class="ps-k">Modifications</td>
+                        <td class="ps-v" t-out="s['modification']"/>
+                    </tr>
+                    <tr class="ps-row">
+                        <td class="ps-k">Special instructions</td>
+                        <td class="ps-v" t-out="s['instruction']"/>
+                    </tr>
+                </table>
+
+                <div style="margin-top:4mm;">Notes</div>
+                <div class="ps-note"/>
+
+                <div class="ps-stamp">
+                    Printed <t t-out="stamp['at']"/> by <t t-out="stamp['by']"/>.
+                    Writing on this sheet does not move the case: scanning it does.
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_job_sheet">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="lab_production_sheet.report_job_sheet_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

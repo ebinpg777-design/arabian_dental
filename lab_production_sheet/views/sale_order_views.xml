@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The order's Impression group gains what the production sheet asks for. -->
+    <record id="view_order_form_production_sheet" model="ir.ui.view">
+        <field name="name">sale.order.form.production.sheet</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale_custom.view_order_form_sale_custom"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='wax_bite']" position="after">
+                <field name="opposing_model"/>
+                <field name="pre_cutting_model"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

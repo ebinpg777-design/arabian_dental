@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        The manufacturing order: the two sheets one click away, and the heading of
+        the production sheet as a tab - so whoever prints it can see, and correct,
+        what it is about to say.
+    -->
+    <record id="view_production_form_sheet" model="ir.ui.view">
+        <field name="name">mrp.production.form.production.sheet</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_print_job_sheet" type="object" string="Job Sheet"
+                        icon="fa-barcode" invisible="state in ('draft', 'cancel')"
+                        help="The sheet that travels with the work, with the barcode to scan at a station board."/>
+                <button name="action_print_production_report" type="object" string="Production Report"
+                        icon="fa-print" invisible="state in ('draft', 'cancel')"
+                        help="The Daily Production Report: every stage, who did it and when."/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Production Sheet" name="lab_production_sheet" invisible="not sale_id">
+                    <group>
+                        <group string="The case">
+                            <field name="sale_id" readonly="1" string="Order No"/>
+                            <field name="clinic_id" readonly="1" string="Doctor / Clinic"/>
+                            <field name="patient" readonly="1"/>
+                            <field name="color_scheme" readonly="1"/>
+                            <field name="ul" readonly="1"/>
+                            <field name="lab_teeth" readonly="1"/>
+                        </group>
+                        <group string="What came with it">
+                            <field name="lab_impression_type"/>
+                            <field name="lab_impression_tray"/>
+                            <field name="lab_wax_bite" widget="radio" options="{'horizontal': true}"/>
+                            <field name="lab_opposing_model" widget="radio" options="{'horizontal': true}"/>
+                            <field name="lab_pre_cutting_model" widget="radio" options="{'horizontal': true}"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">
+                        These five answers are the order's: changing one here changes it on the
+                        order and on every other manufacturing order of the same case.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_workcenter_form_sheet" model="ir.ui.view">
+        <field name="name">mrp.workcenter.form.production.sheet</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='code']" position="after">
+                <field name="sheet_position"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

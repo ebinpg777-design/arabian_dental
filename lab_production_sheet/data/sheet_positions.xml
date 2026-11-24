@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Once, at install: the lab may move a bench's line afterwards, and an
+         upgrade must not move it back. -->
+    <data noupdate="1">
+        <function model="mrp.workcenter" name="write"
+                  eval="[[ref('lab_masters.wc_model_preparation')], {'sheet_position': 'model'}]"/>
+        <function model="mrp.workcenter" name="write"
+                  eval="[[ref('lab_masters.wc_quality_control')], {'sheet_position': 'check'}]"/>
+        <function model="mrp.workcenter" name="write"
+                  eval="[[ref('lab_masters.wc_packing')], {'sheet_position': 'packed'}]"/>
+    </data>
+</odoo>
