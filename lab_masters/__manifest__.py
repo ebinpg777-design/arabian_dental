@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "Lab Master Data",
-    'version': '20.0.1.1.0',
+    'version': '20.0.1.2.0',
     'summary': "The lab's departments, cost centres, benches, raw materials and "
                "bills of materials, as the SOPs describe them",
     'description': """
@@ -113,6 +113,7 @@ route with what it consumes, where it is worked, and what is left of the price.
         'data/masters_link.xml',
         'views/case_cost_views.xml',
         'views/menus.xml',
+        'views/product_actions.xml',
     ],
     'assets': {
         'web.assets_backend': [

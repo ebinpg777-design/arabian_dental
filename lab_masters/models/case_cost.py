@@ -83,7 +83,11 @@ class LabCaseCost(models.AbstractModel):
         """
         if not (self.env.su or any(self.env.user.has_group(g) for g in CASE_COST_GROUPS)):
             raise AccessError(_("Case Cost is for the cost centres and manufacturing managers."))
-        boms = self.env['mrp.bom'].sudo().search([], order='code')
+        # The costed bills of materials: the ones that list what they consume. A
+        # product made on its category's route has steps and no components
+        # (models/category_boms.py), and a row of nothing but labour would read as
+        # a route that costs almost nothing. (2026-11-24)
+        boms = self.env['mrp.bom'].sudo().search([('bom_line_ids', '!=', False)], order='code')
         sold = self._sold_last_year(boms.product_tmpl_id)
         currency = self.env.company.currency_id
         rows = []
