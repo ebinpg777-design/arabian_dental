@@ -192,6 +192,14 @@ class LabCase(models.Model):
     # --- what became of it
     sale_order_id = fields.Many2one('sale.order', readonly=True, copy=False,
                                     string='Order')
+    # A submitted case can be corrected by its executive until the office has
+    # verified its order: the order is still a quotation in the verification queue,
+    # and "change the order instead" asked them for a form they cannot open.
+    # (client, 2026-11-24: "executive can edit the submitted cases")
+    order_editable = fields.Boolean(
+        compute='_compute_order_editable',
+        help="The order this case became has not been verified yet, so the case can "
+             "still be corrected and sent again.")
     # The order's number, kept on the slip: an executive has no right to read sale
     # orders, and "which order did this become" is asked at the counter the next
     # day. Read through the related's sudo, stored. (client, 2026-11-24)
@@ -500,15 +508,20 @@ class LabCase(models.Model):
         in the car, cannot.
         """
         late = self.browse()
+        corrected = self.browse()
         for case in self:
             if case.state != 'draft':
                 raise UserError(_("%s has already been submitted.", case.patient))
             case._ask_doctor_when_empty()
             case._check_ready()
             case.state = 'submitted'
+            # Corrected after it became an order: the order is updated now, visit
+            # finished or not - there is nothing left to wait for.
+            if case.sale_order_id:
+                corrected |= case
             # No visit means no check-out to wait for: a case that came by courier
             # or transport becomes an order as soon as it is submitted.
-            if not case.visit_id or case.visit_id.state == 'done':
+            elif not case.visit_id or case.visit_id.state == 'done':
                 late |= case
             else:
                 case.message_post(body=_("Case submitted. It becomes an order when "
@@ -526,19 +539,60 @@ class LabCase(models.Model):
                     "for verification: %(refs)s",
                     n=len(orders), refs=', '.join(orders.mapped('name'))))
         late.filtered(lambda c: not c.visit_id).action_create_order()
+        corrected.action_create_order()
         return True
 
-    def action_reset_to_draft(self):
-        """Reopen a submitted slip to correct it. Only before the order exists."""
+    @api.depends('state', 'sale_order_id')
+    def _compute_order_editable(self):
+        # sudo: an executive has no right to read sale orders, only to know whether
+        # theirs is still open to correction.
         for case in self:
-            if case.state != 'submitted':
+            case.order_editable = case.state == 'registered' and \
+                case.sudo()._order_open_to_correction()
+
+    def _order_open_to_correction(self):
+        """The order is still a quotation the office has not verified."""
+        self.ensure_one()
+        order = self.sudo().sale_order_id
+        return bool(order) and order.state in ('draft', 'sent') \
+            and order.verification_state != 'verified'
+
+    def action_reset_to_draft(self):
+        """Open a submitted case again to correct it.
+
+        Before its order exists that is all it takes. After, while the office has
+        not verified the order, the order is taken out of the verification queue
+        - so nobody verifies what is being changed - and Submit puts the
+        corrections on that same order and sends it back. Once verified, the order
+        is the office's. (client, 2026-11-24)
+        """
+        for case in self:
+            if case.state == 'submitted':
+                continue
+            if case.state != 'registered' or not case._order_open_to_correction():
                 raise UserError(_(
-                    "Only a submitted case can be reopened. %s has already produced an "
-                    "order — change the order instead.", case.patient))
+                    "%(patient)s cannot be edited any more: the office has already "
+                    "verified its order %(order)s. Tell them what to change.",
+                    patient=case.patient, order=case.sudo().sale_order_id.name or ''))
+        for case in self.filtered('sale_order_id'):
+            order = case.sudo().sale_order_id
+            case._link_order_lines(order)
+            order.write({'verification_state': 'draft'})
+            order.message_post(body=_(
+                "%s is correcting this case from the field. It comes back for "
+                "verification when they submit it again.", self.env.user.name))
+            case.message_post(body=_("Opened again to correct it. Submit it again to "
+                                     "update order %s.", order.name))
         self.write({'state': 'draft'})
         return True
 
     def action_cancel(self):
+        ordered = self.filtered('sale_order_id')
+        if ordered:
+            raise UserError(_(
+                "%s already became an order, so cancelling the slip would leave the "
+                "order behind. Ask the office to cancel the order.",
+                ', '.join(ordered.mapped('patient'))))
         self.write({'state': 'cancel'})
 
     def action_view_order(self):
@@ -648,6 +702,8 @@ class LabCase(models.Model):
         created = self.env['sale.order']
         for case in self:
             if case.sale_order_id:
+                if case.state == 'submitted':
+                    case._update_order()
                 created |= case.sale_order_id
                 continue
             if case.state == 'cancel':
@@ -665,6 +721,7 @@ class LabCase(models.Model):
             # Nothing user-supplied reaches these values except the slip's own fields,
             # which the executive is entitled to set. (client, 2026-08-24)
             order = self.env['sale.order'].sudo().create(case._order_values())
+            case._link_order_lines(order)
             if order.order_line:
                 # Reuse the existing maker-checker entry point rather than writing
                 # the field: that method owns what "submitted" means, including its
@@ -687,6 +744,87 @@ class LabCase(models.Model):
             created |= order
         return created
 
+
+    def _link_order_lines(self, order):
+        """Each line of the case, tied to the order line it became.
+
+        The order is made from the lines in their order, so the order's own lines
+        (not the urgent-service charge sale_custom adds, not a section) pair with
+        them one for one. Cases ordered before the link existed are paired the same
+        way when they are opened again; a pair whose product differs is not tied.
+        """
+        self.ensure_one()
+        order = order.sudo()
+        made = order.order_line.filtered(
+            lambda l: not l.display_type and not l.is_urgent_service).sorted('id')
+        taken = self.line_ids.sale_line_id
+        free = made - taken
+        for line in self.line_ids.filtered(lambda l: not l.sale_line_id):
+            match = free.filtered(lambda l: l.product_id == line.product_id)[:1]
+            if match:
+                line.sale_line_id = match
+                free -= match
+
+    def _update_order(self):
+        """Put a corrected case on the order it already became, and send it back.
+
+        Only the case's own values are written: a line is changed only where the
+        executive changed it, so a price the office set on an unchanged line stays;
+        lines the office added themselves are left alone. What changed is written on
+        the order for whoever verifies it.
+        """
+        self.ensure_one()
+        if not self._order_open_to_correction():
+            raise UserError(_(
+                "The office has already verified %(order)s, so %(patient)s can no "
+                "longer change it. Tell them what to change.",
+                order=self.sudo().sale_order_id.name, patient=self.patient))
+        order = self.sudo().sale_order_id
+        Line = self.env['sale.order.line'].sudo()
+        values = self._order_values()
+        values.pop('order_line')
+        values.pop('company_id', None)
+        changes = []
+
+        def differs(record, vals):
+            out = {}
+            for name, value in vals.items():
+                old = record[name]
+                old = old.id if hasattr(old, '_name') else old
+                if (old or False) != (value or False):
+                    out[name] = value
+            return out
+
+        # Only what changed: rewriting the clinic, even with the same one, would
+        # recompute the order's pricelist and prices under the office's feet.
+        header = differs(order, values)
+        if header:
+            order.write(header)
+            changes.append(_("changed %s", ', '.join(
+                order._fields[n].string for n in header)))
+        for line in self.line_ids:
+            vals = line._line_values()
+            current = line.sale_line_id.sudo().exists()
+            if current and current.order_id == order:
+                diff = differs(current, vals)
+                if diff:
+                    current.write(diff)
+                    changes.append(_("changed %(work)s (%(what)s)",
+                                     work=current.product_id.display_name,
+                                     what=', '.join(current._fields[n].string for n in diff)))
+            else:
+                line.sale_line_id = Line.create(dict(vals, order_id=order.id))
+                changes.append(_("added %s", line.product_id.display_name))
+        if order.order_line:
+            order.action_submit_for_verification()
+        else:
+            order.write({'verification_state': 'to_verify', 'verification_note': False})
+        order.message_post(body=_(
+            "Corrected from the field by %(user)s and sent for verification again%(what)s.",
+            user=self.env.user.name,
+            what=(': ' + '; '.join(changes)) if changes else ''))
+        self.sudo().write({'state': 'registered'})
+        self.message_post(body=_("Corrections sent to order %s.", order.name))
 
     @api.model
     def _without_visit(self, user_ids, day):
@@ -854,6 +992,10 @@ class LabCaseLine(models.Model):
                             help="The cast received for this work: upper, lower, or both.")
     is_urgent = fields.Boolean('Urgent')
     note = fields.Char('Remark')
+    # The order line this line became, so correcting the case changes that line
+    # and no other. (client, 2026-11-24)
+    sale_line_id = fields.Many2one('sale.order.line', string='Order line', copy=False,
+                                   readonly=True, index='btree_not_null', ondelete='set null')
 
     company_id = fields.Many2one(related='case_id.company_id', store=True)
 
@@ -878,13 +1020,30 @@ class LabCaseLine(models.Model):
         return lines
 
     def write(self, vals):
-        self._check_parent_open()
+        # Tying a line to its order line is the system's bookkeeping, done as the
+        # order is made or updated; anything else waits for the case to be open.
+        if set(vals) != {'sale_line_id'}:
+            self._check_parent_open()
         return super().write(vals)
 
     def unlink(self):
         self._check_parent_open()
         cases = self.case_id
+        # Taken off a case being corrected: off its order too, while the order is
+        # still the case's to change.
+        dropped = self.env['sale.order.line'].sudo()
+        for line in self.filtered('sale_line_id'):
+            case = line.case_id
+            if case._order_open_to_correction() \
+                    and line.sudo().sale_line_id.order_id == case.sudo().sale_order_id:
+                dropped |= line.sudo().sale_line_id
+        removed = [(sol.order_id, sol.product_id.display_name) for sol in dropped]
         result = super().unlink()
+        if dropped:
+            dropped.unlink()
+            for order, work in removed:
+                order.message_post(body=_("%(user)s took %(work)s off this case.",
+                                          user=self.env.user.name, work=work))
         # The last line taken off: the slip is empty now, and an empty slip goes to
         # the office with the doctor call on (LabCase._ask_doctor_when_empty).
         cases.exists()._ask_doctor_when_empty()

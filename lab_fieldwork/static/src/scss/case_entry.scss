@@ -232,6 +232,22 @@ $fwc-line: #e2e8f0;
 .o_fwci_newshade { display: block; width: calc(100% - 1.5rem); margin: .5rem .75rem 0; min-height: 48px; border-radius: .875rem;
     border: 1.5px dashed #db2777; background: #fdf2f8; color: #9d174d; font-weight: 800; font-size: .9375rem;
     &:disabled { opacity: .6; } }
+// Adding a shade: a plain window over the picker - one box, Cancel and Add.
+// (client, 2026-11-24)
+.o_fwci_modal { position: absolute; inset: 0; z-index: 2; background: rgba(15, 23, 42, .45);
+    display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.o_fwci_modal_box { width: 100%; max-width: 380px; background: #fff; border-radius: 1rem; padding: 1.25rem;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, .25); }
+.o_fwci_modal_t { font-size: 1.125rem; font-weight: 800; color: #0f172a; }
+.o_fwci_modal_s { margin-top: .25rem; font-size: .875rem; color: $fwc-muted; }
+.o_fwci_modal_i { display: block; width: 100%; margin-top: 1rem; min-height: 52px; padding: 0 1rem;
+    border: 1.5px solid #cbd5e1; border-radius: .75rem; font-size: 1.25rem; font-weight: 700; color: #0f172a;
+    &:focus { outline: none; border-color: #db2777; } }
+.o_fwci_modal_b { display: flex; gap: .625rem; margin-top: 1rem;
+    button { flex: 1; min-height: 48px; border-radius: .75rem; font-weight: 800; font-size: 1rem; } }
+.o_fwci_modal_cancel { border: 1.5px solid #cbd5e1; background: #fff; color: #334155; }
+.o_fwci_modal_ok { border: 0; background: #db2777; color: #fff;
+    &:disabled { opacity: .45; } }
 .o_fwci_empty .o_fwci_empty_s.o_fwci_empty_call { margin-top: .375rem; color: #b91c1c; .fa { font-size: inherit; } }
 .o_fwci_none, .o_fwci_wait { text-align: center; color: $fwc-muted; padding: 1.5rem .5rem; font-size: .875rem; }
 .o_fwci_shades { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: .5rem; }

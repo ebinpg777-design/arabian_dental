@@ -1470,11 +1470,14 @@ class TestFieldwork(TransactionCase):
         case.with_user(self.exec_user).patient = 'Changed'
         self.assertEqual(case.state, 'draft')
 
-    def test_a_registered_slip_cannot_be_reopened(self):
+    def test_a_registered_slip_reopens_only_until_its_order_is_verified(self):
+        """Corrected by its executive while the office has not verified the order
+        (test_case_correction has the rest); once verified, the order is theirs."""
         v = self._open_visit()
         case = self._case(v, 'Already Ordered')
         v.do_check_out(LAT, LON)
         case.invalidate_recordset()
+        case.sudo().sale_order_id.verification_state = 'verified'
         with self.assertRaises(UserError):
             case.action_reset_to_draft()
 

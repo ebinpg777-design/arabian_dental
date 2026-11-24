@@ -37,7 +37,7 @@ const LOWER_FRONT = ["43", "42", "41", "31", "32", "33"];
 export class FwCaseItems extends Component {
     static template = "lab_fieldwork.FwCaseItems";
     props = useProps({ ...standardFieldProps });
-    shadeInput = signal.ref();
+    newShadeInput = signal.ref();
 
     setup() {
         this.orm = useService("orm");
@@ -46,7 +46,8 @@ export class FwCaseItems extends Component {
             sheet: null,            // null | "product" | "shade" | "teeth"
             teethFor: null, teeth: [], extras: [], primary: false, follow: true,
             query: "", categ: null, catalog: null, loading: false, added: 0, lastAdded: "",
-            shadeFor: null, shades: [], shadeQuery: "", addingShade: false, newShade: false,
+            shadeFor: null, shades: [], shadeQuery: "", addingShade: false,
+            newShadeOpen: false, newShadeName: "",
             noteFor: null,
         });
         this.search = useDebounced(() => this.loadCatalog(), 250);
@@ -337,7 +338,7 @@ export class FwCaseItems extends Component {
         }
         this.state.shadeFor = line.key;
         this.state.shadeQuery = "";
-        this.state.newShade = false;
+        this.state.newShadeOpen = false;
         this.state.sheet = "shade";
         await this.loadShades();
     }
@@ -361,28 +362,49 @@ export class FwCaseItems extends Component {
         return !this.state.shades.some((s) => key(s.name) === key(typed));
     }
     /**
-     * "New shade" on the picker as it opens: the way to add one is on the screen
-     * before anything is typed. The new shade is typed in the search box - which
-     * also shows it if it is on the list after all - and the button becomes
-     * "Add shade ...". (client, 2026-11-24: "able to add new shades in this view")
+     * Adding a shade is a small window of its own: one box for the name, Cancel and
+     * Add. Typing a new shade into the search box and then finding a button was not
+     * something anyone guessed. Opened empty from "New shade", or holding what was
+     * searched for when the list has no such shade. (client, 2026-11-24: "show popup
+     * view to add shade, otherwise it is confusing")
      */
-    startNewShade() {
-        this.state.newShade = true;
-        this.shadeInput()?.focus();
+    openNewShade(name = "") {
+        this.state.newShadeName = name;
+        this.state.newShadeOpen = true;
+        setTimeout(() => this.newShadeInput()?.focus(), 50);
     }
-    get shadePlaceholder() {
-        return this.state.newShade ? _t("Type the new shade, e.g. 2L1.5") : _t("A2, 2M2, B3…");
+    closeNewShade() {
+        this.state.newShadeOpen = false;
+    }
+    onNewShadeInput(ev) {
+        this.state.newShadeName = ev.target.value;
+    }
+    onNewShadeKey(ev) {
+        if (ev.key === "Enter") {
+            ev.preventDefault();
+            this.addShade();
+        } else if (ev.key === "Escape") {
+            this.closeNewShade();
+        }
+    }
+    get newShadeClean() {
+        return this.state.newShadeName.trim().replace(/\s+/g, " ");
     }
     async addShade() {
-        if (!this.canAddShade || this.state.addingShade) {
+        const name = this.newShadeClean;
+        if (!name || this.state.addingShade) {
             return;
         }
         this.state.addingShade = true;
         try {
-            const shade = await this.orm.call("lab.case", "picker_add_colour", [this.shadeQueryClean]);
-            if (shade.created) {
-                this.notification.add(_t("Shade %s added to the list.", shade.name), { type: "success" });
-            }
+            const shade = await this.orm.call("lab.case", "picker_add_colour", [name]);
+            this.notification.add(
+                shade.created
+                    ? _t("Shade %s added to the list.", shade.name)
+                    : _t("%s is already on the list: it is on this item now.", shade.name),
+                { type: "success" }
+            );
+            this.state.newShadeOpen = false;
             this.pickShade(shade);
         } finally {
             this.state.addingShade = false;

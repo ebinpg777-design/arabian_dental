@@ -28,3 +28,4 @@ from . import test_split_payment
 from . import test_live_track_js
 from . import test_field_live_day_js
 from . import test_case_without_visit
+from . import test_case_correction

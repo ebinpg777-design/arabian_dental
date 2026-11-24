@@ -159,17 +159,15 @@
             </div>
             <div class="o_fwci_search">
                 <i class="fa fa-search" title="Search"/>
-                <input type="search" t-ref="this.shadeInput" t-att-placeholder="this.shadePlaceholder"
-                       t-att-value="this.state.shadeQuery" t-on-input="this.onShadeQuery"/>
+                <input type="search" placeholder="A2, 2M2, B3…" t-att-value="this.state.shadeQuery" t-on-input="this.onShadeQuery"/>
             </div>
-            <!-- the doctor's shade is not on the list: put it there, from here -->
-            <button t-if="this.canAddShade" type="button" class="o_fwci_newshade" t-att-disabled="this.state.addingShade"
-                    t-on-click="this.addShade">
-                <i class="fa fa-plus-circle me-1" title="Add"/>Add shade “<t t-out="this.shadeQueryClean"/>”
+            <!-- the doctor's shade is not on the list: add it, in a window of its own -->
+            <button t-if="this.canAddShade" type="button" class="o_fwci_newshade"
+                    t-on-click="() => this.openNewShade(this.shadeQueryClean)">
+                <i class="fa fa-plus-circle me-1" title="Add"/>Add “<t t-out="this.shadeQueryClean"/>” as a new shade
             </button>
-            <!-- before anything is typed: the way to add one, in sight -->
             <button t-elif="!this.readonly and !this.shadeQueryClean" type="button" class="o_fwci_newshade"
-                    t-on-click="this.startNewShade">
+                    t-on-click="() => this.openNewShade()">
                 <i class="fa fa-plus-circle me-1" title="New"/>New shade
             </button>
             <div class="o_fwci_sheet_b">
@@ -181,6 +179,21 @@
                     </button>
                 </div>
                 <div t-if="!this.state.shades.length" class="o_fwci_none">No shade with that name<t t-if="this.canAddShade">. Add it with the button above.</t><t t-else="">.</t></div>
+            </div>
+            <div t-if="this.state.newShadeOpen" class="o_fwci_modal" t-on-click.self="this.closeNewShade">
+                <div class="o_fwci_modal_box" role="dialog" aria-label="Add a new shade">
+                    <div class="o_fwci_modal_t">Add a new shade</div>
+                    <div class="o_fwci_modal_s">Type the shade as the doctor wrote it. It is added to the shade list and put on this item.</div>
+                    <input type="text" class="o_fwci_modal_i" t-ref="this.newShadeInput" placeholder="e.g. 2L1.5"
+                           autocomplete="off" autocapitalize="characters" maxlength="40"
+                           t-att-value="this.state.newShadeName" t-on-input="this.onNewShadeInput"
+                           t-on-keydown="this.onNewShadeKey"/>
+                    <div class="o_fwci_modal_b">
+                        <button type="button" class="o_fwci_modal_cancel" t-on-click="this.closeNewShade">Cancel</button>
+                        <button type="button" class="o_fwci_modal_ok" t-att-disabled="!this.newShadeClean or this.state.addingShade"
+                                t-on-click="this.addShade">Add shade</button>
+                    </div>
+                </div>
             </div>
         </div>
 

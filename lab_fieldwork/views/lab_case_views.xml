@@ -20,9 +20,12 @@
                     <button name="action_submit" type="object" string="Submit Case"
                             class="btn-primary o_fw_btn_submit" icon="fa-paper-plane"
                             invisible="state != 'draft'" data-hotkey="v"/>
-                    <button name="action_reset_to_draft" type="object" string="Reopen"
-                            class="o_fw_btn_reopen" icon="fa-undo"
-                            invisible="state != 'submitted'"/>
+                    <!-- Correct a submitted case: before its order exists, or while the
+                         office has not verified the order yet. (client, 2026-11-24) -->
+                    <field name="order_editable" invisible="1"/>
+                    <button name="action_reset_to_draft" type="object" string="Edit Case"
+                            class="o_fw_btn_reopen" icon="fa-pencil"
+                            invisible="not (state == 'submitted' or order_editable)"/>
                     <button name="action_create_order" type="object"
                             string="Create Order Now" class="o_fw_btn_order" icon="fa-file-text-o"
                             invisible="state != 'submitted'"
@@ -31,7 +34,7 @@
                             class="btn-primary" invisible="not sale_order_id"/>
                     <button name="action_cancel" type="object" string="Cancel"
                             class="o_fw_btn_cancel" icon="fa-times"
-                            invisible="state not in ('draft', 'submitted')"/>
+                            invisible="state not in ('draft', 'submitted') or sale_order_id"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,registered"/>
                 </header>
