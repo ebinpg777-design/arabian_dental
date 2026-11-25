@@ -81,8 +81,8 @@
                         <span>
                             <field name="case_ready_count" nolabel="1" readonly="1"
                                    class="oe_inline fw-bold"/>
-                            case(s) submitted. They become orders awaiting verification
-                            when you finish this visit.
+                            case(s) submitted earlier are still waiting. They become
+                            orders awaiting verification when you finish this visit.
                         </span>
                     </div>
 

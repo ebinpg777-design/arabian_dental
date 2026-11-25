@@ -692,17 +692,14 @@ class LabVisit(models.Model):
         if self.collected and not self.pay_mode:
             raise UserError(_("Say how the payment was received."))
 
-        # Orders are created HERE, not when the slip is saved.
+        # A SUBMITTED slip is already an order (lab.case.action_submit, 2026-11-25);
+        # what is left for check-out is the slip still being entered - it is not
+        # silently swept into an order, nor left behind - and any slip submitted
+        # before that rule that is still waiting.
         #
-        # An executive fills a slip in while the doctor is still talking and edits it
-        # twice before leaving. Creating the order on save would mean a half-entered
-        # case reaching verification, and a correction becoming somebody else's problem
-        # rather than a tap on the same screen. Check-out is the moment the executive
-        # says they are finished, so it is the only honest point to commit.
-        #
-        # Deliberately before the state write: if a slip is a suspected duplicate or has
-        # no work on it, the visit stays open and the person is still at the counter to
-        # fix it.
+        # Deliberately before the state write: if a slip is unfinished, a suspected
+        # duplicate or has no work on it, the visit stays open and the person is still
+        # at the counter to fix it.
         self._register_cases()
 
         vals = {'state': 'done', 'check_out': fields.Datetime.now(),

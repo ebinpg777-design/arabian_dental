@@ -176,6 +176,10 @@
                                 <div class="o_fw_sec_s">Blue is upper, teal is lower. Tap both for upper and lower.</div>
                             </div>
                         </div>
+                        <!-- The shade of the whole case: the items widget draws it
+                             (above the cards, with the items' own shade picker) and
+                             writes it here. -->
+                        <field name="colour_id" invisible="1"/>
                         <field name="line_ids" widget="fw_case_items" nolabel="1"
                                readonly="state != 'draft'"
                                context="{'default_ul': 'upper'}">
@@ -338,6 +342,7 @@
                        decoration-info="received_via == 'transport'"/>
                 <field name="contact_user_id" optional="hide"/>
                 <field name="line_count" string="Items"/>
+                <field name="colour_id" optional="show"/>
                 <field name="priority" widget="badge" optional="show"/>
                 <field name="order_name" optional="show"/>
                 <field name="state" widget="badge"/>
@@ -445,10 +450,10 @@
         <field name="context">{'default_received_via': 'courier'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No cases registered yet</p>
-            <p>Register a case from the visit you are on. It becomes an order when you
-               finish the visit.</p>
-            <p>A case that came by courier or transport, with no visit: tap
-               <b>New</b>. It becomes an order as soon as you submit it.</p>
+            <p>Register a case from the visit you are on, or tap <b>New</b> for one
+               that came by courier or transport with no visit.</p>
+            <p>A case becomes an order as soon as you submit it. Until the office
+               verifies that order, <b>Edit Case</b> puts your corrections on it.</p>
         </field>
     </record>
 

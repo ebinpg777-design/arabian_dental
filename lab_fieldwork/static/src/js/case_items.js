@@ -318,9 +318,12 @@ export class FwCaseItems extends Component {
     async add(product) {
         const lines = this.lines;
         const last = lines[lines.length - 1];
+        const shade = this.caseShade;
         await this.list.addNewRecord({
             position: "bottom", mode: "readonly",
-            context: { default_product_id: product.id, default_ul: last ? last.ul : "upper", default_quantity: 1 },
+            context: { default_product_id: product.id, default_ul: last ? last.ul : "upper", default_quantity: 1,
+                       // the case's shade, so the new card shows it at once
+                       default_colour_id: shade ? shade.id : false },
         });
         this.state.added += 1;
         this.state.lastAdded = product.name;
@@ -329,6 +332,48 @@ export class FwCaseItems extends Component {
         this.state.sheet = null;
         this.state.shadeFor = null;
         this.state.teethFor = null;
+    }
+
+    // ------------------------------------------------------------ the shade of the case
+    /** The case's own shade: {id, display_name} or false. Every item takes it. */
+    get caseShade() {
+        return this.props.record.data.colour_id || false;
+    }
+    get shadeForCase() {
+        return this.state.shadeFor === "case";
+    }
+    /** The shade the open picker is changing, by name - the tick in the list. */
+    get shadeCurrent() {
+        if (this.shadeForCase) {
+            return this.caseShade ? this.caseShade.display_name : "";
+        }
+        return this.shadeLine ? this.shadeLine.shade : "";
+    }
+    async openCaseShades() {
+        if (this.readonly) {
+            return;
+        }
+        this.state.shadeFor = "case";
+        this.state.shadeQuery = "";
+        this.state.newShadeOpen = false;
+        this.state.sheet = "shade";
+        await this.loadShades();
+    }
+    /**
+     * The case's shade, and with it every item that was carrying the old one or
+     * none: an item given a shade of its own keeps it. The server does the same on
+     * save; done here too so the cards say it as soon as it is picked.
+     */
+    async setCaseShade(shade) {
+        const old = this.caseShade ? this.caseShade.id : false;
+        const value = shade ? { id: shade.id, display_name: shade.name } : false;
+        await this.props.record.update({ colour_id: value });
+        for (const line of this.lines) {
+            const own = line.record.data.colour_id ? line.record.data.colour_id.id : false;
+            if (own !== (shade ? shade.id : false) && (!own || own === old)) {
+                await line.record.update({ colour_id: value });
+            }
+        }
     }
 
     // ------------------------------------------------------------ the shade picker
@@ -401,6 +446,8 @@ export class FwCaseItems extends Component {
             this.notification.add(
                 shade.created
                     ? _t("Shade %s added to the list.", shade.name)
+                    : this.shadeForCase
+                    ? _t("%s is already on the list: it is the shade of the case now.", shade.name)
                     : _t("%s is already on the list: it is on this item now.", shade.name),
                 { type: "success" }
             );
@@ -413,7 +460,12 @@ export class FwCaseItems extends Component {
     get shadeLine() {
         return this.lines.find((l) => l.key === this.state.shadeFor);
     }
-    pickShade(shade) {
+    async pickShade(shade) {
+        if (this.shadeForCase) {
+            this.closeSheet();
+            await this.setCaseShade(shade);
+            return;
+        }
         const line = this.shadeLine;
         if (line) {
             line.record.update({ colour_id: shade ? { id: shade.id, display_name: shade.name } : false });

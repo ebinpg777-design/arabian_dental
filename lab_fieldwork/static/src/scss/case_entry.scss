@@ -78,6 +78,22 @@ $fwc-line: #e2e8f0;
     &.o_fwci_p_units { background: #fffbeb; color: #b45309; }
     &.o_fwci_p_urgent { background: #fef2f2; color: #dc2626; }
     &.o_fwci_p_teeth { background: #eef2ff; color: #4f46e5; } }
+// The shade of the case: said once, above the items. Pink, as an item's own shade is;
+// dashed while nothing is chosen, filled once it is. (client, 2026-11-25)
+.o_fwci_caseshade { border: 1.5px dashed #f9a8d4; border-radius: .875rem; background: #fff; padding: .5rem .625rem;
+    &.on { border-style: solid; border-color: #f472b6; background: #fdf2f8; } }
+.o_fwci_caseshade_b { display: flex; align-items: center; gap: .625rem; width: 100%; min-height: 48px; padding: 0; border: 0;
+    background: transparent; text-align: left; color: $fwc-ink;
+    &:disabled { opacity: 1; cursor: default; } }
+.o_fwci_caseshade_i { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: #db2777; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1.125rem; }
+.o_fwci_caseshade_w { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.o_fwci_caseshade_l { font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #be185d; }
+.o_fwci_caseshade_v { font-size: 1.0625rem; font-weight: 700; color: $fwc-ink; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.o_fwci_caseshade:not(.on) .o_fwci_caseshade_v { color: #db2777; }
+.o_fwci_caseshade_go { flex: 0 0 auto; color: #db2777; }
+.o_fwci_caseshade_h { margin-top: .25rem; font-size: .75rem; color: $fwc-muted; }
+
 .o_fwci_empty { border: 2px dashed #bbf7d0; background: #f0fdf4; border-radius: .875rem; padding: 1.25rem .75rem; text-align: center; color: #15803d;
     .fa { font-size: 1.75rem; opacity: .8; }
     .o_fwci_empty_t { font-weight: 700; margin-top: .25rem; }

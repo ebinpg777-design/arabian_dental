@@ -94,4 +94,4 @@ class TestCasePicker(TransactionCase):
                                  'note': 'extra clasp on 16'})]})
         self.assertEqual(case.line_count, 2)
         case.action_submit()
-        self.assertEqual(case.state, 'submitted')
+        self.assertEqual(case.state, 'registered', "submitting makes the order at once")

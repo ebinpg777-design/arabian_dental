@@ -1463,7 +1463,8 @@ class TestFieldwork(TransactionCase):
     def test_submitting_locks_the_slip_and_reopening_unlocks_it(self):
         v = self._open_visit()
         case = self._case(v, 'Submitted Slip')
-        self.assertEqual(case.state, 'submitted')
+        # submitting makes the order at once (client, 2026-11-25)
+        self.assertEqual(case.state, 'registered')
         with self.assertRaises(UserError):
             case.with_user(self.exec_user).patient = 'Changed'
         case.action_reset_to_draft()
@@ -1484,7 +1485,7 @@ class TestFieldwork(TransactionCase):
     def test_a_cancelled_slip_is_skipped(self):
         v = self._open_visit()
         good = self._case(v, 'Real Case')
-        dead = self._case(v, 'Mistake')
+        dead = self._case(v, 'Mistake', submit=False)
         dead.action_cancel()
         v.do_check_out(LAT, LON)
         good.invalidate_recordset()
@@ -1528,23 +1529,30 @@ class TestFieldwork(TransactionCase):
         self.assertEqual(self.env['lab.case']._duplicate_window(), 0)
 
     def test_the_visit_reports_slips_before_check_out_and_orders_after(self):
-        """The Cases button pointed at sale orders, which do not exist until check-out —
-        so it read zero for the whole time the executive was registering cases."""
+        """The Cases button pointed at sale orders, which do not exist while a slip
+        is being entered — so it read zero for the whole time the executive was
+        registering cases. Submitting makes the order, visit open or not."""
         v = self._open_visit()
-        self._case(v, 'Counting Test')
+        case = self._case(v, 'Counting Test', submit=False)
         v.invalidate_recordset()
         self.assertEqual(v.case_count, 1)
-        self.assertEqual(v.case_ready_count, 1, "submitted, waiting for check-out")
-        self.assertEqual(v.case_draft_count, 0)
-        self.assertEqual(v.order_count, 0, "no order exists yet, by design")
+        self.assertEqual(v.case_draft_count, 1, "still being entered")
+        self.assertEqual(v.order_count, 0, "no order until it is submitted")
 
         card = [c for c in self.env['lab.my.day'].with_user(self.exec_user)
                 .get_day()['visits'] if c['id'] == v.id][0]
         self.assertEqual(card['cases'], 1, "My Day must not report zero here")
 
+        case.action_submit()
+        v.invalidate_recordset()
+        self.assertEqual(case.state, 'registered')
+        self.assertEqual(v.order_count, 1, "the order exists while the visit is still open")
+        self.assertEqual((v.case_draft_count, v.case_ready_count), (0, 0))
+        self.assertIn(case.sudo().sale_order_id.name, v.message_ids[0].body)
+
         v.do_check_out(LAT, LON)
         v.invalidate_recordset()
-        self.assertEqual(v.order_count, 1)
+        self.assertEqual(v.order_count, 1, "finishing the visit makes no second order")
         self.assertEqual(v.case_ready_count, 0)
         card = [c for c in self.env['lab.my.day'].with_user(self.exec_user)
                 .get_day()['visits'] if c['id'] == v.id][0]
@@ -1577,13 +1585,13 @@ class TestFieldwork(TransactionCase):
         """Deleting the slip is the intended way to resolve a duplicate, so this must
         keep working — the guard is about ordered cases only."""
         v = self._open_visit()
-        case = self._case(v, 'Typed By Mistake')
+        case = self._case(v, 'Typed By Mistake', submit=False)
         case.with_user(self.exec_user).unlink()
         self.assertFalse(case.exists())
 
     def test_a_cancelled_slip_can_still_be_deleted(self):
         v = self._open_visit()
-        case = self._case(v, 'Cancelled Slip')
+        case = self._case(v, 'Cancelled Slip', submit=False)
         case.action_cancel()
         case.unlink()
         self.assertFalse(case.exists())

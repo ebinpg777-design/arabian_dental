@@ -111,6 +111,16 @@ class LabCase(models.Model):
 
     # --- what was handed over
     line_ids = fields.One2many('lab.case.line', 'case_id', string='Work', copy=True)
+    # THE SHADE OF THE CASE. A doctor gives one shade for a case far more often than
+    # one per appliance, and the slip asked for it on every item: four taps for a
+    # bridge and a crown, and the one that was missed went to the lab without a
+    # shade. Said once here, every item takes it; an item that differs still says
+    # so on its own card. (client, 2026-11-25: "field executive can add shades in
+    # the case register view instead of items; do not remove shade in items")
+    colour_id = fields.Many2one(
+        'product.colour', string='Shade', tracking=True,
+        help="The shade of the whole case. Every item takes it; change an item's "
+             "own shade where one differs.")
     line_count = fields.Integer(compute='_compute_lines', store=True)
 
     # --- registration details, in the lab's own words
@@ -468,7 +478,16 @@ class LabCase(models.Model):
         return cases
 
     def write(self, vals):
+        # The shade of the case, before it changes: the items that carry it follow
+        # the new one; an item given a shade of its own keeps it.
+        shade_before = {case.id: case.colour_id for case in self} \
+            if 'colour_id' in vals else {}
         result = super().write(vals)
+        for case in self if shade_before else ():
+            was = shade_before[case.id]
+            if was and was != case.colour_id:
+                case.line_ids.filtered(lambda l: l.colour_id == was).write(
+                    {'colour_id': case.colour_id.id or False})
         if ('line_ids' in vals or 'needs_doctor_call' in vals) \
                 and not self.env.context.get('fw_empty_checked'):
             self._ask_doctor_when_empty()
@@ -506,8 +525,18 @@ class LabCase(models.Model):
         who took the case is still standing in front of the doctor who gave it to them.
         Everything caught here can be asked about; the same problem caught at check-out,
         in the car, cannot.
+
+        SUBMITTING MAKES THE ORDER. It used to wait for the visit to be finished, on
+        the reasoning that a slip is edited twice before the executive leaves. But a
+        visit that was never finished - one slip left half-entered on it is enough to
+        refuse the check-out - kept every submitted case of that clinic out of the
+        lab's queue, with nothing on the screen to say so: the executive had pressed
+        Submit and saw "Submitted". A case can be corrected after it is an order now
+        (Edit Case puts the changes on the same order until the office verifies it),
+        so there is nothing left to wait for. (client, 2026-11-25: "when submitting it
+        will create order; when editing, the modification comes in the linked order")
         """
-        late = self.browse()
+        fresh = self.browse()
         corrected = self.browse()
         for case in self:
             if case.state != 'draft':
@@ -515,30 +544,28 @@ class LabCase(models.Model):
             case._ask_doctor_when_empty()
             case._check_ready()
             case.state = 'submitted'
-            # Corrected after it became an order: the order is updated now, visit
-            # finished or not - there is nothing left to wait for.
+            # Corrected after it became an order: that order is updated.
             if case.sale_order_id:
                 corrected |= case
-            # No visit means no check-out to wait for: a case that came by courier
-            # or transport becomes an order as soon as it is submitted.
-            elif not case.visit_id or case.visit_id.state == 'done':
-                late |= case
             else:
-                case.message_post(body=_("Case submitted. It becomes an order when "
-                                         "the visit is finished."))
-        # A slip handed over after check-out still belongs to its visit, but
-        # check-out is the only thing that turns submitted slips into orders and
-        # it has already happened - so these sat 'Submitted' for ever behind a
-        # Completed visit. Registered now, through the same path check-out uses,
-        # with the same readiness and duplicate checks. (2026-09-15)
-        for visit in late.visit_id:
-            orders = late.filtered(lambda c: c.visit_id == visit).action_create_order()
-            if orders:
+                fresh |= case
+        # Registered through the one path that makes an order from a slip, with its
+        # readiness and duplicate checks - whether the visit is still open, already
+        # finished, or there never was one (courier, transport).
+        for visit in fresh.visit_id:
+            orders = fresh.filtered(lambda c: c.visit_id == visit).action_create_order()
+            if not orders:
+                continue
+            if visit.state == 'done':
                 visit.message_post(body=_(
                     "%(n)s case(s) handed over after the visit was finished, sent "
                     "for verification: %(refs)s",
                     n=len(orders), refs=', '.join(orders.mapped('name'))))
-        late.filtered(lambda c: not c.visit_id).action_create_order()
+            else:
+                visit.message_post(body=_(
+                    "%(n)s case(s) sent for verification: %(refs)s",
+                    n=len(orders), refs=', '.join(orders.mapped('name'))))
+        fresh.filtered(lambda c: not c.visit_id).action_create_order()
         corrected.action_create_order()
         return True
 
@@ -652,6 +679,9 @@ class LabCase(models.Model):
             'case_contact_note': self.contact_note or False,
             'company_id': self.company_id.id,
             'patient': self.patient,
+            # The case's shade is the order's: every order line takes it unless the
+            # line carries its own (sale_custom). (client, 2026-11-25)
+            'color_scheme': self.colour_id.id or False,
             'age': self.age,
             'gender': self.gender,
             'priority': self.priority,
@@ -983,7 +1013,20 @@ class LabCaseLine(models.Model):
     ul = fields.Selection(UL, string='Jaw', required=True, default='upper')
     quantity = fields.Float('Qty', default=1.0, required=True,
                             digits='Product Unit of Measure')
-    colour_id = fields.Many2one('product.colour', string='Colour')
+    # The item's shade: the case's own unless this item says otherwise, so a bridge
+    # of four units is one choice and not four - and the one unit that differs can
+    # still say so. (client, 2026-11-25: "the shades in the case come in all items;
+    # if a shade change is needed for a specific item he can change it in the item")
+    colour_id = fields.Many2one(
+        'product.colour', string='Shade', compute='_compute_colour_id',
+        store=True, readonly=False, precompute=True)
+
+    @api.depends('case_id.colour_id')
+    def _compute_colour_id(self):
+        for line in self:
+            if not line.colour_id and line.case_id.colour_id:
+                line.colour_id = line.case_id.colour_id
+
     # Which teeth, the way the lab writes them (FDI: "14, 13, 46"), and which cast came
     # with the case. The order line has both; the slip picked them off nothing.
     teeth = fields.Char('Teeth (FDI)',  # no size: 19 silently cut it at 64 characters
