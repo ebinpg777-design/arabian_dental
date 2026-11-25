@@ -291,15 +291,41 @@ $fwc-line: #e2e8f0;
     .o_fw_cs_sent { background: #fff7ed; color: #c2410c; } .o_fw_cs_order { background: #ecfdf5; color: #047857; } .o_fw_cs_call { background: #fef2f2; color: #b91c1c; } }
 
 // The order a submitted slip became, at the top of the slip.
-// The next case of the same clinic: a full-width target under the order number,
-// green as "add" is on this form, flat so it reads as a second step and not the
-// first. (client, 2026-11-25)
+// Which clinic the case is from, on a visit: a strip of its own above the patient,
+// labelled, so the doctor's name is never read as the patient's. Indigo, as the
+// clinic chip always was. (client, 2026-11-25)
+.o_fw_case .o_fw_clinic {
+    display: flex; align-items: center; gap: .625rem;
+    margin: 0 0 .875rem; padding: .5rem .75rem;
+    border: 1px solid #c7d2fe; border-left: 5px solid #4f46e5; border-radius: .875rem;
+    background: #eef2ff; color: #312e81;
+    .o_fw_clinic_i { flex: 0 0 auto; width: 2.25rem; height: 2.25rem; border-radius: .625rem; background: #4f46e5; color: #fff;
+        display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .o_fw_clinic_w { flex: 1 1 auto; min-width: 0; }
+    .o_fw_clinic_l { font-size: .6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4f46e5; }
+    .o_fw_clinic_v { display: block; font-size: 1rem; font-weight: 700; color: #1e1b4b; line-height: 1.25;
+        // the whole name: Odoo cuts a read-only many2one to one line with an ellipsis
+        &, * { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; } }
+    .o_fw_clinic_d { display: inline-flex; align-items: center; margin-top: .25rem; background: #fff; color: #475569;
+        border: 1px solid #c7d2fe; border-radius: 1rem; padding: .0625rem .625rem; font-size: .8125rem; font-weight: 600;
+        white-space: nowrap; }
+}
+
+// The next case of the same clinic: the one thing to do once a case is an order, so
+// it is a filled, full-width target under the order number - a plus, what it does,
+// and that the clinic comes with it. Indigo, the clinic's own colour on this form;
+// flat. (client, 2026-11-25)
 .o_fw_case .btn.o_fw_btn_another {
-    display: flex; align-items: center; justify-content: center; gap: .5rem;
-    width: 100%; min-height: 48px; margin: 0 0 .875rem; padding: .5rem .875rem;
-    border: 1.5px solid #86efac; border-radius: .875rem;
-    background: #f0fdf4; color: #15803d; font-weight: 700; font-size: .9375rem;
-    &:hover, &:focus { background: #dcfce7; border-color: #4ade80; color: #166534; }
+    display: flex; align-items: center; gap: .75rem;
+    width: 100%; min-height: 60px; margin: 0 0 .875rem; padding: .5rem .875rem;
+    border: 0; border-radius: .875rem; background: #4f46e5; color: #fff; text-align: left;
+    &:hover, &:focus, &:active { background: #4338ca; color: #fff; }
+    .o_fw_another_i { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255, 255, 255, .2);
+        display: inline-flex; align-items: center; justify-content: center; font-size: 1.125rem; }
+    .o_fw_another_w { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+    .o_fw_another_t { font-size: 1.0625rem; font-weight: 700; }
+    .o_fw_another_s { font-size: .8125rem; font-weight: 500; color: #e0e7ff; }
+    .o_fw_another_go { flex: 0 0 auto; color: #c7d2fe; }
 }
 
 .o_fw_case .o_fw_order_no {

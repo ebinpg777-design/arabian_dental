@@ -39,8 +39,9 @@
                            statusbar_visible="draft,submitted,registered"/>
                 </header>
                 <sheet>
-                    <widget name="web_ribbon" title="Order Created"
-                            bg_color="text-bg-success" invisible="state != 'registered'"/>
+                    <!-- No ribbon once the order exists: it lay across the order number
+                         and the button under it. The strip below says "Order created"
+                         and the status bar says it again. (client, 2026-11-25) -->
                     <widget name="web_ribbon" title="Submitted" bg_color="text-bg-info"
                             invisible="state != 'submitted'"/>
                     <widget name="web_ribbon" title="Cancelled" bg_color="text-bg-danger"
@@ -48,17 +49,25 @@
 
                     <!-- the order this slip became, without opening it -->
                     <div class="o_fw_order_no" invisible="not order_name">
-                        <i class="fa fa-file-text-o" title="Order"/>
-                        <span class="o_fw_order_no_l">Order</span>
+                        <i class="fa fa-check-circle" title="Order created"/>
+                        <span class="o_fw_order_no_l">Order created</span>
                         <field name="order_name" nolabel="1" readonly="1" class="o_fw_order_no_v"/>
                     </div>
                     <!-- The next case of the same clinic, one tap away. In the sheet
                          and not the header: on a phone the header shows one button
-                         and folds the rest into a menu. (client, 2026-11-25) -->
+                         and folds the rest into a menu. A filled button, two lines:
+                         what it does, and that the clinic comes with it.
+                         (client, 2026-11-25) -->
                     <button name="action_another_case" type="object"
-                            class="o_fw_btn_another" icon="fa-plus-circle"
-                            string="Another case from this clinic"
-                            invisible="state == 'draft' or not partner_id"/>
+                            class="o_fw_btn_another"
+                            invisible="state == 'draft' or not partner_id">
+                        <span class="o_fw_another_i"><i class="fa fa-plus" title="Add"/></span>
+                        <span class="o_fw_another_w">
+                            <span class="o_fw_another_t">Add Another Case</span>
+                            <span class="o_fw_another_s">Same clinic, new patient</span>
+                        </span>
+                        <i class="fa fa-chevron-right o_fw_another_go" title="Open"/>
+                    </button>
                     <div class="alert alert-warning m-0 mb-3 rounded"
                          role="alert" invisible="not duplicate_warning or duplicate_ack">
                         <div class="d-flex align-items-start">
@@ -117,7 +126,7 @@
                         </div>
                         <field name="received_via" widget="fw_choice" readonly="state != 'draft'"
                                options="{'exclude': ['visit'], 'colors': {'courier': 'orange', 'transport': 'teal'}}"/>
-                        <div class="o_fw_sec_l">Clinic</div>
+                        <div class="o_fw_sec_l">Clinic / Doctor</div>
                         <field name="partner_id" readonly="state != 'draft'" placeholder="Which clinic sent it"
                                options="{'no_create': True, 'no_open': True}"/>
                         <div class="o_fw_sec_l">Received on</div>
@@ -138,16 +147,29 @@
                     <field name="currency_id" invisible="1"/>
                     <field name="line_count" invisible="1"/>
 
+                    <!-- 0b. A case taken at a visit: which clinic, under its OWN name.
+                         The clinic used to sit as a chip under the heading "Patient",
+                         where it read as the patient's name - "Patient: DR. NEENU
+                         DANIEL". (client, 2026-11-25: "label of clinic/doctor is wrong") -->
+                    <div class="o_fw_clinic" invisible="not visit_id">
+                        <span class="o_fw_clinic_i"><i class="fa fa-hospital-o" title="Clinic"/></span>
+                        <div class="o_fw_clinic_w">
+                            <div class="o_fw_clinic_l">Clinic / Doctor</div>
+                            <!-- the whole name, on as many lines as it takes: a clinic
+                                 cut to "DR. BHAGYALAKS…" is not a clinic -->
+                            <field name="partner_id" readonly="1" nolabel="1"
+                                   options="{'no_open': True}" class="o_fw_clinic_v"/>
+                            <span class="o_fw_clinic_d"><i class="fa fa-calendar-o me-1" title="Date"/><field name="date" readonly="1" nolabel="1" class="oe_inline"/></span>
+                        </div>
+                    </div>
+
                     <!-- 1. Who. Violet: the patient is the case. -->
                     <div class="o_fw_sec o_fw_sec_violet">
                         <div class="o_fw_sec_h">
                             <span class="o_fw_sec_i"><i class="fa fa-user" title="Patient"/></span>
                             <div>
                                 <div class="o_fw_sec_t">Patient</div>
-                                <div class="o_fw_where" invisible="not visit_id">
-                                    <span class="o_fw_where_c"><i class="fa fa-hospital-o me-1" title="Clinic"/><field name="partner_id" readonly="1" nolabel="1" options="{'no_open': True}"/></span>
-                                    <span class="o_fw_where_d"><i class="fa fa-calendar-o me-1" title="Date"/><field name="date" readonly="1" nolabel="1" class="oe_inline"/></span>
-                                </div>
+                                <div class="o_fw_sec_s">Whose case it is: the name as the doctor wrote it.</div>
                             </div>
                         </div>
                         <h1 class="o_fw_patient mb-1">
