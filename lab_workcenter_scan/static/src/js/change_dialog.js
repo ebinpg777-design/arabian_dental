@@ -29,6 +29,8 @@ export class ChangeDialog extends Component {
         status: t.string(),          // 'waiting' | 'bench' | 'passed'
         wantsFinisher: t.boolean(),
         benchUserId: t.or([t.number(), t.boolean()]),
+        // the people working the job together with its technician
+        helperIds: t.array().optional(),
         finisherUserId: t.or([t.number(), t.boolean()]),
         canAssign: t.boolean(),      // giving work out is the lead's call
         // A job this bench has passed on: only who did it can be corrected, and a
@@ -41,6 +43,7 @@ export class ChangeDialog extends Component {
     setup() {
         this.state = proxy({
             benchUserId: this.props.benchUserId || false,
+            helperIds: [...(this.props.helperIds || [])],
             finisherUserId: this.props.finisherUserId || false,
             status: this.props.status,
             busy: false,
@@ -60,6 +63,8 @@ export class ChangeDialog extends Component {
     get dirty() {
         return (
             (this.state.benchUserId || false) !== (this.props.benchUserId || false) ||
+            [...this.state.helperIds].sort().join() !==
+                [...(this.props.helperIds || [])].sort().join() ||
             (this.state.finisherUserId || false) !== (this.props.finisherUserId || false) ||
             this.state.status !== this.props.status
         );
@@ -76,6 +81,25 @@ export class ChangeDialog extends Component {
             return;
         }
         this.state.benchUserId = this.state.benchUserId === id ? false : id;
+        // Nobody works WITH nobody, and the technician is not their own helper.
+        this.state.helperIds = this.state.benchUserId
+            ? this.state.helperIds.filter((h) => h !== id)
+            : [];
+    }
+
+    /** The people it can be worked together with: everybody but its technician. */
+    get mates() {
+        return this.props.people.filter((p) => p.id !== this.state.benchUserId);
+    }
+
+    /** Tick or untick somebody working the job together with its technician. */
+    pickHelper(id) {
+        if (!this.props.canAssign || !this.state.benchUserId) {
+            return;
+        }
+        this.state.helperIds = this.state.helperIds.includes(id)
+            ? this.state.helperIds.filter((h) => h !== id)
+            : [...this.state.helperIds, id];
     }
 
     pickFinisher(id) {
@@ -98,6 +122,7 @@ export class ChangeDialog extends Component {
         try {
             await this.props.onConfirm({
                 benchUserId: this.state.benchUserId,
+                helperIds: [...this.state.helperIds],
                 finisherUserId: this.state.finisherUserId,
                 status: this.state.status,
             });

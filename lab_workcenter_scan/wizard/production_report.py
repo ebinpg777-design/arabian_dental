@@ -124,7 +124,8 @@ class LabProductionReportWizard(models.TransientModel):
             people = stations.mapped('users') | stations.mapped('head_user_ids')
         blocks = []
         for user in people.sorted('name'):
-            domain = [('bench_user_id', '=', user.id),
+            domain = ['|', ('bench_user_id', '=', user.id),
+                      ('bench_helper_ids', 'in', user.ids),
                       ('state', 'not in', ('done', 'cancel'))]
             if self.workcenter_ids:
                 domain.append(('workcenter_id', 'in', self.workcenter_ids.ids))

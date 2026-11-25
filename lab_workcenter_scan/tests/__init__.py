@@ -16,3 +16,4 @@ from . import test_close_finished_jobs
 from . import test_workcentre_all_jobs
 from . import test_correct_finished
 from . import test_targets_access
+from . import test_bench_team

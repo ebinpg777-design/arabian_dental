@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import _, api, fields, models
+from odoo.fields import Command
 from odoo.tools import SQL
 from odoo.exceptions import UserError
 
@@ -350,6 +351,42 @@ class MrpWorkorderResponsibility(models.Model):
         index='btree_not_null',
         help="The person who finished this job, where the work centre records that "
              "separately from the technician who carried it out.")
+    # WORK DONE TOGETHER. A tray is not one person's: three technicians build up
+    # twelve crowns between them, and a board that asks "which ONE of you did this
+    # one" is asking a question the bench cannot answer - so it was answered with
+    # whoever was nearest, twelve times. The technician stays the first name on the
+    # job; the others who worked on it stand beside it, and every count on this
+    # floor credits each of them with the job, as it already does for a finisher.
+    # (client, 2026-11-25: "multiple technicians are doing multiple works together.
+    # It is difficult to assign a single work to a single person")
+    bench_helper_ids = fields.Many2many(
+        'res.users', 'mrp_workorder_bench_helper_rel', 'workorder_id', 'user_id',
+        string='Working With', copy=False,
+        help="The other people at this work centre who worked on this job together "
+             "with its technician. Each of them counts the job.")
+
+    def write(self, vals):
+        # The team goes with its technician: a job that loses its name (moved to
+        # another bench, started again) is in nobody's hands, and helpers left on it
+        # would still be counting work they no longer have.
+        if 'bench_user_id' in vals and not vals['bench_user_id'] \
+                and 'bench_helper_ids' not in vals:
+            vals = dict(vals, bench_helper_ids=[Command.clear()])
+        result = super().write(vals)
+        if 'bench_user_id' in vals or 'bench_helper_ids' in vals:
+            # Never the same person twice on one job: the technician is not also
+            # their own helper, whichever way the two were written.
+            for wo in self:
+                if wo.bench_user_id and wo.bench_user_id in wo.bench_helper_ids:
+                    super(MrpWorkorderResponsibility, wo).write(
+                        {'bench_helper_ids': [Command.unlink(wo.bench_user_id.id)]})
+        return result
+
+    def _bench_people(self):
+        """Everybody named on the job at its bench: the technician first, then the
+        people working with them by name."""
+        self.ensure_one()
+        return self.bench_user_id | self.bench_helper_ids.sorted('name')
     # ------------------------------------------------------------ whose work it is
     # A job has up to two people on it: the technician who carried it out and,
     # at a bench that records one, the technician who finished it. Both did work
@@ -361,7 +398,8 @@ class MrpWorkorderResponsibility(models.Model):
     def _person_leaf(self, user_ids):
         """Domain fragment: the operations that belong to these people, either way."""
         ids = [int(u) for u in user_ids]
-        return ['|', ('bench_user_id', 'in', ids), ('finisher_user_id', 'in', ids)]
+        return ['|', '|', ('bench_user_id', 'in', ids), ('finisher_user_id', 'in', ids),
+                ('bench_helper_ids', 'in', ids)]
 
     @api.model
     def _person_credit(self, start, end):
@@ -382,9 +420,22 @@ class MrpWorkorderResponsibility(models.Model):
                      OR wo.accepted_at      >= %(s)s AND wo.accepted_at      < %(e)s
                      OR wo.handed_over_at   >= %(s)s AND wo.handed_over_at   < %(e)s)
                 UNION ALL
+                -- the people working with the technician: the same job, on the
+                -- same days, for each of them
+                SELECT h.user_id, TRUE
+                  FROM mrp_workorder_bench_helper_rel h
+                 WHERE h.workorder_id = wo.id
+                   AND h.user_id IS DISTINCT FROM wo.bench_user_id
+                   AND (wo.bench_assigned_at >= %(s)s AND wo.bench_assigned_at < %(e)s
+                     OR wo.accepted_at      >= %(s)s AND wo.accepted_at      < %(e)s
+                     OR wo.handed_over_at   >= %(s)s AND wo.handed_over_at   < %(e)s)
+                UNION ALL
                 SELECT wo.finisher_user_id, FALSE
                  WHERE wo.finisher_user_id IS NOT NULL
                    AND wo.finisher_user_id IS DISTINCT FROM wo.bench_user_id
+                   AND NOT EXISTS (SELECT 1 FROM mrp_workorder_bench_helper_rel h
+                                    WHERE h.workorder_id = wo.id
+                                      AND h.user_id = wo.finisher_user_id)
                    AND wo.handed_over_at >= %(s)s AND wo.handed_over_at < %(e)s
             ) p
         """, s=start, e=end)
@@ -443,6 +494,14 @@ class MrpWorkorderResponsibility(models.Model):
                     FROM unnest(ARRAY[wo.bench_assigned_at, wo.accepted_at,
                                       wo.handed_over_at]) AS stamp
                    WHERE wo.bench_user_id IS NOT NULL
+                     AND stamp >= %(s)s AND stamp < %(e)s
+                  UNION ALL
+                  SELECT h.user_id,
+                         (stamp AT TIME ZONE 'UTC' AT TIME ZONE %(tz)s)::date
+                    FROM mrp_workorder_bench_helper_rel h,
+                         unnest(ARRAY[wo.bench_assigned_at, wo.accepted_at,
+                                      wo.handed_over_at]) AS stamp
+                   WHERE h.workorder_id = wo.id
                      AND stamp >= %(s)s AND stamp < %(e)s
                   UNION ALL
                   SELECT wo.finisher_user_id,
@@ -517,9 +576,12 @@ class MrpWorkorderResponsibility(models.Model):
             SELECT p.person, count(*) AS jobs
               FROM mrp_workorder wo
               CROSS JOIN LATERAL (
-                   SELECT DISTINCT u AS person
+                   SELECT u AS person
                      FROM unnest(ARRAY[wo.bench_user_id, wo.finisher_user_id]) u
                     WHERE u IS NOT NULL
+                   UNION
+                   SELECT h.user_id FROM mrp_workorder_bench_helper_rel h
+                    WHERE h.workorder_id = wo.id
               ) p
              WHERE wo.id IN %(ids)s %(people)s
              GROUP BY p.person
@@ -640,7 +702,8 @@ class MrpWorkorderResponsibility(models.Model):
                 wc=workcenter.display_name, what=what))
         return role
 
-    def action_correct_finished_names(self, bench_user_id=None, finisher_user_id=None):
+    def action_correct_finished_names(self, bench_user_id=None, finisher_user_id=None,
+                                      helper_ids=None):
         """Put right who did a FINISHED job - its technician and its finishing
         technician, nothing else. (client, 2026-10-15: "able to correct finished work
         orders by scanning, by clicking Correct. Only Technician or Finishing
@@ -664,7 +727,19 @@ class MrpWorkorderResponsibility(models.Model):
                 or user in workcenter.users or user in workcenter.head_user_ids
 
         old_tech, old_finisher = self.bench_user_id, self.finisher_user_id
+        old_helpers = self.bench_helper_ids
         vals, changed = {}, []
+        if helper_ids is not None:
+            helpers = Users.browse([int(h) for h in helper_ids
+                                    if h and int(h) != int(bench_user_id or old_tech.id or 0)])
+            if helpers != old_helpers:
+                self._check_bench_access(_('correct who did a job'), leads_only=True)
+                for user in helpers:
+                    if not posted(user):
+                        raise UserError(_("%(who)s does not work at %(wc)s.",
+                                          who=user.name, wc=workcenter.display_name))
+                vals['bench_helper_ids'] = [Command.set(helpers.ids)]
+                changed.append(_("working with"))
         if bench_user_id is not None and (bench_user_id or False) != (old_tech.id or False):
             self._check_bench_access(_('correct who did a job'), leads_only=True)
             if not bench_user_id:
@@ -700,11 +775,16 @@ class MrpWorkorderResponsibility(models.Model):
             if 'finisher_user_id' in vals:
                 lines.append(_("finisher %(old)s → %(new)s", old=old_finisher.name or _('nobody'),
                                new=self.finisher_user_id.name or _('nobody')))
+            if 'bench_helper_ids' in vals:
+                lines.append(_("working with %(old)s → %(new)s",
+                               old=', '.join(old_helpers.mapped('name')) or _('nobody'),
+                               new=', '.join(self.bench_helper_ids.mapped('name')) or _('nobody')))
             self.production_id.message_post(body=_(
                 "%(wo)s at %(wc)s, finished, corrected by %(who)s: %(what)s.",
                 wo=self.display_name, wc=workcenter.display_name, who=self.env.user.name,
                 what='; '.join(lines)))
-        self._recount_credit_targets(old_tech | old_finisher | self.bench_user_id | self.finisher_user_id)
+        self._recount_credit_targets(old_tech | old_finisher | old_helpers | self.bench_user_id
+                                     | self.finisher_user_id | self.bench_helper_ids)
         return changed
 
     def _recount_credit_targets(self, users):
@@ -875,8 +955,26 @@ class MrpWorkorderResponsibility(models.Model):
         Works on any number of work orders at once: a lead handing out the morning's
         queue picks six jobs and one name, and doing that one job at a time is how a
         board stops being used.
+
+        One name means one person: whoever was working with the previous technician
+        comes off the job. A team is given with `action_assign_bench_team`.
         """
-        user = self.env['res.users'].browse(int(user_id)) if user_id else False
+        return self.action_assign_bench_team([int(user_id)] if user_id else [])
+
+    def action_assign_bench_team(self, user_ids):
+        """Give the job to the people doing it - one of them, or several together.
+
+        The first is the job's technician, the name every existing screen and
+        print-out reads; the rest are the people working with them. All of them
+        must be posted to the bench, and each counts the job. An empty list takes
+        the job back from everybody. (client, 2026-11-25)
+        """
+        ids = []
+        for uid in user_ids or []:
+            if uid and int(uid) not in ids:
+                ids.append(int(uid))
+        people = self.env['res.users'].browse(ids)
+        lead, helpers = people[:1], people[1:]
         now = fields.Datetime.now()
         for wo in self:
             # Assigning is the lead's job: a technician doing the work should not be
@@ -884,27 +982,39 @@ class MrpWorkorderResponsibility(models.Model):
             wo._check_bench_access(_('give out work'), leads_only=True)
             if wo.state in CLOSED:
                 raise UserError(_("%s is finished.", wo.display_name))
-            if user and wo.workcenter_id.users and user not in wo.workcenter_id.users \
-                    and user not in wo.workcenter_id.head_user_ids:
-                raise UserError(_(
-                    "%(who)s does not work at %(wc)s. Add them to the work centre "
-                    "first — a job assigned to somebody who is not there is a job "
-                    "nobody picks up.",
-                    who=user.name, wc=wo.workcenter_id.display_name))
-            if wo.bench_user_id == user:
+            workcenter = wo.workcenter_id
+            for user in people:
+                if workcenter.users and user not in workcenter.users \
+                        and user not in workcenter.head_user_ids:
+                    raise UserError(_(
+                        "%(who)s does not work at %(wc)s. Add them to the work centre "
+                        "first — a job assigned to somebody who is not there is a job "
+                        "nobody picks up.",
+                        who=user.name, wc=workcenter.display_name))
+            if wo.bench_user_id == lead and wo.bench_helper_ids == helpers:
                 continue
-            wo.write({
-                'bench_user_id': user.id if user else False,
-                'bench_assigned_at': now if user else False,
-                'bench_assigned_by_id': self.env.uid if user else False,
-            })
+            vals = {'bench_helper_ids': [Command.set(helpers.ids)]}
+            if wo.bench_user_id != lead:
+                vals.update(
+                    bench_user_id=lead.id or False,
+                    bench_assigned_at=now if lead else False,
+                    bench_assigned_by_id=self.env.uid if lead else False)
+            before = wo._bench_people()
+            wo.write(vals)
             # sale_custom records the technician of record in `user_id`; keep it in step
             # when it exists, so the job card and every existing report stay right.
-            if 'user_id' in wo._fields and user:
-                wo.user_id = user.id
+            if 'user_id' in wo._fields and lead:
+                wo.user_id = lead.id
             if wo.production_id:
                 wo.production_id.message_post(body=_(
                     "%(wo)s given to %(who)s at %(wc)s.",
-                    wo=wo.display_name, who=user.name if user else _('nobody'),
-                    wc=wo.workcenter_id.display_name))
+                    wo=wo.display_name,
+                    who=', '.join(people.mapped('name')) if people else _('nobody'),
+                    wc=workcenter.display_name))
+            # A job given out earlier and shared now (or the other way round) was
+            # already counted on those days: the people who joined or left it are
+            # counted again, so their targets do not wait for tomorrow's recount.
+            changed = (before | people) - (before & people)
+            if changed and (wo.accepted_at or wo.handed_over_at):
+                wo._recount_credit_targets(changed)
         return True

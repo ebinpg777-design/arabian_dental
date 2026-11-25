@@ -633,6 +633,10 @@ class TestStationBoard(TransactionCase):
         Station = self.env['lab.station']
         Station.with_user(tech).scan(self.mo.name, self.wc_a.id, confirmed=True)
         row = next(r for r in Station._bench_load(self.wc_a) if r['id'] == tech.id)
+        self.assertEqual((row['load'], row['done_count']), (1, 0),
+                         "taken: one in hand, nothing finished yet")
+        Station.with_user(tech).scan(self.mo.name, self.wc_a.id, confirmed=True)
+        row = next(r for r in Station._bench_load(self.wc_a) if r['id'] == tech.id)
         self.assertEqual((row['load'], row['done_count']), (0, 1),
                          "passed on: nothing in hand, one finished today")
 

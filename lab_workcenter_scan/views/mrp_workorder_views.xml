@@ -17,6 +17,12 @@
                      ask - most of them. (client, 2026-09-09) -->
                 <field name="bench_user_id" readonly="state in ('done', 'cancel')"
                        options="{'no_create': True}"/>
+                <!-- A job worked together: the others on it, beside its technician.
+                     (client, 2026-11-25) -->
+                <field name="bench_helper_ids" widget="many2many_tags"
+                       invisible="not bench_user_id"
+                       readonly="state in ('done', 'cancel')"
+                       options="{'no_create': True}"/>
                 <field name="workcenter_is_finisher" invisible="1"/>
                 <field name="finisher_user_id" invisible="not workcenter_is_finisher"
                        readonly="state in ('done', 'cancel')"
@@ -56,6 +62,7 @@
                 <field name="product_id" string="Product" optional="hide"/>
                 <!-- Who did it, and who finished it where the bench records both. -->
                 <field name="bench_user_id" string="Technician" optional="show"/>
+                <field name="bench_helper_ids" widget="many2many_tags" optional="show"/>
                 <field name="workcenter_is_finisher" column_invisible="1"/>
                 <field name="finisher_user_id" string="Finished by" optional="hide"/>
                 <!-- The bench is what the drill was filtered BY; available, not shown. -->

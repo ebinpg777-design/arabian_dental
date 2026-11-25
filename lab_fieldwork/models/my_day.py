@@ -476,7 +476,9 @@ class LabMyDay(models.AbstractModel):
         rows = []
         has_finisher = 'finisher_user_id' in workorders._fields
         for wo in workorders.sorted(lambda w: (w.production_id.id, w.sequence, w.id)):
-            technician = wo.bench_user_id.name or ''
+            # everybody on the job where it was worked together
+            technician = ', '.join((wo.bench_user_id | wo.bench_helper_ids).mapped('name')) \
+                if 'bench_helper_ids' in wo._fields else (wo.bench_user_id.name or '')
             finisher = (wo.finisher_user_id.name or '') if has_finisher else ''
             if not (technician or finisher):
                 continue

@@ -123,6 +123,44 @@
             </button>
         </div>
 
+        <!-- WHO THE SCANS GO TO. A tray is worked by a few people together, and a
+             board that asks "which one of you" for every card in it is answered
+             with whoever is nearest. Chosen once here, every scan after it goes
+             to them - and the strip says so the whole time it is on, so a job
+             never goes to a team nobody remembers choosing. (client, 2026-11-25) -->
+        <div t-if="this.state.data and this.state.data.workcenter and this.state.data.can_assign and this.benchPeople.length"
+             class="o_st_teambar" t-att-class="{ o_st_teambar_on: this.state.team.length }">
+            <t t-if="this.state.team.length">
+                <span class="o_st_teambar_l">
+                    <i class="fa fa-qrcode me-1" title="Scans"/>Scanning for
+                </span>
+                <span class="o_st_teambar_who">
+                    <span t-foreach="this.teamPeople" t-as="p" t-key="p.id" class="o_st_mate"
+                          t-att-title="p.name">
+                        <span class="o_st_mate_a" t-out="this.initials(p.name)"/>
+                        <span class="o_st_mate_n" t-out="p.name"/>
+                    </span>
+                </span>
+                <button class="o_st_teambar_b" t-on-click="() => this.chooseTeam()"
+                        title="Choose different people for the next scans">
+                    <i class="fa fa-pencil me-1" title="Change"/>Change
+                </button>
+                <button class="o_st_teambar_b o_st_teambar_x" t-on-click="() => this.stopTeam()"
+                        title="Ask who is doing each job again">
+                    <i class="fa fa-times me-1" title="Stop"/>Stop
+                </button>
+            </t>
+            <button t-else="" class="o_st_teambar_set" t-on-click="() => this.chooseTeam()">
+                <i class="fa fa-users me-2" title="Team"/>
+                <span>
+                    <strong>Scanning a tray?</strong>
+                    Choose who is working on it once — one person or several together —
+                    and the scans stop asking.
+                </span>
+                <i class="fa fa-chevron-right ms-auto" title="Choose"/>
+            </button>
+        </div>
+
         <div t-if="this.state.loading" class="text-center text-muted py-5">
             <i class="fa fa-circle-o-notch fa-spin fa-2x" title="Loading"/>
         </div>
@@ -563,14 +601,11 @@
                 <span class="o_st_bulk_n">
                     <t t-out="this.state.picked.length"/> picked
                 </span>
-                <select class="form-select form-select-sm o_st_bulk_pick"
-                        t-on-change="this.assignPicked">
-                    <option value="">give all of them to…</option>
-                    <option t-foreach="this.benchPeople" t-as="p" t-key="p.id"
-                            t-att-value="p.id">
-                        <t t-out="p.name"/> (<t t-out="p.load"/>)
-                    </option>
-                </select>
+                <!-- The same question a scan asks: one person, or the people working
+                     them together. (client, 2026-11-25) -->
+                <button class="o_st_bulk_go" t-on-click="() => this.assignPicked()">
+                    <i class="fa fa-users me-1" title="Give out"/>Give them to…
+                </button>
                 <button class="o_st_bulk_x" t-on-click="() => (this.state.picked = [])">
                     Clear
                 </button>
@@ -644,8 +679,13 @@
             <span t-if="c.colour"> · <t t-out="c.colour"/></span>
         </div>
         <div class="o_st_sub">
-            <span t-if="c.bench_user" class="o_st_with">
-                <i class="fa fa-user me-1" title="Technician"/><t t-out="c.bench_user"/>
+            <!-- Everybody on the job, where it is worked together. First names:
+                 three people fit where one full name did. (client, 2026-11-25) -->
+            <span t-if="c.bench_user" class="o_st_with"
+                  t-att-class="{ o_st_with_team: c.bench_team and c.bench_team.length > 1 }"
+                  t-att-title="this.teamTitle(c)">
+                <i t-att-class="c.bench_team and c.bench_team.length > 1 ? 'fa fa-users me-1' : 'fa fa-user me-1'"
+                   title="Technician"/><t t-out="this.teamLine(c)"/>
             </span>
             <!-- The second name, where the bench records one. It lives on the
                  line that already carries the first rather than in a block of

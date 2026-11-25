@@ -4,13 +4,13 @@
 <t t-name="lab_workcenter_scan.DoingItDialog">
     <Dialog title="this.title" size="'md'" footer="false" contentClass="'o_st_doing_dlg'">
         <!-- The rule, as a label — not as a refusal. -->
-        <div class="o_st_warnlabel" role="alert">
+        <div t-if="this.warning" class="o_st_warnlabel" role="alert">
             <i class="fa fa-exclamation-triangle" title="Warning"/>
             <span t-out="this.warning"/>
         </div>
 
         <!-- The job, so a lead holding three cards knows which one this is. -->
-        <div class="o_st_doing_job">
+        <div t-if="this.props.job" class="o_st_doing_job">
             <span class="o_st_mo" t-out="this.props.job.production or this.props.job.name"/>
             <span t-if="this.props.job.order" class="o_st_ref" t-out="this.props.job.order"/>
             <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
@@ -25,8 +25,44 @@
                 <strong t-out="this.props.job.next_station or 'finish'"/>
             </div>
         </div>
+        <div t-elif="this.isTeamSetup" class="o_st_doing_note">
+            <i class="fa fa-qrcode me-1" title="Scans"/>
+            Choose once: every job you scan after this goes to them, without asking
+            again. Change it or stop it from the board at any time.
+        </div>
 
         <t t-if="this.props.canAssign and this.props.people.length">
+            <!-- One person, or the people working it together. -->
+            <div t-if="this.allowsTeam" class="o_st_mode" role="tablist">
+                <button class="o_st_mode_b" role="tab"
+                        t-att-class="{ o_st_mode_on: !this.state.together }"
+                        t-att-aria-selected="!this.state.together ? 'true' : 'false'"
+                        t-att-disabled="this.state.busy"
+                        t-on-click="() => this.setTogether(false)">
+                    <i class="fa fa-user me-1" title="One person"/>One person
+                </button>
+                <button class="o_st_mode_b" role="tab"
+                        t-att-class="{ o_st_mode_on: this.state.together }"
+                        t-att-aria-selected="this.state.together ? 'true' : 'false'"
+                        t-att-disabled="this.state.busy"
+                        t-on-click="() => this.setTogether(true)">
+                    <i class="fa fa-users me-1" title="Working together"/>Working together
+                </button>
+            </div>
+
+            <!-- The groups this bench lately worked in: one tap each. -->
+            <div t-if="this.state.together and this.teams.length" class="o_st_teams">
+                <span class="o_st_teams_l">Recent teams</span>
+                <button t-foreach="this.teams" t-as="team" t-key="team_index"
+                        class="o_st_team"
+                        t-att-class="{ o_st_team_on: this.isTeamOn(team) }"
+                        t-att-disabled="this.state.busy"
+                        t-att-title="team.names.join(', ')"
+                        t-on-click="() => this.pickTeam(team)">
+                    <i class="fa fa-users me-1" title="Team"/><t t-out="this.teamLabel(team)"/>
+                </button>
+            </div>
+
             <div class="o_st_doing_lead" t-out="this.lead"/>
             <div class="o_st_tiles">
                 <button t-foreach="this.props.people" t-as="p" t-key="p.id"
@@ -35,19 +71,50 @@
                             'o_st_tile_lead': p.is_lead,
                             'o_st_tile_light': p.id === this.lightestId,
                             'o_st_tile_busy': this.state.picked === p.id,
+                            'o_st_tile_on': this.state.together and this.isOn(p),
                         }"
+                        t-att-aria-pressed="this.state.together ? (this.isOn(p) ? 'true' : 'false') : undefined"
                         t-att-disabled="this.state.busy"
-                        t-on-click="() => this.pick(p)">
+                        t-on-click="() => this.tap(p)">
                     <span class="o_st_tile_key" t-if="p_index lt 9" t-out="p_index + 1"/>
+                    <!-- Ticked, and in what order: the first is the job's technician. -->
+                    <span t-if="this.state.together and this.isOn(p)" class="o_st_tile_tick">
+                        <i class="fa fa-check" title="On the job"/>
+                    </span>
                     <span class="o_st_avatar" t-out="this.initials(p.name)"/>
                     <span class="o_st_tile_name" t-out="p.name"/>
                     <span class="o_st_tile_load">
                         <i t-if="this.state.picked === p.id" class="fa fa-circle-o-notch fa-spin" title="Saving"/>
                         <t t-else="">
-                            <t t-out="p.load or 0"/> on bench
+                            <t t-out="p.load or 0"/> in hand
                             <t t-if="p.id === this.lightestId"> · lightest</t>
                         </t>
                     </span>
+                </button>
+            </div>
+
+            <!-- Always in reach: a bench of twenty is two screens of tiles, and the
+                 button that answers the question must not be at the bottom of them. -->
+            <div t-if="(this.props.canKeep and !this.isFinisher) or this.state.together"
+                 class="o_st_team_foot">
+                <!-- Asked once for the tray instead of once a card. -->
+                <label t-if="this.props.canKeep and !this.isFinisher" class="o_st_keep">
+                    <input type="checkbox" class="form-check-input"
+                           t-att-checked="this.state.keep"
+                           t-att-disabled="this.state.busy"
+                           t-on-change="(ev) => this.setKeep(ev.target.checked)"/>
+                    <span>
+                        <strong>Keep for the next scans</strong>
+                        <span class="o_st_keep_hint">the jobs you scan next go to the same
+                            people without asking</span>
+                    </span>
+                </label>
+                <button t-if="this.state.together" class="o_st_team_go"
+                        t-att-disabled="!this.state.selected.length or this.state.busy"
+                        t-on-click="() => this.confirm()">
+                    <i t-att-class="this.state.busy ? 'fa fa-circle-o-notch fa-spin me-1' : 'fa fa-check me-1'"
+                       title="Confirm"/>
+                    <t t-out="this.confirmLabel"/>
                 </button>
             </div>
         </t>

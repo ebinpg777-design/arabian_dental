@@ -16,6 +16,7 @@
                 <field name="workcenter_id"/>
                 <field name="workorder_name" string="Operation"/>
                 <field name="bench_user_id" optional="show"/>
+                <field name="bench_helper_ids" widget="many2many_tags" optional="show"/>
                 <field name="finisher_user_id" optional="show"/>
                 <field name="patient" optional="show"/>
                 <field name="sale_id" optional="show"/>
@@ -75,6 +76,7 @@
             <search string="Production Performance">
                 <field name="workcenter_id"/>
                 <field name="bench_user_id" string="Technician"/>
+                <field name="bench_helper_ids" string="Working With"/>
                 <field name="patient"/>
                 <field name="sale_id" string="Sales Order"/>
                 <field name="production_id" string="Manufacturing Order"/>
@@ -106,6 +108,8 @@
                             context="{'group_by': 'bench_user_id'}"/>
                     <filter name="by_finisher" string="Finishing Technician"
                             context="{'group_by': 'finisher_user_id'}"/>
+                    <filter name="by_helper" string="Working With"
+                            context="{'group_by': 'bench_helper_ids'}"/>
                     <filter name="by_accepted_by" string="Accepted by"
                             context="{'group_by': 'accepted_by_id'}"/>
                     <filter name="by_stage" string="Where it got to"

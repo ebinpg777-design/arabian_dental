@@ -374,6 +374,109 @@ $st-danger: #b3261e; // start again — the one act that destroys work
         select { min-height: 48px; max-width: 22rem; flex: 1 1 14rem; }
     }
 
+    .o_st_bulk_go {
+        min-height: 48px;
+        padding: 0 1.125rem;
+        border: 0;
+        border-radius: .625rem;
+        background-color: $st-work;
+        color: #fff;
+        font-weight: 700;
+        &:hover { background-color: darken($st-work, 6%); }
+    }
+
+    // ─── Who the scans go to ────────────────────────────────────────────────
+    // Quiet while nothing is chosen - one line that says what it is for. Once a
+    // team is on it wears the bench colour and stays in view: every scan under it
+    // is going to those people, and nobody should have to remember that.
+    // (client, 2026-11-25)
+    .o_st_teambar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .5rem .625rem;
+        margin: 0 0 .75rem;
+        padding: .5rem .75rem;
+        border: 1px dashed $o-gray-400;
+        border-radius: .75rem;
+        background-color: $body-bg;
+    }
+    .o_st_teambar_on {
+        border: 1px solid rgba($st-work, .55);
+        border-left: .3125rem solid $st-work;
+        background-color: rgba($st-work, .07);
+    }
+    .o_st_teambar_l {
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: darken($st-work, 8%);
+        white-space: nowrap;
+    }
+    .o_st_teambar_who {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .375rem;
+        flex: 1 1 12rem;
+        min-width: 0;
+    }
+    .o_st_mate {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        max-width: 100%;
+        padding: .1875rem .625rem .1875rem .1875rem;
+        border: 1px solid rgba($st-work, .35);
+        border-radius: 2rem;
+        background-color: $body-bg;
+        font-weight: 600;
+        color: $o-gray-900;
+    }
+    .o_st_mate_a {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        background-color: $st-work;
+        color: #fff;
+        font-size: .6875rem;
+        font-weight: 800;
+    }
+    .o_st_mate_n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .o_st_teambar_b {
+        min-height: 40px;
+        padding: 0 .75rem;
+        border: 1px solid $o-gray-300;
+        border-radius: .5rem;
+        background-color: $body-bg;
+        color: $o-gray-800;
+        font-weight: 600;
+        white-space: nowrap;
+        &:hover { border-color: $st-work; color: darken($st-work, 8%); }
+    }
+    .o_st_teambar_x:hover { border-color: $danger; color: $danger; }
+    .o_st_teambar_set {
+        display: flex;
+        align-items: center;
+        gap: .25rem;
+        width: 100%;
+        min-height: 40px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: $o-gray-700;
+        font-size: .875rem;
+        text-align: left;
+        strong { color: $o-gray-900; margin-right: .25rem; }
+        .fa-users { color: $st-work; font-size: 1.125rem; }
+        .fa-chevron-right { color: $o-gray-500; }
+        &:hover strong { color: darken($st-work, 8%); }
+    }
+
     .o_st_bulk_n { font-weight: 700; color: $st-work; white-space: nowrap; }
 
     .o_st_bulk_x {
@@ -671,16 +774,129 @@ $st-danger: #b3261e; // start again — the one act that destroys work
     .o_st_avatar {
         width: 2.75rem; height: 2.75rem; border-radius: 50%;
         display: inline-flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, $st-work, darken($st-work, 12%));
+        background-color: $st-work;
         color: #fff; font-weight: 800; font-size: 1rem; letter-spacing: .02em;
     }
-    .o_st_tile_lead .o_st_avatar { background: linear-gradient(135deg, $st-in, darken($st-in, 10%)); }
+    .o_st_tile_lead .o_st_avatar { background-color: $st-in; }
     .o_st_tile_name { font-weight: 700; font-size: .875rem; line-height: 1.2; }
     .o_st_tile_load { font-size: .6875rem; color: $o-gray-600; }
     .o_st_tile_light { border-color: rgba($st-work, .6); }
     .o_st_tile_light .o_st_tile_load { color: $st-work; font-weight: 700; }
     .o_st_tile_busy { border-color: $st-work; background: rgba($st-work, .06); }
     .o_st_doing_foot { display: flex; justify-content: flex-end; margin-top: .75rem; }
+
+    // ── Work done together (client, 2026-11-25) ──
+    .o_st_doing_note {
+        margin: 0 0 .75rem;
+        padding: .625rem .75rem;
+        border-radius: .625rem;
+        background: $o-gray-100;
+        color: $o-gray-700;
+        font-size: .875rem;
+        line-height: 1.35;
+    }
+    // One person | Working together: two halves of one control, the chosen one filled.
+    .o_st_mode {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        margin: .75rem 0 .25rem;
+        border: 1px solid $o-gray-300;
+        border-radius: .625rem;
+        overflow: hidden;
+    }
+    .o_st_mode_b {
+        min-height: 44px;
+        border: 0;
+        background: $body-bg;
+        color: $o-gray-700;
+        font-weight: 600;
+        & + .o_st_mode_b { border-left: 1px solid $o-gray-300; }
+        &.o_st_mode_on { background: $st-work; color: #fff; }
+    }
+    .o_st_teams {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .375rem;
+        margin-top: .625rem;
+    }
+    .o_st_teams_l {
+        font-size: .6875rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: $o-gray-600;
+        margin-right: .125rem;
+    }
+    .o_st_team {
+        min-height: 36px;
+        max-width: 100%;
+        padding: 0 .75rem;
+        border: 1px solid $o-gray-300;
+        border-radius: 2rem;
+        background: $body-bg;
+        color: $o-gray-800;
+        font-size: .8125rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        &:hover:not(:disabled) { border-color: $st-work; }
+        &.o_st_team_on { border-color: $st-work; background: rgba($st-work, .1); color: darken($st-work, 10%); }
+    }
+    // A ticked tile: the bench colour all round and a tick in the corner, so a
+    // team of four reads at a glance across a room.
+    .o_st_tile.o_st_tile_on {
+        border: 2px solid $st-work;
+        background: rgba($st-work, .08);
+        padding: calc(.875rem - 1px) calc(.5rem - 1px) calc(.625rem - 1px);
+    }
+    .o_st_tile_tick {
+        position: absolute; top: .375rem; right: .375rem;
+        width: 1.375rem; height: 1.375rem; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: $st-work; color: #fff; font-size: .6875rem;
+    }
+    // Stays at the foot of the dialog while the tiles scroll under it. It
+    // reaches the dialog's own edges by the dialog's own padding (Odoo's
+    // --modal-padding; half of it below the body), so nothing shows beside or
+    // beneath it on a phone or a desk.
+    .o_st_team_foot {
+        position: sticky;
+        bottom: calc(-.5 * var(--modal-padding, 1rem));
+        z-index: 2;
+        display: grid;
+        gap: .5rem;
+        margin: .75rem calc(-1 * var(--modal-padding, 1rem)) 0;
+        padding: .625rem var(--modal-padding, 1rem) .75rem;
+        border-top: 1px solid $o-gray-300;
+        background: $body-bg;
+    }
+    .o_st_keep {
+        display: flex;
+        align-items: flex-start;
+        gap: .625rem;
+        margin: 0;
+        padding: .5rem .75rem;
+        border: 1px solid $o-gray-300;
+        border-radius: .625rem;
+        cursor: pointer;
+        input { flex: none; width: 1.25rem; height: 1.25rem; margin-top: .0625rem; }
+        strong { display: block; color: $o-gray-900; }
+    }
+    .o_st_keep_hint { display: block; font-size: .8125rem; color: $o-gray-600; }
+    .o_st_team_go {
+        width: 100%;
+        min-height: 3.25rem;
+        margin: 0;
+        border: 0;
+        border-radius: .625rem;
+        background: $st-work;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        &:disabled { background: $o-gray-300; color: $o-gray-600; }
+    }
 }
 
 // ─── "Where is it?" — searched the way Track Order searches ──────────────────
@@ -750,6 +966,9 @@ $st-danger: #b3261e; // start again — the one act that destroys work
     }
     .o_st_tiles_status { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
     .o_st_tile_status, .o_st_tile_who { min-height: 4.25rem; justify-content: center; }
+    // The others on the job: smaller than the technician's tiles, because they
+    // are the second question. (client, 2026-11-25)
+    .o_st_tiles_with .o_st_tile_who { min-height: 3rem; }
     .o_st_change_note {
         margin-bottom: .5rem; font-size: .8125rem; color: $o-gray-600;
     }

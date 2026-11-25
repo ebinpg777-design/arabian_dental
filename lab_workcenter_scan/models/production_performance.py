@@ -51,6 +51,12 @@ class LabProductionPerformance(models.Model):
     finisher_user_id = fields.Many2one('res.users', 'Finishing Technician', readonly=True)
     finisher_other_id = fields.Many2one(
         'res.users', 'Finished for Somebody Else', readonly=True)
+    # The people who worked the job TOGETHER with its technician. The view's id is
+    # the work order's, so this reads the work order's own relation: a tray built up
+    # by three is under three names here as on the bench. (client, 2026-11-25)
+    bench_helper_ids = fields.Many2many(
+        'res.users', 'mrp_workorder_bench_helper_rel', 'workorder_id', 'user_id',
+        string='Working With', readonly=True)
     accepted_by_id = fields.Many2one('res.users', 'Accepted By', readonly=True)
     handed_over_by_id = fields.Many2one('res.users', 'Finished By', readonly=True)
     bench_assigned_by_id = fields.Many2one('res.users', 'Given Out By', readonly=True)
@@ -217,8 +223,23 @@ class LabProductionPerformance(models.Model):
             domain + [('finisher_other_id', 'in', user_ids) if user_ids
                       else ('finisher_other_id', '!=', False)],
             ['finisher_other_id'], ['jobs:sum', 'finished:sum'])
+        # And the jobs worked TOGETHER: everybody on a tray did it, so it is under
+        # each of their names - the counts, as for a finisher. (client, 2026-11-25)
+        worked_with = [
+            (user, jobs, finished) for user, jobs, finished in self._read_group(
+                domain + [('bench_helper_ids', 'in', user_ids) if user_ids
+                          else ('bench_helper_ids', '!=', False)],
+                ['bench_helper_ids'], ['jobs:sum', 'finished:sum'])
+            if user and (not user_ids or user.id in user_ids)]
         totals = self._read_group(domain, [], fields_)
         people = {g[0].id: self._row(g[0], g[1:]) for g in by_person}
+        for user, jobs, finished in worked_with:
+            row = people.get(user.id)
+            if not row:
+                row = people[user.id] = self._row(user, None)
+                row['jobs'] = row['finished'] = 0
+            row['jobs'] += jobs or 0
+            row['finished'] += finished or 0
         for user, jobs, finished in finished_for:
             row = people.get(user.id)
             if row:
@@ -246,8 +267,9 @@ class LabProductionPerformance(models.Model):
         if workcenter_ids:
             domain.append(('workcenter_id', 'in', list(workcenter_ids)))
         if user_ids:
-            domain += ['|', ('bench_user_id', 'in', list(user_ids)),
-                       ('finisher_other_id', 'in', list(user_ids))]
+            domain += ['|', '|', ('bench_user_id', 'in', list(user_ids)),
+                       ('finisher_other_id', 'in', list(user_ids)),
+                       ('bench_helper_ids', 'in', list(user_ids))]
         return domain
 
     @api.model

@@ -281,6 +281,18 @@ class LabTrack(models.AbstractModel):
             tz=self.env.company.partner_id.tz or 'Asia/Kolkata')
 
     @api.model
+    def _lab_step_people(self, wo):
+        """Who is on a step: its technician and, where a job is worked together,
+        the people working with them. Guarded: both fields are
+        lab_workcenter_scan's, and this module does not depend on it."""
+        if 'bench_user_id' not in wo._fields:
+            return ''
+        people = wo.bench_user_id
+        if 'bench_helper_ids' in wo._fields:
+            people |= wo.bench_helper_ids
+        return ', '.join(people.mapped('name'))
+
+    @api.model
     def _stamp(self, value, fmt='%d %b %H:%M'):
         """A stamp in the reader's own clock.
 
@@ -392,8 +404,7 @@ class LabTrack(models.AbstractModel):
                     # this module does not depend on it. (client, 2026-09-12)
                     'arch': (ARCH_SHORT.get(wo.arch)
                              if 'arch' in wo._fields else '') or '',
-                    'person': (wo.bench_user_id.name
-                               if 'bench_user_id' in wo._fields else '') or '',
+                    'person': self._lab_step_people(wo),
                     'finisher': (wo.finisher_user_id.name
                                  if 'finisher_user_id' in wo._fields else '') or '',
                 })
@@ -841,8 +852,7 @@ class LabTrack(models.AbstractModel):
             'patient': order.patient or '',
             'doctor': order.partner_id.display_name if order else '',
             'operation': wo.name or '',
-            'technician': (wo.bench_user_id.name
-                           if 'bench_user_id' in wo._fields else '') or '',
+            'technician': self._lab_step_people(wo),
             'since': self._stamp(since, '%H:%M'),
             'hours': self._hours_since(since),
             # Whether the bench has taken it - not whether it has a name on it.

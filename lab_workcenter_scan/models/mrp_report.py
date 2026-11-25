@@ -319,6 +319,20 @@ class LabMrpReport(models.AbstractModel):
                 rows.append(row)
             row['jobs'] += jobs or 0
             row['finished_for_others'] = jobs or 0
+        # Jobs worked together count for everybody on them. (client, 2026-11-25)
+        for user, jobs in Perf._read_group(
+                domain + [('bench_helper_ids', '!=', False)],
+                ['bench_helper_ids'], ['jobs:sum']):
+            if not user:
+                continue
+            row = by_id.get(user.id)
+            if not row:
+                row = {'id': user.id, 'name': user.name, 'jobs': 0, 'minutes': 0.0,
+                       'per_job': 0.0, 'bench_hours': 0.0, 'waiting_hours': 0.0,
+                       'finished_for_others': 0}
+                by_id[user.id] = row
+                rows.append(row)
+            row['jobs'] += jobs or 0
         rows.sort(key=lambda r: -r['jobs'])
         rows = rows[:TOP_PEOPLE]
         peak = rows[0]['jobs'] if rows else 0

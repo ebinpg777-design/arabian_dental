@@ -433,6 +433,10 @@ class LabFlow(models.AbstractModel):
         `mrp.workorder._person_credit`. What is NOT shared is the time: the
         minutes on a job are the bench's, so they stay with the technician
         rather than being counted twice. (client, 2026-09-10)
+
+        People who worked a job TOGETHER are each its technician for this
+        table: taken, finished and the minutes it stood on their bench, for
+        every one of them. (client, 2026-11-25)
         """
         Workorder = self.env['mrp.workorder']
         Workorder.flush_model()
@@ -474,9 +478,10 @@ class LabFlow(models.AbstractModel):
             return []
         users = {u.id: u.name for u in self.env['res.users'].sudo().browse(
             list({r[0] for r in rows} | set(targets)))}
-        holding = {u.id: n for u, n in self.env['mrp.workorder']._read_group(
-            open_domain + [('bench_user_id', 'in', [r[0] for r in rows])],
-            ['bench_user_id'], ['__count'])}
+        # everybody named on an open job holds it - a tray worked together is in
+        # each of those hands (client, 2026-11-25)
+        holding = self.env['mrp.workorder']._counts_by_person(
+            open_domain + [('bench_user_id', '!=', False)], [r[0] for r in rows])
         clock = lambda v: self.env['lab.station']._clock(v)  # noqa: E731
         out = []
         for (uid, taken, finished, minutes, over, first_at, last_at, stations,
@@ -666,7 +671,8 @@ class LabFlow(models.AbstractModel):
         day is a handful of rows.
         """
         candidates = self.env['mrp.workorder'].search([
-            ('bench_user_id', '=', int(user_id)),
+            '|', ('bench_user_id', '=', int(user_id)),
+            ('bench_helper_ids', 'in', [int(user_id)]),
             ('handed_over_at', '>=', start), ('handed_over_at', '<', end),
             ('duration_expected', '>', 0),
         ])
@@ -765,7 +771,7 @@ class LabFlow(models.AbstractModel):
                 'emergency': priority == 'emergency',
                 'days': days,
                 'taken': taken,
-                'who': step.bench_user_id.name or '',
+                'who': ', '.join(step._bench_people().mapped('name')),
             })
         # Emergency above urgent; within each, whoever has waited longest.
         rows.sort(key=lambda r: (0 if r['emergency'] else 1, -r['days']))
@@ -870,7 +876,7 @@ class LabFlow(models.AbstractModel):
                 'station': wo.workcenter_id.display_name,
                 'hours': hours,
                 'accepted': bool(wo.accepted_at),
-                'with_person': wo.bench_user_id.name or '',
+                'with_person': ', '.join(wo._bench_people().mapped('name')),
                 'urgent': bool(order) and order.priority == 'urgent',
             })
         return rows

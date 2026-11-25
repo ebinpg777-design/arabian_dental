@@ -204,7 +204,11 @@ class LabTechDay(models.AbstractModel):
          LEFT JOIN sale_order so ON so.id = mo.sale_id
         CROSS JOIN LATERAL (
                    SELECT wo.bench_user_id AS uid WHERE wo.bench_user_id IS NOT NULL
-                   UNION ALL
+                   UNION
+                   -- the people working the job together with its technician
+                   SELECT h.user_id FROM mrp_workorder_bench_helper_rel h
+                    WHERE h.workorder_id = wo.id
+                   UNION
                    SELECT wo.finisher_user_id WHERE wo.finisher_user_id IS NOT NULL
                       AND wo.finisher_user_id IS DISTINCT FROM wo.bench_user_id
                    ) p
@@ -260,7 +264,11 @@ class LabTechDay(models.AbstractModel):
          LEFT JOIN mrp_workorder wo ON wo.id = p.workorder_id
          LEFT JOIN LATERAL (
                    SELECT wo.bench_user_id AS uid WHERE wo.bench_user_id IS NOT NULL
-                   UNION ALL
+                   UNION
+                   -- the people working the job together with its technician
+                   SELECT h.user_id FROM mrp_workorder_bench_helper_rel h
+                    WHERE h.workorder_id = wo.id
+                   UNION
                    SELECT wo.finisher_user_id WHERE wo.finisher_user_id IS NOT NULL
                       AND wo.finisher_user_id IS DISTINCT FROM wo.bench_user_id
                    ) c ON TRUE

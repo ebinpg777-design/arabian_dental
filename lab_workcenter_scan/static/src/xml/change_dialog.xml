@@ -47,6 +47,21 @@
             </button>
         </div>
 
+        <!-- Worked together: everybody else on the job. Only once it has a
+             technician - nobody works WITH nobody. (client, 2026-11-25) -->
+        <t t-if="this.props.canAssign and this.state.benchUserId and this.mates.length">
+            <div class="o_st_doing_lead">Working with — tick anybody else on the job</div>
+            <div class="o_st_tiles o_st_tiles_who o_st_tiles_with">
+                <button t-foreach="this.mates" t-as="p" t-key="p.id"
+                        class="o_st_tile o_st_tile_who"
+                        t-att-class="this.state.helperIds.includes(p.id) ? 'o_st_tile_on' : ''"
+                        t-att-disabled="this.state.busy"
+                        t-on-click="() => this.pickHelper(p.id)">
+                    <span class="o_st_tile_name" t-out="p.name"/>
+                </button>
+            </div>
+        </t>
+
         <!-- Only where the bench records the two separately. -->
         <t t-if="this.props.wantsFinisher">
             <div class="o_st_doing_lead">Who finished it?</div>

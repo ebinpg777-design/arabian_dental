@@ -134,7 +134,7 @@ class MrpProduction(models.Model):
     def _lab_sheet_step(self, step):
         """One step: who did it, and when they handed it on."""
         Station = self.env['lab.station']
-        people = step.bench_user_id | step.finisher_user_id
+        people = step.bench_user_id | step.bench_helper_ids | step.finisher_user_id
         if not people and step.state == 'done':
             people = step.handed_over_by_id or step.accepted_by_id
         when = step.handed_over_at or (step.state == 'done' and step.date_finished) or False

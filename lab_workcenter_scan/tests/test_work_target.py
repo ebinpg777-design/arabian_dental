@@ -932,8 +932,10 @@ class TestMineOnTheTiles(TransactionCase):
     def test_the_work_order_answers_with_both_roles(self):
         Workorder = self.env['mrp.workorder']
         leaf = Workorder._dft_mine_leaf('bench_user_id', self.polisher.id)
-        self.assertEqual(leaf, ['|', ('bench_user_id', 'in', [self.polisher.id]),
-                                ('finisher_user_id', 'in', [self.polisher.id])])
+        # the technician, the finisher, or one of the people working it together
+        self.assertEqual(leaf, ['|', '|', ('bench_user_id', 'in', [self.polisher.id]),
+                                ('finisher_user_id', 'in', [self.polisher.id]),
+                                ('bench_helper_ids', 'in', [self.polisher.id])])
         self.assertEqual(Workorder._dft_mine_leaf('finisher_user_id', self.polisher.id), leaf,
                          "either field asks the same question")
         self.assertEqual(Workorder._dft_mine_leaf('create_uid', self.polisher.id),

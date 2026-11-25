@@ -4,6 +4,8 @@ import { Component, onWillStart, onWillUnmount, proxy, usePlugin, signal, usePro
 import { _t } from "@web/core/l10n/translation";
 import { NotificationPlugin } from "@web/core/notifications/notification_plugin";
 import { registry } from "@web/core/registry";
+import { browser } from "@web/core/browser/browser";
+import { user } from "@web/core/user";
 import { useService } from "@web/core/utils/hooks";
 import { scanBarcode } from "@web/core/barcode/barcode_dialog";
 import { isBarcodeScannerSupported } from "@web/core/barcode/barcode_video_scanner";
@@ -62,6 +64,11 @@ export class LabStation extends Component {
             // would find almost nothing. (client, 2026-09-10)
             query: "",
             sort: "oldest",
+            // Who the lead is scanning FOR: the people working the tray in hand.
+            // Chosen once, and every scan after it goes to them instead of asking
+            // card by card. Kept on this device, for this bench, for today.
+            // (client, 2026-11-25)
+            team: [],
         });
         this.typedRef = signal.ref();
         this.findRef = signal.ref();
@@ -112,6 +119,7 @@ export class LabStation extends Component {
         } finally {
             this.inFlight = false;
         }
+        this.recallTeam();
         this.state.loading = false;
         this.state.seen = new Date().toLocaleTimeString([], {
             hour: "2-digit",
@@ -127,6 +135,119 @@ export class LabStation extends Component {
      *  "not given out" pile, which is a filter and not a person. */
     get benchPeople() {
         return (this.state.data?.bench_people || []).filter((p) => p.id !== "none");
+    }
+
+    // ------------------------------------------------------- who the scans go to
+    /** Where this bench's team is remembered: per person, per bench, on this device. */
+    get teamKey() {
+        const id = this.state.data?.workcenter?.id;
+        return id ? `lab_station_team_${user.userId}_${id}` : null;
+    }
+
+    /** Today, as the device reads it: a team is for a day's trays, not for ever. */
+    get teamDay() {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+    }
+
+    /**
+     * The team chosen earlier today at this bench, if its people are still posted
+     * here. Read whenever the board is: the lead may have changed bench, and the
+     * bench its people.
+     */
+    recallTeam() {
+        const key = this.teamKey;
+        let ids = [];
+        if (key && this.state.data?.can_assign) {
+            try {
+                const kept = JSON.parse(browser.localStorage.getItem(key) || "null");
+                if (kept && kept.day === this.teamDay && Array.isArray(kept.ids)) {
+                    ids = kept.ids;
+                }
+            } catch {
+                ids = [];
+            }
+        }
+        const here = new Set(this.benchPeople.map((p) => p.id));
+        ids = ids.filter((id) => here.has(id));
+        if (ids.join() !== this.state.team.join()) {
+            this.state.team = ids;
+        }
+    }
+
+    setTeam(ids) {
+        this.state.team = [...ids];
+        const key = this.teamKey;
+        if (!key) {
+            return;
+        }
+        try {
+            if (ids.length) {
+                browser.localStorage.setItem(key, JSON.stringify({ day: this.teamDay, ids }));
+            } else {
+                browser.localStorage.removeItem(key);
+            }
+        } catch {
+            // storage refused (a private window): the team lasts until the page closes
+        }
+    }
+
+    /** The people being scanned for, as the strip shows them. */
+    get teamPeople() {
+        return this.state.team
+            .map((id) => this.benchPeople.find((p) => p.id === id))
+            .filter(Boolean);
+    }
+
+    initials(name) {
+        return (name || "")
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((w) => w[0].toUpperCase())
+            .join("");
+    }
+
+    /** Everybody on a card, by first name: three people fit where one full name did. */
+    teamLine(card) {
+        const team = card.bench_team || [];
+        if (team.length < 2) {
+            return card.bench_user || "";
+        }
+        return team.map((p) => p.name.split(/\s+/)[0]).join(", ");
+    }
+
+    teamTitle(card) {
+        return (card.bench_team || []).map((p) => p.name).join(", ");
+    }
+
+    /** Choose, change or stop who the scans go to. */
+    chooseTeam() {
+        const data = this.state.data;
+        if (!data || !data.can_assign) {
+            return;
+        }
+        this.dialog.add(DoingItDialog, {
+            people: this.benchPeople,
+            canAssign: true,
+            stage: "team",
+            teams: data.recent_teams || [],
+            preset: [...this.state.team],
+            onPick: async (userIds) => {
+                this.setTeam(userIds);
+                this.notification.add(
+                    _t("Scanning for %s.", this.teamPeople.map((p) => p.name).join(", ")),
+                    { type: "success" }
+                );
+            },
+        });
+    }
+
+    stopTeam() {
+        this.setTeam([]);
+        this.notification.add(_t("Scans will ask who is doing each job again."), {
+            type: "info",
+        });
     }
 
     /**
@@ -439,17 +560,19 @@ export class LabStation extends Component {
             status: found.status,
             wantsFinisher: !!found.wants_finisher,
             benchUserId: found.bench_user_id,
+            helperIds: found.helper_ids || [],
             finisherUserId: found.finisher_user_id,
             canAssign: !!found.can_assign,
             finished: !!found.finished,
             finishedAt: found.finished_at || "",
-            onConfirm: async ({ benchUserId, finisherUserId, status }) => {
+            onConfirm: async ({ benchUserId, helperIds, finisherUserId, status }) => {
                 const result = await this.orm.call("lab.station", "apply_change", [
                     found.job.id,
                     benchUserId,
                     finisherUserId,
                     status,
                     this.state.person,
+                    helperIds,
                 ]);
                 this.state.data = result.board;
                 this.buzz(true);
@@ -521,6 +644,8 @@ export class LabStation extends Component {
                 this.state.data.workcenter.id,
                 this.state.person,
                 confirmed,
+                // who this scan is for, where the lead has said so
+                this.state.team.length ? [...this.state.team] : false,
             ]);
         } catch (error) {
             this.buzz(false);
@@ -669,26 +794,51 @@ export class LabStation extends Component {
     }
 
     /** Hand the ticked jobs to one technician in a single go. */
-    async assignPicked(ev) {
-        const userId = parseInt(ev.target.value, 10) || false;
-        if (!userId || !this.state.picked.length) {
+    /**
+     * The jobs ticked on the board, given out together - to one person or to the
+     * people working them together. The same question the scan asks, so a lead
+     * learns it once. (client, 2026-11-25)
+     */
+    assignPicked() {
+        const picked = [...this.state.picked];
+        if (!picked.length) {
             return;
         }
-        const count = this.state.picked.length;
-        const who = this.state.data.bench_people.find((p) => p.id === userId);
-        this.state.data = await this.orm.call("lab.station", "assign", [
-            this.state.picked,
-            userId,
-            this.state.person,
-        ]);
-        this.state.picked = [];
-        this.notification.add(
-            _t("%(count)s job(s) given to %(who)s.", { count, who: who?.name || "" }),
-            { type: "success" }
-        );
+        this.dialog.add(DoingItDialog, {
+            people: this.benchPeople,
+            canAssign: !!this.state.data.can_assign,
+            stage: "bulk",
+            count: picked.length,
+            teams: this.state.data.recent_teams || [],
+            preset: [...this.state.team],
+            onPick: async (userIds) => {
+                this.state.data = await this.orm.call("lab.station", "assign", [
+                    picked,
+                    userIds,
+                    this.state.person,
+                ]);
+                this.state.picked = [];
+                this.buzz(true);
+                this.notification.add(
+                    _t("%(count)s job(s) given to %(who)s.", {
+                        count: picked.length,
+                        who: this.namesOf(userIds),
+                    }),
+                    { type: "success" }
+                );
+            },
+        });
     }
 
-    /** Move the board to another bench. */
+    /** The names behind a list of ids, as a sentence wants them. */
+    namesOf(userIds) {
+        return userIds
+            .map((id) => this.benchPeople.find((p) => p.id === id))
+            .filter(Boolean)
+            .map((p) => p.name)
+            .join(", ") || _t("somebody");
+    }
+
     async goToStation(stationId) {
         this.state.person = false;
         this.state.picked = [];
@@ -749,6 +899,7 @@ export class LabStation extends Component {
                 job: card,
                 people: (this.state.data.bench_people || []).filter((p) => p.id !== "none"),
                 can_assign: !!this.state.data.can_assign,
+                teams: this.state.data.recent_teams || [],
             });
             return;
         }
@@ -770,16 +921,25 @@ export class LabStation extends Component {
             canAssign: !!ask.can_assign,
             message: ask.message,
             stage: ask.stage || "handover",
-            onPick: async (userId) => {
+            teams: ask.teams || this.state.data?.recent_teams || [],
+            // The people already being scanned for are ticked: a team that was not
+            // applied (the job was handed on from its card) is one tap to confirm.
+            preset: isFinisher ? [] : [...this.state.team],
+            // Naming who did it is the lead's call, so keeping the answer is too.
+            canKeep: !isFinisher && !!this.state.data?.can_assign,
+            onPick: async (userIds, keep) => {
                 const method = isFinisher
                     ? "assign_finisher_and_handover"
                     : handsOn
                     ? "assign_and_handover"
                     : "assign";
+                // One finisher; the work before it may have been several people's.
+                const who = isFinisher ? userIds[0] : userIds;
                 const answer = await this.orm.call("lab.station", method, [
-                    job.id, userId, this.state.person]);
-                // Naming the technician at a finishing bench brings the SECOND
-                // question back rather than a board: ask it, do not swallow it.
+                    job.id, who, this.state.person]);
+                if (keep && !isFinisher) {
+                    this.setTeam(userIds);
+                }
                 if (answer && answer.action === "needs_finisher") {
                     this.state.data = answer.board;
                     this.askDoingIt(answer);
@@ -788,8 +948,7 @@ export class LabStation extends Component {
                 const board = answer && answer.board ? answer.board : answer;
                 this.state.data = board;
                 this.buzz(true);
-                const who = (ask.people || []).find((p) => p.id === userId);
-                const name = who ? who.name : _t("somebody");
+                const name = this.namesOf(userIds);
                 const label = this.jobLabel(job);
                 this.notification.add(
                     isFinisher
@@ -798,25 +957,17 @@ export class LabStation extends Component {
                               next: job.next_station || _t("the last step"),
                           })
                         : handsOn
-                        ? _t("%(job)s: technician %(who)s — handed on to %(next)s.", {
+                        ? _t("%(job)s: %(who)s — handed on to %(next)s.", {
                               job: label, who: name,
                               next: job.next_station || _t("the last step"),
                           })
-                        : _t("%(job)s: technician %(who)s.", { job: label, who: name }),
+                        : _t("%(job)s: %(who)s.", { job: label, who: name }),
                     { type: "success" }
                 );
             },
         });
     }
 
-    /**
-     * Take back the last scan on this job — the card scanned by mistake.
-     *
-     * Asks first, unlike every other control here: the rest of the board is one
-     * tap BECAUSE each tap is reversible, and this is the tap that does the
-     * reversing. What it undoes is named in the question, so nobody has to
-     * remember which scan was last. (client, 2026-09-09)
-     */
     async undoScan(card) {
         if (this.state.busy) {
             return;

@@ -109,7 +109,7 @@ class LabStation(models.AbstractModel):
                 'stations': self._station_choices(
                     stations, day=self._lab_today()),
                 'incoming': [], 'working': [], 'done_today': [], 'awaiting': [],
-                'bench_people': [], 'can_assign': False, 'is_head': False,
+                'bench_people': [], 'recent_teams': [], 'can_assign': False, 'is_head': False,
                 'role': '', 'staffed': True, 'person_id': False,
                 'totals': {'incoming': 0, 'working': 0, 'awaiting': 0,
                            'shown': COLUMN_LIMIT},
@@ -237,6 +237,9 @@ class LabStation(models.AbstractModel):
             # Who this lead may hand a job to, and how much each of them is already
             # carrying. Spreading work evenly is impossible without the second half.
             'bench_people': bench_people,
+            # The groups this bench has lately given work to, for one-tap picking.
+            'recent_teams': self._recent_teams(workcenter)
+            if role in ('manager', 'lead') else [],
             # The bench's day as one line, with where the shift is - so a head
             # knows at ten whether forty by five is still on. (client, 2026-09-09)
             'bench_day': self._bench_day(workcenter, bench_people, done_date),
@@ -429,11 +432,9 @@ class LabStation(models.AbstractModel):
         Workorder = self.env['mrp.workorder']
         # What they are HOLDING is the technician's alone: a finisher is named
         # at the moment a job leaves the bench, so nothing open has one.
-        loads = dict(Workorder._read_group(
-            [('workcenter_id', '=', workcenter.id),
-             ('state', 'not in', ('done', 'cancel')),
-             ('bench_user_id', 'in', people.ids)],
-            ['bench_user_id'], ['__count']))
+        # Everybody NAMED on it holds it: a tray three people are building up
+        # is in all three pairs of hands. (client, 2026-11-25)
+        loads = self._in_hand_counts(workcenter, people)
         this_day = day or self._lab_today()
         days = self._day_counts(workcenter, people, this_day)
         finished = self._finished_counts(workcenter, people, this_day)
@@ -459,7 +460,7 @@ class LabStation(models.AbstractModel):
             whole_floor = scope == 'day'
             done = (floor_days if whole_floor else days).get(u.id, 0)
             rows.append({
-                'id': u.id, 'name': u.name, 'load': loads.get(u, 0),
+                'id': u.id, 'name': u.name, 'load': loads.get(u.id, 0),
                 # Finished and passed on from this bench on the day shown - with the
                 # load, what the chip says. (client, 2026-11-25: "should show the work
                 # in hand and completed work")
@@ -628,12 +629,81 @@ class LabStation(models.AbstractModel):
         self.env.cr.execute("""
             SELECT p.person, count(DISTINCT wo.id)
               FROM mrp_workorder wo
-             CROSS JOIN LATERAL (VALUES (wo.bench_user_id), (wo.finisher_user_id)) AS p(person)
+             CROSS JOIN LATERAL (
+                   VALUES (wo.bench_user_id), (wo.finisher_user_id)
+                   UNION ALL
+                   SELECT h.user_id FROM mrp_workorder_bench_helper_rel h
+                    WHERE h.workorder_id = wo.id) AS p(person)
              WHERE wo.workcenter_id = %s
                AND wo.handed_over_at >= %s AND wo.handed_over_at < %s
                AND p.person = ANY(%s)
              GROUP BY p.person""", (workcenter.id, start, end, people.ids))
         return dict(self.env.cr.fetchall())
+
+    @api.model
+    def _in_hand_counts(self, workcenter, people):
+        """Per person, the open jobs at this bench with their name on them - as the
+        technician or as one of the people working with them."""
+        if not people:
+            return {}
+        self.env['mrp.workorder'].flush_model(['workcenter_id', 'state', 'bench_user_id'])
+        self.env.cr.execute("""
+            SELECT p.person, count(DISTINCT wo.id)
+              FROM mrp_workorder wo
+             CROSS JOIN LATERAL (
+                   VALUES (wo.bench_user_id)
+                   UNION ALL
+                   SELECT h.user_id FROM mrp_workorder_bench_helper_rel h
+                    WHERE h.workorder_id = wo.id) AS p(person)
+             WHERE wo.workcenter_id = %s
+               AND wo.state NOT IN ('done', 'cancel')
+               AND wo.bench_user_id IS NOT NULL
+               AND p.person = ANY(%s)
+             GROUP BY p.person""", (workcenter.id, people.ids))
+        return dict(self.env.cr.fetchall())
+
+    @api.model
+    def _recent_teams(self, workcenter, limit=4):
+        """The groups that have lately worked together at this bench, newest first.
+
+        Nobody keeps a list of teams up to date, and the floor does not work in
+        fixed ones: who builds up with whom changes with the tray. What the bench
+        did yesterday is the best guess at what it does today, so the last few
+        groups it actually gave work to are offered as one tap each.
+        """
+        self.env['mrp.workorder'].flush_model(
+            ['workcenter_id', 'bench_user_id', 'bench_assigned_at'])
+        self.env.cr.execute("""
+            SELECT t.members, max(t.at) AS last
+              FROM (
+                SELECT wo.bench_assigned_at AS at,
+                       (SELECT array_agg(u ORDER BY u) FROM (
+                            SELECT wo.bench_user_id AS u
+                            UNION
+                            SELECT h.user_id FROM mrp_workorder_bench_helper_rel h
+                             WHERE h.workorder_id = wo.id) m) AS members
+                  FROM mrp_workorder wo
+                 WHERE wo.workcenter_id = %s
+                   AND wo.bench_user_id IS NOT NULL
+                   AND wo.bench_assigned_at >= now() - interval '14 days'
+                   AND EXISTS (SELECT 1 FROM mrp_workorder_bench_helper_rel h
+                                WHERE h.workorder_id = wo.id)
+              ) t
+             GROUP BY t.members
+             ORDER BY last DESC
+             LIMIT %s""", (workcenter.id, limit))
+        # Read at once: the next ORM read on this cursor would replace the result.
+        rows = self.env.cr.fetchall()
+        posted = workcenter.users | workcenter.head_user_ids
+        teams = []
+        for members, _last in rows:
+            users = self.env['res.users'].browse(members).sudo()
+            # somebody since moved off the bench: the team no longer exists here
+            if posted and any(u not in posted for u in users):
+                continue
+            teams.append({'ids': users.sorted('name').ids,
+                          'names': users.sorted('name').mapped('name')})
+        return teams
 
     @api.model
     def _ul_labels(self):
@@ -830,6 +900,9 @@ class LabStation(models.AbstractModel):
             'accepted_by': wo.accepted_by_id.name or '',
             'bench_user': wo.bench_user_id.name or '',
             'bench_user_id': wo.bench_user_id.id or False,
+            # Everybody on the job, the technician first: a tray worked by three
+            # says three names. (client, 2026-11-25)
+            'bench_team': [{'id': u.id, 'name': u.name} for u in wo._bench_people()],
             # The second name, where this bench records one.
             'wants_finisher': wo.workcenter_id.is_finisher,
             'finisher': wo.finisher_user_id.name or '',
@@ -931,7 +1004,7 @@ class LabStation(models.AbstractModel):
         """The popup's one tap: name who did it, then hand it on."""
         wo = self.env['mrp.workorder'].browse(int(workorder_id))
         workcenter_id = wo.workcenter_id.id
-        wo.action_assign_bench_user(user_id)
+        wo.action_assign_bench_team(self._as_team(user_id))
         # One question at a time: at a finishing bench the answer to "who did it"
         # is followed by "who finished it", and only then does the job move.
         if self._needs_finisher(wo):
@@ -1002,6 +1075,36 @@ class LabStation(models.AbstractModel):
         return True
 
     @api.model
+    def _give_to_team(self, wo, team):
+        """Put the people the lead is scanning for on a job nobody is named on.
+
+        Only a lead's (or a manager's) scan carries a team - who does which job
+        stays their call - and only people still posted to the bench are named:
+        a team remembered from this morning must not stop the scan because one of
+        them has since been moved. Returns whether the job now has a name.
+        """
+        people = self._team_for(wo, team)
+        if not people:
+            return False
+        wo.action_assign_bench_team(people.ids)
+        return True
+
+    @api.model
+    def _team_for(self, wo, team):
+        """The people a scan of this job would name, in the order they were chosen:
+        the lead's team, less anybody no longer posted to the bench. Empty for a
+        scan that carries no team, or whose scanner may not give work out."""
+        Users = self.env['res.users']
+        if not team or wo._bench_role(wo.workcenter_id) not in ('manager', 'lead'):
+            return Users
+        workcenter = wo.workcenter_id
+        posted = workcenter.users | workcenter.head_user_ids
+        people = Users.browse([int(u) for u in team if u]).exists()
+        if posted:
+            people = people.filtered(lambda u: u in posted)
+        return people
+
+    @api.model
     def _needs_person(self, wo):
         return bool(wo.accepted_at) and not wo.bench_user_id \
             and wo.state not in ('done', 'cancel')
@@ -1056,6 +1159,7 @@ class LabStation(models.AbstractModel):
             'job': self._card(wo, self._ul_labels()),
             'people': people,
             'can_assign': role in ('manager', 'lead'),
+            'teams': self._recent_teams(workcenter) if role in ('manager', 'lead') else [],
             'board': self.get_station(workcenter.id, person_id),
         }
 
@@ -1120,6 +1224,7 @@ class LabStation(models.AbstractModel):
             'finished_at': self._clock(wo.handed_over_at or wo.date_finished) if wo.state == 'done' else '',
             'wants_finisher': workcenter.is_finisher,
             'bench_user_id': wo.bench_user_id.id or False,
+            'helper_ids': wo.bench_helper_ids.ids,
             'finisher_user_id': wo.finisher_user_id.id or False,
             # Giving work out stays the lead's call, exactly as on the card.
             'can_assign': role in ('manager', 'lead'),
@@ -1127,7 +1232,7 @@ class LabStation(models.AbstractModel):
 
     @api.model
     def apply_change(self, workorder_id, bench_user_id=None, finisher_user_id=None,
-                     status=None, person_id=None):
+                     status=None, person_id=None, helper_ids=None):
         """Apply a correction, each part through the rule that already guards it.
 
         Nothing here is a new way to write these fields: the technician goes
@@ -1146,7 +1251,8 @@ class LabStation(models.AbstractModel):
                 raise UserError(_("%s is finished: only who did it can be corrected, not where it stands.",
                                   self._job_label(wo)))
             changed = wo.action_correct_finished_names(bench_user_id=bench_user_id,
-                                                       finisher_user_id=finisher_user_id)
+                                                       finisher_user_id=finisher_user_id,
+                                                       helper_ids=helper_ids)
             if not changed:
                 raise UserError(_("Nothing was changed."))
             return {
@@ -1155,10 +1261,21 @@ class LabStation(models.AbstractModel):
                              job=self._job_label(wo), what=', '.join(changed)),
             }
         changed = []
-        if bench_user_id is not None and (bench_user_id or False) != (
-                wo.bench_user_id.id or False):
-            wo.action_assign_bench_user(bench_user_id or False)
-            changed.append(_("technician"))
+        # The technician and the people working with them are one answer: the team.
+        lead = (bench_user_id or False) if bench_user_id is not None \
+            else (wo.bench_user_id.id or False)
+        helpers = [int(h) for h in helper_ids if h] if helper_ids is not None \
+            else wo.bench_helper_ids.ids
+        # nobody works WITH nobody: without a technician the job is not given out
+        helpers = [h for h in helpers if h != lead] if lead else []
+        lead_changed = lead != (wo.bench_user_id.id or False)
+        helpers_changed = set(helpers) != set(wo.bench_helper_ids.ids)
+        if lead_changed or helpers_changed:
+            wo.action_assign_bench_team(([lead] if lead else []) + helpers)
+            if lead_changed:
+                changed.append(_("technician"))
+            if helpers_changed:
+                changed.append(_("working with"))
         if finisher_user_id is not None and (finisher_user_id or False) != (
                 wo.finisher_user_id.id or False):
             if not finisher_user_id:
@@ -1362,7 +1479,7 @@ class LabStation(models.AbstractModel):
         }
 
     @api.model
-    def scan(self, code, workcenter_id=None, person_id=None, confirmed=False):
+    def scan(self, code, workcenter_id=None, person_id=None, confirmed=False, team=None):
         """One scan, and the board works out what it means.
 
         A head with gloves on does not want to find the job in a list, decide whether it
@@ -1380,6 +1497,11 @@ class LabStation(models.AbstractModel):
         intended act, nothing is written, and the same call comes back with
         `confirmed` once the operator has agreed. A bench that scans a tray at a time
         can turn it off (mrp.workcenter.scan_confirm).
+
+        `team` is who the lead is scanning FOR: the people working the tray in their
+        hand, chosen once on the board. A job with nobody named goes to them as it is
+        scanned, instead of the same question being asked card after card.
+        (client, 2026-11-25)
         """
         workcenter = self.env['mrp.workcenter'].browse(int(workcenter_id)) \
             if workcenter_id else self._default_workcenter()
@@ -1401,20 +1523,28 @@ class LabStation(models.AbstractModel):
         # Nothing above this line has changed anything: 'elsewhere' is a reading, not
         # an act, so it is never worth confirming.
         if workcenter.scan_confirm and not confirmed:
-            return self._confirm_scan(wo, code, person_id)
+            return self._confirm_scan(wo, code, person_id, team)
         if not wo.accepted_at:
             wo.action_station_accept()
             # Accepted with nobody's name on it: ask now, while the card is in the
             # lead's hand, rather than at the hand-over hours later. (client, 2026-08-29)
+            given = False
             if self._needs_person(wo) and not self._takes_own_scan(wo):
-                return self._ask_person(wo, person_id, stage='accepted')
+                given = self._give_to_team(wo, team)
+                if not given:
+                    return self._ask_person(wo, person_id, stage='accepted')
             return {'action': 'accepted',
                     # The number on the job card, not the work order's display name:
                     # "MO/280575 - Wire Bending/ Adams Clasp" buries the one thing the
                     # person just scanned. (client, 2026-08-29)
-                    'message': _("%s accepted.", self._job_label(wo)),
+                    # Given by this scan: say to whom, every time - a team that
+                    # stays on for the tray must never take a job silently.
+                    'message': _("%(job)s accepted — %(who)s.", job=self._job_label(wo),
+                                 who=', '.join(wo._bench_people().mapped('name')))
+                    if given else _("%s accepted.", self._job_label(wo)),
                     'board': self.get_station(workcenter.id, person_id)}
-        if self._needs_person(wo) and not self._takes_own_scan(wo):
+        if self._needs_person(wo) and not self._takes_own_scan(wo) \
+                and not self._give_to_team(wo, team):
             return self._ask_person(wo, person_id)
         if self._needs_finisher(wo):
             return self._ask_finisher(wo, person_id)
@@ -1564,7 +1694,7 @@ class LabStation(models.AbstractModel):
         }
 
     @api.model
-    def _confirm_scan(self, wo, code, person_id=None):
+    def _confirm_scan(self, wo, code, person_id=None, team=None):
         """What this scan would do, said before it does it.
 
         The job is named the way the card is - the number the person just scanned -
@@ -1573,7 +1703,14 @@ class LabStation(models.AbstractModel):
         """
         workcenter = wo.workcenter_id
         accepting = not wo.accepted_at
-        if accepting:
+        # Who it would go to, said in the question: a team that is on for the tray
+        # is part of what the scan does. (client, 2026-11-25)
+        people = self._team_for(wo, team) if not wo.bench_user_id else self.env['res.users']
+        if accepting and people:
+            message = _("Accept %(job)s at %(wc)s for %(who)s?",
+                        job=self._job_label(wo), wc=workcenter.display_name,
+                        who=', '.join(people.mapped('name')))
+        elif accepting:
             message = _("Accept %(job)s at %(wc)s?",
                         job=self._job_label(wo), wc=workcenter.display_name)
         else:
@@ -1727,7 +1864,8 @@ class LabStation(models.AbstractModel):
 
     @api.model
     def assign(self, workorder_id, user_id, person_id=None):
-        """Give one job, or a handful picked together, to a technician.
+        """Give one job, or a handful picked together, to a technician - or to
+        several people working them together (`user_id` as a list, technician first).
 
         `workorder_id` takes a list as readily as a single id: handing out the morning
         one job at a time is how a lead stops using the board by Wednesday.
@@ -1742,8 +1880,15 @@ class LabStation(models.AbstractModel):
             raise UserError(_(
                 "Those jobs are at different stations. Give out one station's work at "
                 "a time — a technician is posted to a bench, not to the whole floor."))
-        wos.action_assign_bench_user(user_id)
+        wos.action_assign_bench_team(self._as_team(user_id))
         return self.get_station(stations.id, person_id)
+
+    @api.model
+    def _as_team(self, user_id):
+        """One name or several, as the list `action_assign_bench_team` takes."""
+        if isinstance(user_id, (list, tuple)):
+            return [int(u) for u in user_id if u]
+        return [int(user_id)] if user_id else []
 
     @api.model
     def move_by_scan(self, workorder_id, code, person_id=None):
