@@ -85,6 +85,48 @@ class MrpProduction(models.Model):
                 })
         return made
 
+    # ------------------------------------------------------------------ speed
+    def _calculate_expected_finished_date(self, date_start):
+        """No walk through the bench calendars for an expected finish.
+
+        Core finds the first free slot on each step's bench, step by step, to say
+        when a job would end if it were planned. The lab does not plan jobs (sale_custom
+        stopped planning at confirm, 2026-11-23), and the walk was a quarter of every
+        order confirm since each product got its steps: 60 slot searches for an order
+        of two crowns. Returning False is core's own "cannot tell" answer, and core
+        then takes the start plus the steps' minutes. (client, 2026-11-25: "fix the
+        loading issues")
+        """
+        return False
+
+    @api.depends('state', 'reservation_state', 'move_raw_ids', 'move_raw_ids.state',
+                 'move_raw_ids.product_uom_qty')
+    def _compute_components_availability(self):
+        """Material available or not, from what is reserved or on hand - not core's
+        dated forecast.
+
+        Core builds the stock forecast of every material on the job to say "Exp Nov
+        28" or "Late": for the lab's materials - wax, plaster, alloy, used by every
+        open job - that is the forecast of over a thousand open lines, rebuilt each
+        time a job is opened (three seconds a form on live). The lab draws material
+        from the shelf, not against dated receipts, so the date said nothing; whether
+        it is there still says something. (client, 2026-11-25)
+        """
+        running = self.filtered(lambda p: p.state not in ('cancel', 'done', 'draft'))
+        (self - running).components_availability = False
+        (self - running).components_availability_state = False
+        moves = running.move_raw_ids.filtered(
+            lambda m: m.state not in ('done', 'cancel') and m.product_id.is_storable)
+        free = {product.id: product.free_qty for product in moves.product_id}
+        for production in running:
+            short = any(
+                move.state != 'assigned'
+                and move.product_id.uom_id.compare(
+                    free.get(move.product_id.id, 0.0) + move.quantity, move.product_qty) < 0
+                for move in moves.filtered(lambda m: m.raw_material_production_id == production))
+            production.components_availability_state = 'unavailable' if short else 'available'
+            production.components_availability = _('Not Available') if short else _('Available')
+
     def action_print_job_labels(self):
         return self.env.ref(
             'lab_workcenter_scan.action_report_job_label').report_action(self)

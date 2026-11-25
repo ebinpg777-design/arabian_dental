@@ -29,6 +29,7 @@ the privacy boundary stays the one the trail already has.
 import json
 import logging
 import secrets
+from collections import OrderedDict
 from datetime import datetime, timedelta
 
 from .field_app import APP_LIVE_SECONDS, IDLE_CHECK_SECONDS
@@ -609,7 +610,44 @@ def _stays(points):
     return first
 
 
+# A cleaned trail, remembered by exactly what it was made from. Field Live redraws
+# every executive's whole day on every refresh, and cleaning a day of fixes is
+# tens of thousands of distance sums - the same answer each time until a new fix
+# arrives, which changes the key. Per worker process, a few hundred entries.
+# (client, 2026-11-25: "fix the loading issues")
+_MEMO = OrderedDict()
+_MEMO_SIZE = 600
+
+
+def _fingerprint(seq):
+    return (len(seq), hash(tuple(seq)))
+
+
+def _memo(key, compute):
+    try:
+        value = _MEMO.pop(key)
+    except KeyError:
+        value = compute()
+    _MEMO[key] = value
+    if len(_MEMO) > _MEMO_SIZE:
+        _MEMO.popitem(last=False)
+    return value
+
+
+def _steps_key(steps):
+    return hash(json.dumps(steps, sort_keys=True)) if steps else None
+
+
 def classify_modes(points):
+    """One mode per point (see _classify_modes), remembered per trail."""
+    try:
+        key = ('modes', _fingerprint(points))
+    except TypeError:
+        return _classify_modes(points)
+    return list(_memo(key, lambda: _classify_modes(points)))
+
+
+def _classify_modes(points):
     """One mode per point - 'vehicle', 'foot', 'blind' or 'still' - for the stretch
     that ENDS at it (the first point is 'still'). A point is (ts, lat, lon, speed,
     ..., motion at [8]); the speed is the phone's own reading on arrival where it gave
@@ -722,6 +760,16 @@ def road_metres(road):
 
 
 def mode_km(points, modes=None, steps=None):
+    """Distance along the trail by mode (see _mode_km), remembered per trail."""
+    try:
+        key = ('mode_km', _fingerprint(points), _fingerprint(modes) if modes else None,
+               _steps_key(steps))
+    except TypeError:
+        return _mode_km(points, modes, steps)
+    return dict(_memo(key, lambda: _mode_km(points, modes, steps)))
+
+
+def _mode_km(points, modes=None, steps=None):
     """Distance along the trail by mode: the steps trail_km counts, each laid to the
     stretch it ends. 'travel' (vehicle + blind) is what a travel claim is judged
     against; 'foot' is a walk; 'total' is trail_km.
@@ -932,15 +980,21 @@ class LabLocationPingLive(models.Model):
         """Every fix of the day, in order, as [(ts, lat, lon, speed_kmh, overspeed,
         battery, accuracy_m, source, motion, heading), ...] - the latest one is where the phone
         is. Readers unpack with `*_rest`: the tuple has grown before."""
-        pings = self.sudo().search_read(
-            [('user_id', '=', user.id), ('date', '=', day)],
-            ['ts', 'latitude', 'longitude', 'speed_kmh', 'overspeed', 'battery', 'accuracy_m',
-             'source', 'motion', 'heading'],
-            order='ts')
-        return [(p['ts'], p['latitude'], p['longitude'], p['speed_kmh'] or 0.0,
-                 bool(p['overspeed']), p['battery'] or 0.0, p['accuracy_m'] or 0.0,
-                 p['source'] or 'browser', p['motion'] or None, p['heading'] or 0.0)
-                for p in pings]
+        # Straight from the table: a day is a couple of thousand rows, read on every
+        # Field Live refresh for every executive, and the ORM's per-row conversion was
+        # most of the cost. Same rows, same order, same values as search_read gave.
+        self.flush_model(['user_id', 'date', 'ts', 'latitude', 'longitude', 'speed_kmh',
+                          'overspeed', 'battery', 'accuracy_m', 'source', 'motion', 'heading'])
+        self.env.cr.execute("""
+            SELECT ts, latitude, longitude, speed_kmh, overspeed, battery, accuracy_m,
+                   source, motion, heading
+              FROM lab_location_ping
+             WHERE user_id = %s AND date = %s
+          ORDER BY ts, id""", (user.id, day))
+        return [(ts, lat, lon, speed or 0.0, bool(over), battery or 0.0, accuracy or 0.0,
+                 source or 'browser', motion or None, heading or 0.0)
+                for ts, lat, lon, speed, over, battery, accuracy, source, motion, heading
+                in self.env.cr.fetchall()]
 
     @api.model
     def _trail_points(self, fixes):
@@ -949,9 +1003,17 @@ class LabLocationPingLive(models.Model):
         (drop_headless), and only where the phone went (drop_detours, drop_wander,
         drop_excursions)."""
         limit = self._trail_accuracy()
-        points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
-        points = drop_stale(points)
-        return drop_spikes(drop_excursions(drop_impossible(drop_wander(drop_detours(drop_headless(points))))))
+
+        def clean():
+            points = [p for p in fixes if not p[6] or p[6] < limit] if limit else list(fixes)
+            points = drop_stale(points)
+            return drop_spikes(drop_excursions(drop_impossible(drop_wander(drop_detours(
+                drop_headless(points))))))
+        try:
+            key = ('trail', limit, _fingerprint(fixes))
+        except TypeError:
+            return clean()
+        return list(_memo(key, clean))
 
     @api.model
     def _day_points(self, user, day):

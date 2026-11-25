@@ -3,3 +3,4 @@ access_sticker_wizard_user,sticker wizard,epg.sticker.print.wizard,base.group_us
 access_sticker_format_user,sticker format read,epg.sticker.format,base.group_user,r,
 access_sticker_format_manager,sticker format manage,epg.sticker.format,sales_team.group_sale_manager,crud,
 access_sticker_sheet_user,sticker tray sheet,epg.sticker.sheet,base.group_user,crud,
+access_sticker_preview_cache,sticker preview cache,epg.sticker.preview.cache,base.group_user,r,

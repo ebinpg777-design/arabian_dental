@@ -219,8 +219,8 @@ export class LabMyDay extends Component {
     }
 
     /** {coords} or {error} - see position.js for everything this used to get wrong. */
-    async getPosition() {
-        const found = await locate();
+    async getPosition(purpose = "visit") {
+        const found = await locate({ purpose });
         if (found.coords) {
             clearPositionWarning();
         }
@@ -761,7 +761,7 @@ export class LabMyDay extends Component {
         this.state.busy = "att";
         try {
             const exempt = Boolean(session.fw_location_exception);
-            const found = exempt ? {} : await this.getPosition();
+            const found = exempt ? {} : await this.getPosition("day");
             const coords = found.coords || null;
             await this.orm.call("lab.my.day", "attendance_toggle", [], {
                 latitude: coords ? coords.latitude : false,

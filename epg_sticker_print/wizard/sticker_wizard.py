@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import json
+import hashlib
 import logging
 import base64
 from markupsafe import Markup
@@ -17,6 +18,25 @@ _logger = logging.getLogger(__name__)
 # morning's parcels, not just the first label (client, 2026-10-14: "print sticker
 # should show the previews of multiple selected orders"). Past it, Preview all.
 PREVIEW_MAX = 20
+
+
+class StickerPreviewCache(models.TransientModel):
+    """A rendered preview, kept for the hour it is useful.
+
+    The preview is computed again on every step of the wizard - it opens, it is
+    saved, it is read back, Print is pressed - and each time it was a wkhtmltopdf
+    run and a rasterising of up to twenty labels: 6-7 seconds a step on the lab's
+    server, so one sticker print waited on the same preview four times. Kept here
+    (not in memory: the steps land on different worker processes) under a key made
+    of everything the labels say, so a changed order, format or option is a new
+    preview and never a stale one. (2026-11-25: "fix the loading issues")
+    """
+    _name = 'epg.sticker.preview.cache'
+    _description = 'Sticker preview (cache)'
+    _transient_max_hours = 1.0
+
+    key = fields.Char(required=True, index=True)
+    html = fields.Html(sanitize=False)
 
 
 class StickerPrintWizard(models.TransientModel):
@@ -264,6 +284,36 @@ class StickerPrintWizard(models.TransientModel):
         (client, 2026-08-19). Falls back to the HTML rendering if the PDF or the
         rasteriser is unavailable.
         """
+        self.ensure_one()
+        Cache = self.env['epg.sticker.preview.cache'].sudo()
+        key = self._preview_key(stickers, fmt)
+        cached = key and Cache.search([('key', '=', key)], limit=1)
+        if cached:
+            return Markup(cached.html or '')
+        markup = self._preview_render(stickers, fmt)
+        if key:
+            Cache.create({'key': key, 'html': markup})
+        return markup
+
+    def _preview_key(self, stickers, fmt):
+        """Everything the preview is drawn from: the labels' own text, the format, the
+        options, and the templates as they stand. False when it cannot be said."""
+        self.ensure_one()
+        self.env.cr.execute(
+            "SELECT max(write_date) FROM ir_ui_view WHERE key LIKE 'epg_sticker_print.%%'")
+        templates = self.env.cr.fetchone()[0]
+        try:
+            blob = json.dumps({
+                'stickers': stickers[:PREVIEW_MAX], 'total': len(stickers),
+                'format': [fmt.id, fmt.write_date], 'options': self._options(),
+                'orders': self.order_ids.ids, 'partners': self.partner_ids.ids,
+                'templates': templates, 'lang': self.env.lang, 'max': PREVIEW_MAX,
+            }, sort_keys=True, default=str)
+        except (TypeError, ValueError):
+            return False
+        return hashlib.sha1(blob.encode()).hexdigest()
+
+    def _preview_render(self, stickers, fmt):
         self.ensure_one()
         Engine = self.env['epg.sticker.engine']
         total = len(stickers)

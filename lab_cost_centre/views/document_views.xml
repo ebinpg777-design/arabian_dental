@@ -17,6 +17,37 @@
         </field>
     </record>
 
+    <!-- Orders by department: searched, grouped, and in the left panel beside the
+         routes - the panel is sale_custom's, and a search view holds only one.
+         (client, 2026-11-25: "Group by Department in SOs, and a department filter in
+         the search panel") -->
+    <record id="view_sales_order_filter_department" model="ir.ui.view">
+        <field name="name">sale.order.search.department</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <field name="team_id" position="after">
+                <field name="department_id"/>
+            </field>
+            <filter name="salesperson" position="before">
+                <filter name="group_department" string="Department"
+                        context="{'group_by': 'department_id'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="view_sales_order_panel_department" model="ir.ui.view">
+        <field name="name">sale.order.search.panel.department</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale_custom.view_sales_order_filter_route_panel"/>
+        <field name="arch" type="xml">
+            <xpath expr="//searchpanel" position="inside">
+                <field name="department_id" string="Department" icon="fa-building"
+                       enable_counters="1" expand="1"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_sale_order_list_department" model="ir.ui.view">
         <field name="name">sale.order.list.department</field>
         <field name="model">sale.order</field>

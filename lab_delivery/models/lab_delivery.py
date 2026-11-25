@@ -23,6 +23,9 @@ from .lab_courier_event import CLOSED_STATUS, STATUS as COURIER_STATUS, TROUBLE_
 
 _logger = logging.getLogger(__name__)
 
+# The largest view of a photo the barcode reader is given, on its long side.
+PHOTO_MAX_SIDE = 2400
+
 OPEN_STATES = ('draft', 'assigned', 'out')
 
 
@@ -869,6 +872,22 @@ class LabDelivery(models.Model):
         caller stops at the first frame that answers. (client, 2026-08-28)
         """
         from PIL import ImageFilter, ImageOps
+
+        # Enlarging helps a small frame (a webcam's, a cropped slot) and adds
+        # nothing to a phone photo that already has the pixels: a 1080x1920 photo
+        # tripled is 19 million pixels, and with a photo that holds no code - most
+        # of them do not - every pass ran, 5 to 10 seconds of a worker. No view is
+        # made larger than this on its long side. (client, 2026-11-25)
+        def scaled(img, factor):
+            factor = min(factor, PHOTO_MAX_SIDE / max(img.size))
+            if factor <= 1.0:
+                return img
+            return img.resize((round(img.width * factor), round(img.height * factor)))
+
+        def sharpen(img, radius=3, percent=250, threshold=1):
+            return img.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent,
+                                                      threshold=threshold))
+
         yield 'raw', image
         grey = ImageOps.autocontrast(image.convert('L'), cutoff=1)
         yield 'grey', grey
@@ -877,21 +896,19 @@ class LabDelivery(models.Model):
         # narrower than the raw pass does, and it is a fifth of the pixels.
         w, h = grey.size
         slot = grey.crop((int(w * 0.05), int(h * 0.15), int(w * 0.95), int(h * 0.85)))
-        slot2 = slot.resize((slot.width * 2, slot.height * 2))
-        yield 'slot2sharp', slot2.filter(
-            ImageFilter.UnsharpMask(radius=3, percent=250, threshold=1))
-        up2 = grey.resize((grey.width * 2, grey.height * 2))
-        yield 'up2sharp', up2.filter(
-            ImageFilter.UnsharpMask(radius=3, percent=250, threshold=1))
+        yield 'slot2sharp', sharpen(scaled(slot, 2))
+        up2 = scaled(grey, 2)
+        up2sharp = sharpen(up2)
+        yield 'up2sharp', up2sharp
         threshold = self._otsu_threshold(grey)
         binarize = lambda img: img.point(lambda p: 255 if p > threshold else 0)  # noqa: E731
         yield 'otsu', binarize(grey)
-        yield 'otsu2', binarize(up2)
-        yield 'otsu2sharp', binarize(up2.filter(
-            ImageFilter.UnsharpMask(radius=3, percent=250, threshold=1)))
-        up3 = grey.resize((grey.width * 3, grey.height * 3))
-        yield 'otsu3sharp', binarize(up3.filter(
-            ImageFilter.UnsharpMask(radius=4, percent=300, threshold=0)))
+        if up2 is not grey:
+            yield 'otsu2', binarize(up2)
+        yield 'otsu2sharp', binarize(up2sharp)
+        up3 = scaled(grey, 3)
+        if up3.size != up2.size:
+            yield 'otsu3sharp', binarize(sharpen(up3, radius=4, percent=300, threshold=0))
 
     @staticmethod
     def _otsu_threshold(grey):

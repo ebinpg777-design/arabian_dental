@@ -609,6 +609,33 @@ class TestStationBoard(TransactionCase):
         with self.assertRaises((UserError, AccessError)):
             self.wo_a.with_user(stranger).action_take_own_job()
 
+    def test_a_lead_posted_to_the_bench_is_asked_who_not_given_the_job(self):
+        """Every technician here is also a lead of their bench (2026-11-24): their
+        scan shows the bench's people to choose from, as Correct does, and they can
+        answer it. (client, 2026-11-25)"""
+        self.env['ir.config_parameter'].sudo().set_str(
+            'lab_workcenter_scan.technician_takes_own_scan', '1')
+        lead = self._bench_user('bench_lead_posted', self.wc_a)
+        self.wc_a.head_user_ids = [(4, lead.id)]
+        ask = self.env['lab.station'].with_user(lead).scan(
+            self.mo.name, self.wc_a.id, confirmed=True)
+        self.assertEqual(ask['action'], 'needs_person')
+        self.assertTrue(ask['can_assign'], "a lead answers the question")
+        self.assertIn(lead.id, [p['id'] for p in ask['people']])
+        self.assertFalse(self.wo_a.bench_user_id, "nobody's name until the lead picks")
+
+    def test_the_chip_counts_work_in_hand_and_work_finished(self):
+        """In hand stays on the chip whatever day it was taken; finished work
+        counts for the day it left the bench. (client, 2026-11-25)"""
+        self.env['ir.config_parameter'].sudo().set_str(
+            'lab_workcenter_scan.technician_takes_own_scan', '1')
+        tech = self._bench_user('bench_counted', self.wc_a)
+        Station = self.env['lab.station']
+        Station.with_user(tech).scan(self.mo.name, self.wc_a.id, confirmed=True)
+        row = next(r for r in Station._bench_load(self.wc_a) if r['id'] == tech.id)
+        self.assertEqual((row['load'], row['done_count']), (0, 1),
+                         "passed on: nothing in hand, one finished today")
+
     def test_one_tap_names_who_did_it_and_hands_it_on(self):
         """The popup's answer: assign and hand over in one call, so the rule costs
         the lead a single tap instead of three."""

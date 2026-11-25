@@ -436,6 +436,7 @@ class LabStation(models.AbstractModel):
             ['bench_user_id'], ['__count']))
         this_day = day or self._lab_today()
         days = self._day_counts(workcenter, people, this_day)
+        finished = self._finished_counts(workcenter, people, this_day)
         heads = workcenter.head_user_ids
         # What the day was MEANT to be. A count on its own says nothing: eleven is
         # a good day at one bench and a thin one at another, and only the manager
@@ -459,6 +460,10 @@ class LabStation(models.AbstractModel):
             done = (floor_days if whole_floor else days).get(u.id, 0)
             rows.append({
                 'id': u.id, 'name': u.name, 'load': loads.get(u, 0),
+                # Finished and passed on from this bench on the day shown - with the
+                # load, what the chip says. (client, 2026-11-25: "should show the work
+                # in hand and completed work")
+                'done_count': finished.get(u.id, 0),
                 'day_count': done,
                 'target': target,
                 # Sent ready-made: every screen showing this must agree about what
@@ -609,6 +614,26 @@ class LabStation(models.AbstractModel):
         # target set for no particular bench is measured against.
         return self.env['mrp.workorder']._day_counts_by_person(
             start, end, people.ids, workcenter)
+
+    @api.model
+    def _finished_counts(self, workcenter, people, day):
+        """Per person, the jobs finished at this bench on `day`: handed on, by the
+        technician who carried the work out or the one who finished it (both are
+        credited, as on every count on this floor)."""
+        if not people:
+            return {}
+        start, end = self._day_window(day)
+        self.env['mrp.workorder'].flush_model(
+            ['workcenter_id', 'handed_over_at', 'bench_user_id', 'finisher_user_id'])
+        self.env.cr.execute("""
+            SELECT p.person, count(DISTINCT wo.id)
+              FROM mrp_workorder wo
+             CROSS JOIN LATERAL (VALUES (wo.bench_user_id), (wo.finisher_user_id)) AS p(person)
+             WHERE wo.workcenter_id = %s
+               AND wo.handed_over_at >= %s AND wo.handed_over_at < %s
+               AND p.person = ANY(%s)
+             GROUP BY p.person""", (workcenter.id, start, end, people.ids))
+        return dict(self.env.cr.fetchall())
 
     @api.model
     def _ul_labels(self):
@@ -966,6 +991,12 @@ class LabStation(models.AbstractModel):
         if str(raw or '').strip().lower() not in ('1', 'true'):
             return False
         if self.env.user not in wo.workcenter_id.users:
+            return False
+        # A lead (or a manager) gives the work out: the scan asks who is doing it,
+        # with the bench's technicians to pick from - as Correct does - instead of
+        # putting the lead's own name on it. (client, 2026-11-25: "if the logged in
+        # user is team lead then show the list of technicians on scanning")
+        if wo._bench_role(wo.workcenter_id) in ('manager', 'lead'):
             return False
         wo.action_take_own_job()
         return True

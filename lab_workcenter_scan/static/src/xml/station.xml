@@ -292,6 +292,14 @@
                         t-on-click="() => this.showPerson(p)">
                     <i class="fa fa-check o_st_person_check"/>
                     <span class="o_st_person_n" t-out="p.name"/>
+                    <!-- In hand at this bench, whatever day it was taken, beside what
+                         was finished on the day shown. A count of the day alone went
+                         to 0 at midnight with work still on the bench, and the work
+                         that had been passed on was nowhere. (client, 2026-11-25) -->
+                    <span t-if="p.id !== 'none'" class="o_st_person_c o_st_person_hand"
+                          t-att-title="p.load + ' in hand at this bench'">
+                        <i class="fa fa-hand-paper-o me-1" aria-hidden="true"/><t t-out="p.load"/>
+                    </span>
                     <!-- The day's work, not the pile: what this person took or
                          finished on the day being looked at. The pile is still
                          what the who-did-it popup spreads by. (client, 2026-09-09) -->
@@ -305,15 +313,17 @@
                                 + ' of them here). Their target is set for the whole day,'
                                 + ' not for this bench.'
                               : (p.target
-                                 ? p.day_count + ' of ' + p.target + ' taken or finished ' + this.doneLabel
-                                 : 'Taken or finished ' + this.doneLabel))">
+                                 ? p.done_count + ' finished ' + this.doneLabel + '; '
+                                   + p.day_count + ' of ' + p.target + ' taken or finished'
+                                 : p.done_count + ' finished and passed on ' + this.doneLabel))">
                         <!-- Say when the number is not this bench's alone. A count
                              that quietly includes other benches is worse than a
                              wrong one: nothing on the chip would say which it is.
                              Before the number, so it is read first. (client, 2026-09-14) -->
                         <i t-if="p.all_benches" class="fa fa-globe o_st_person_floor"
                            title="Counted across every bench"/>
-                        <t t-out="p.id === 'none' ? p.load : p.day_count"/>
+                        <i t-if="p.id !== 'none'" class="fa fa-check me-1" aria-hidden="true"/>
+                        <t t-out="p.id === 'none' ? p.load : p.done_count"/>
                         <!-- The target only appears where somebody set one, so a
                              bench that does not work this way sees the count it
                              always saw. (client, 2026-09-09) -->

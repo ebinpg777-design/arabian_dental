@@ -70,8 +70,84 @@ function attempt(options, guardMs) {
     });
 }
 
+/**
+ * Both readings at once, the better one kept (client, 2026-11-25: "Start my day
+ * takes a long time"). Asked one after the other, a phone indoors without a GPS
+ * lock waited out the GPS timeout before the network was even asked: up to 35
+ * seconds behind the button. Now GPS and the network position are asked together:
+ *
+ * - `purpose: "day"` (Start my day / End the day) takes the first position that
+ *   arrives, a few minutes old or not - the day's start needs the town, not the
+ *   doorstep, and the recorder takes over from there;
+ * - `purpose: "visit"` (I'm Here) waits a few seconds for GPS, because the server
+ *   measures the fix against the clinic, then takes a network position that is
+ *   precise enough rather than none.
+ */
+const FAST = {
+    day: { gpsAge: 300000, netAge: 300000, preferGpsMs: 0, netEnoughM: Infinity },
+    visit: { gpsAge: 30000, netAge: 60000, preferGpsMs: 8000, netEnoughM: 150 },
+};
+const HARD_MS = 15000;
+
+async function race(purpose, guardMs) {
+    const rule = FAST[purpose] || FAST.visit;
+    const started = Date.now();
+    return new Promise((resolve) => {
+        let done = false;
+        let net = null;
+        let errors = [];
+        let pending = 2;
+        const finish = (result) => {
+            if (!done) {
+                done = true;
+                clearTimeout(hard);
+                clearTimeout(soft);
+                resolve(result);
+            }
+        };
+        const settleNet = () => {
+            if (!net) {
+                return;
+            }
+            const waited = Date.now() - started;
+            const precise = (net.coords.accuracy || Infinity) <= rule.netEnoughM;
+            if (rule.preferGpsMs === 0 || (precise && waited >= rule.preferGpsMs)) {
+                finish(net);
+            }
+        };
+        const failed = (error) => {
+            errors.push(error);
+            pending -= 1;
+            if (pending === 0) {
+                finish(net || { error: errors.includes("denied") ? "denied" : errors[0] });
+            }
+        };
+        const hard = setTimeout(() => finish(net || { error: "timeout" }), guardMs);
+        const soft = rule.preferGpsMs ? setTimeout(settleNet, rule.preferGpsMs) : null;
+        attempt({ ...GPS, maximumAge: rule.gpsAge }, guardMs).then((result) => {
+            if (result.coords) {
+                finish(result);
+            } else {
+                failed(result.error);
+            }
+        });
+        attempt({ ...NETWORK, maximumAge: rule.netAge }, guardMs).then((result) => {
+            if (result.coords) {
+                net = result;
+                pending -= 1;
+                settleNet();
+                if (pending === 0) {
+                    finish(net);
+                }
+            } else {
+                failed(result.error);
+            }
+        });
+    });
+}
+
 /** Where is this browser? Resolves {coords} or {error}; never rejects, never hangs. */
-export async function locate() {
+export async function locate({ purpose = "visit" } = {}) {
     if (!navigator.geolocation) {
         return { error: "unsupported" };
     }
@@ -83,17 +159,9 @@ export async function locate() {
     if (state === "denied") {
         return { error: "denied" };
     }
-    const asking = state !== "granted";
-    let result = await attempt(GPS, asking ? WHILE_ASKING_MS : GPS.timeout + 5000);
-    if (result.error === "timeout" || result.error === "unavailable") {
-        // No GPS lock yet - indoors, or a computer with no GPS at all. The network
-        // position still says which street, and a recent one will do.
-        const second = await attempt(NETWORK, NETWORK.timeout + 5000);
-        if (second.coords) {
-            result = second;
-        }
-    }
-    return result;
+    // While Chrome's question is on screen the executive is reading it: the guard
+    // waits for them, as before.
+    return race(purpose, state !== "granted" ? WHILE_ASKING_MS : HARD_MS);
 }
 
 const REASONS = {

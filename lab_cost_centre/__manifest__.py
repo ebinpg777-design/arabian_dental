@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Departments & Cost Centres',
-    'version': '20.0.1.1.1',
+    'version': '20.0.1.2.0',
     'summary': "Every order, job, purchase, invoice and movement carries the department "
                "that owns it and the cost centre it lands on",
     'description': """
@@ -55,6 +55,7 @@ list then work by department with no further work.
         'mrp',
         'mrp_account',
         'material_request',
+        'sale_custom',          # its orders' search panel, which this adds Department to
     ],
     # No access rules: nothing here is a new concrete model. The cockpit is an
     # abstract model read through one method, exactly as the floor boards are.

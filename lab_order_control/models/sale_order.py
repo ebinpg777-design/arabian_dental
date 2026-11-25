@@ -444,6 +444,46 @@ class SaleOrder(models.Model):
             stopped |= order
         return {'orders': stopped, 'names': names}
 
+    def action_confirm_selected(self):
+        """Confirm the quotations ticked in a list, one by one.
+
+        The list's Confirm button (client, 2026-11-25). One order the gate stops -
+        not verified, over its credit limit - must not stop the forty behind it, and
+        an order already confirmed is simply not a quotation any more. Each is
+        confirmed on its own; what was skipped is said, with why.
+        """
+        open_orders = self.filtered(lambda o: o.state in ('draft', 'sent'))
+        if not open_orders:
+            raise UserError(_("None of the selected orders is a quotation waiting to "
+                              "be confirmed."))
+        done = self.browse()
+        skipped = []
+        for order in open_orders:
+            try:
+                with self.env.cr.savepoint():
+                    order.action_confirm()
+                done |= order
+            except UserError as error:
+                # the first sentence says why: "S80911 has not been verified."
+                reason = str(error.args[0]).split('\n')[0].split('. ')[0].rstrip('.')
+                skipped.append('%s (%s)' % (order.name, reason.replace(order.name, '').strip()))
+        message = _("%s confirmed.", len(done)) if done else _("Nothing confirmed.")
+        if skipped:
+            # a notification keeps no line breaks: one line, the reasons in brackets
+            shown = '; '.join(skipped[:8]) + (_(" and %s more", len(skipped) - 8)
+                                             if len(skipped) > 8 else '')
+            message += ' ' + _("Not confirmed: %s.", shown)
+        return {
+            'type': 'ir.actions.client', 'tag': 'display_notification',
+            'params': {
+                'title': _("Confirm"),
+                'message': message,
+                'type': 'warning' if skipped else 'success',
+                'sticky': bool(skipped),
+                'next': {'type': 'ir.actions.client', 'tag': 'soft_reload'},
+            },
+        }
+
     def action_confirm(self):
         for order in self:
             if order._verification_required() and order.verification_state != 'verified':

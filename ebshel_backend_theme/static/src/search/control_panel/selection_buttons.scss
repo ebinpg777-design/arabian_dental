@@ -1,0 +1,13 @@
+// The buttons for the records ticked in a list share the control panel with the
+// search and the pager. Odoo lays them out on one line that cannot shrink, so a
+// list with several header buttons (orders: Confirm, Create Invoices, Authentication
+// Card, Job Sheets, Production Reports) pushed them under the pager and both were
+// drawn on top of each other. Here they may take a second line instead.
+// (client, 2026-11-25: "Fix the UI issues")
+.o_control_panel .o_control_panel_actions {
+    .o_selection_container {
+        flex-wrap: wrap;
+        row-gap: map-get($spacers, 1);
+        min-width: 0;
+    }
+}

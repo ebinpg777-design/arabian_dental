@@ -115,6 +115,8 @@ $st-danger: #b3261e; // start again — the one act that destroys work
     }
 
     .o_st_person_on .o_st_person_c { background-color: rgba($st-work, .15); color: $st-work; }
+    .o_st_person_c + .o_st_person_c { margin-left: .25rem; }
+    .o_st_person_c .fa { font-size: .6875rem; opacity: .7; }
 
     .o_st_nudge {
         display: flex;
