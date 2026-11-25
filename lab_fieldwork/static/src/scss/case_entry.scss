@@ -291,6 +291,17 @@ $fwc-line: #e2e8f0;
     .o_fw_cs_sent { background: #fff7ed; color: #c2410c; } .o_fw_cs_order { background: #ecfdf5; color: #047857; } .o_fw_cs_call { background: #fef2f2; color: #b91c1c; } }
 
 // The order a submitted slip became, at the top of the slip.
+// The next case of the same clinic: a full-width target under the order number,
+// green as "add" is on this form, flat so it reads as a second step and not the
+// first. (client, 2026-11-25)
+.o_fw_case .btn.o_fw_btn_another {
+    display: flex; align-items: center; justify-content: center; gap: .5rem;
+    width: 100%; min-height: 48px; margin: 0 0 .875rem; padding: .5rem .875rem;
+    border: 1.5px solid #86efac; border-radius: .875rem;
+    background: #f0fdf4; color: #15803d; font-weight: 700; font-size: .9375rem;
+    &:hover, &:focus { background: #dcfce7; border-color: #4ade80; color: #166534; }
+}
+
 .o_fw_case .o_fw_order_no {
     display: flex; align-items: center; gap: .5rem;
     margin: 0 0 .875rem; padding: .625rem .875rem;

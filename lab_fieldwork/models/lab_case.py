@@ -622,6 +622,37 @@ class LabCase(models.Model):
                 ', '.join(ordered.mapped('patient'))))
         self.write({'state': 'cancel'})
 
+    def action_another_case(self):
+        """Another case from the same clinic, without going back to find it.
+
+        A doctor hands over several cases at once, and each is a slip of its own.
+        After the first, the executive had to leave the case, find the visit (or
+        the clinic, for a parcel) and start again - and the second slip was the one
+        that got left for later. One tap opens a blank slip for the same clinic: on
+        the same visit while that visit is the executive's to add to (under way, or
+        finished - a slip handed over after check-out still belongs to it), and
+        otherwise as a case sent to the lab the same way, under the same docket.
+        (client, 2026-11-25: "a button in the case register to create another case
+        of the same clinic")
+        """
+        self.ensure_one()
+        visit = self.visit_id
+        if visit and visit.state in ('open', 'done'):
+            context = {'default_visit_id': visit.id}
+        else:
+            via = self.received_via if self.received_via in ('courier', 'transport') \
+                else 'courier'
+            context = {
+                'default_partner_id': self.partner_id.id,
+                'default_received_via': via,
+                'default_received_ref': self.received_ref or False,
+            }
+        return {
+            'type': 'ir.actions.act_window', 'name': _('Register a Case'),
+            'res_model': 'lab.case', 'view_mode': 'form', 'target': 'current',
+            'context': context,
+        }
+
     def action_view_order(self):
         self.ensure_one()
         return {

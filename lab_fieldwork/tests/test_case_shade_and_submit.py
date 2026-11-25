@@ -139,3 +139,36 @@ class TestCaseShadeAndSubmit(TransactionCase):
         self.assertEqual(lines.mapped('color_scheme'), self.a2 | self.b1)
         self.assertEqual(lines[0].color_scheme, self.a2)
         self.assertEqual(lines[1].color_scheme, self.b1)
+
+    # ---------------------------------------------------- another case, same clinic
+    def test_another_case_on_the_same_visit(self):
+        visit = self._visit()
+        case = self.Case.create({'visit_id': visit.id, 'patient': 'First Of Two',
+                                 'line_ids': [(0, 0, {'product_id': self.crown.id, 'ul': 'upper'})]})
+        case.action_submit()
+        action = case.action_another_case()
+        self.assertEqual(action['res_model'], 'lab.case')
+        self.assertEqual(action['context'], {'default_visit_id': visit.id})
+        second = self.Case.with_context(**action['context']).create({'patient': 'Second Of Two'})
+        self.assertEqual((second.visit_id, second.partner_id), (visit, self.clinic))
+        self.assertEqual(second.state, 'draft')
+
+    def test_another_case_that_came_by_courier_keeps_the_clinic_and_the_docket(self):
+        case = self._case(received_via='transport', received_ref='LR-4471')
+        case.action_submit()
+        context = case.action_another_case()['context']
+        self.assertFalse(context.get('default_visit_id'))
+        second = self.Case.with_context(**context).create({'patient': 'Same Parcel'})
+        self.assertEqual((second.partner_id, second.received_via, second.received_ref),
+                         (self.clinic, 'transport', 'LR-4471'))
+        self.assertFalse(second.visit_id)
+
+    def test_another_case_after_a_visit_that_was_cancelled_comes_without_it(self):
+        visit = self._visit()
+        case = self.Case.create({'visit_id': visit.id, 'patient': 'Visit Gone',
+                                 'line_ids': [(0, 0, {'product_id': self.crown.id, 'ul': 'upper'})]})
+        visit.sudo().write({'state': 'cancel'})
+        context = case.action_another_case()['context']
+        self.assertEqual(context.get('default_partner_id'), self.clinic.id)
+        self.assertEqual(context.get('default_received_via'), 'courier')
+        self.assertNotIn('default_visit_id', context)

@@ -52,6 +52,13 @@
                         <span class="o_fw_order_no_l">Order</span>
                         <field name="order_name" nolabel="1" readonly="1" class="o_fw_order_no_v"/>
                     </div>
+                    <!-- The next case of the same clinic, one tap away. In the sheet
+                         and not the header: on a phone the header shows one button
+                         and folds the rest into a menu. (client, 2026-11-25) -->
+                    <button name="action_another_case" type="object"
+                            class="o_fw_btn_another" icon="fa-plus-circle"
+                            string="Another case from this clinic"
+                            invisible="state == 'draft' or not partner_id"/>
                     <div class="alert alert-warning m-0 mb-3 rounded"
                          role="alert" invisible="not duplicate_warning or duplicate_ack">
                         <div class="d-flex align-items-start">
