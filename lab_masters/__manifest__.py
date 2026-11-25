@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "Lab Master Data",
-    'version': '20.0.1.2.0',
+    'version': '20.0.1.3.0',
     'summary': "The lab's departments, cost centres, benches, raw materials and "
                "bills of materials, as the SOPs describe them",
     'description': """

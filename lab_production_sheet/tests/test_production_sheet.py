@@ -125,7 +125,8 @@ class TestProductionSheet(TransactionCase):
         _order, denture = self._order('AC-RPD')
         acrylic = denture._lab_sheet()['sections']
         self.assertEqual([r['label'] for r in acrylic[0]['rows']],
-                         ['Special Tray', 'Wax Bite', 'Teeth Setting', 'Flasking', 'De Waxing',
+                         ['Special Tray', 'Wax Bite', 'Teeth Setting', 'Trail Carving', 'Wax Up',
+                          'Flasking', 'De Waxing',
                           'Packing', 'Curing', 'Trimming', 'Polishing'])
 
     def test_a_bench_named_for_its_department_prints_as_its_row(self):

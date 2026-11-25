@@ -74,6 +74,10 @@ BENCHES = [
     ('special_tray', 'wc_special_tray', 'Special Tray', 'AC-02', 'dept_acrylic', LABOUR, False),
     ('wax_bite', 'wc_wax_bite', 'Wax Bite', 'AC-03', 'dept_acrylic', LABOUR, False),
     ('teeth_setting', 'wc_teeth_setting', 'Teeth Setting', 'AC-04', 'dept_acrylic', LABOUR, False),
+    # after the try-in: the trial denture carved, then waxed up for flasking. The lab's
+    # own names and spelling - it made these two benches itself. (client, 2026-11-25)
+    ('trail_carving', 'wc_trail_carving', 'Trail Carving', 'AC-11', 'dept_acrylic', LABOUR, False),
+    ('acrylic_wax_up', 'wc_acrylic_wax_up', 'Wax Up', 'AC-12', 'dept_acrylic', LABOUR, False),
     ('flasking', 'wc_flasking', 'Flasking', 'AC-05', 'dept_acrylic', LABOUR, False),
     ('de_waxing', 'wc_acr_dewaxing', 'De Waxing', 'AC-06', 'dept_acrylic', LABOUR, False),
     ('acrylic_packing', 'wc_packing_material', 'Packing', 'AC-07', 'dept_acrylic', LABOUR, True),
@@ -180,7 +184,8 @@ ROUTES = {
     # an Essix splint is formed and trimmed: there is no wire in it
     'splint': ['ortho_model_preparation', 'acrylization', 'ortho_trimming'] + FOOT,
     # the pink sheet
-    'acrylic': ['acrylic_model_preparation', 'special_tray', 'wax_bite', 'teeth_setting', 'flasking',
+    'acrylic': ['acrylic_model_preparation', 'special_tray', 'wax_bite', 'teeth_setting',
+                'trail_carving', 'acrylic_wax_up', 'flasking',
                 'de_waxing', 'acrylic_packing', 'curing', 'acrylic_trimming',
                 'acrylic_polishing'] + FOOT,
 }
@@ -233,10 +238,62 @@ class LabMastersLoader(models.AbstractModel):
                 if changed:
                     bench.sudo().write(changed)
             else:
-                bench = Workcenter.create(dict(vals, costs_hour=rate))
+                create = dict(vals, costs_hour=rate)
+                # its department's cost centre, as the form's onchange would put it:
+                # a bench made here was otherwise left posting its time nowhere
+                centre = dept and dept.cost_centre_id
+                if centre:
+                    create['analytic_distribution'] = {str(centre.id): 100.0}
+                bench = Workcenter.create(create)
                 self._tag('mrp.workcenter', xmlid, bench)
             benches[key] = bench.sudo()
         return benches
+
+    @api.model
+    def _floor_add_after_teeth_setting(self):
+        """Trail Carving and Wax Up, right after Teeth Setting, in every bill of
+        materials that has Teeth Setting (client, 2026-11-25: "add the operations
+        Trail Carving and Wax Up after Teeth setting in all BoMs contains Teeth
+        setting").
+
+        The two benches take Teeth Setting's people - its technicians and its leads -
+        where nobody is posted yet. A step is added at no minutes, so no product's
+        labour cost moves; the steps after it move down. A bill of materials that
+        already has either step is left as it is, so this runs again harmlessly (it
+        was first done on the live server by hand, the same way).
+        Returns how many bills of materials were changed.
+        """
+        benches = self._floor_benches()
+        teeth = benches['teeth_setting']
+        new = [benches['trail_carving'], benches['acrylic_wax_up']]
+        for bench in new:
+            vals = {}
+            # both fields come from modules loaded after this one (sale_custom's
+            # technicians, the station's leads): not there yet in a fresh install
+            for field in ('users', 'head_user_ids'):
+                if field in bench._fields and not bench[field]:
+                    vals[field] = [(6, 0, teeth[field].ids)]
+            if vals:
+                bench.write(vals)
+        Operation = self.env['mrp.routing.workcenter'].sudo()
+        changed = 0
+        for bom in self.env['mrp.bom'].sudo().search([('operation_ids.workcenter_id', '=', teeth.id)]):
+            steps = bom.operation_ids.sorted(lambda o: (o.sequence, o.id))
+            if steps.filtered(lambda o: o.workcenter_id in new[0] | new[1]):
+                continue
+            setting = steps.filtered(lambda o: o.workcenter_id == teeth)[:1]
+            for step in steps.filtered(lambda o: (o.sequence, o.id) > (setting.sequence, setting.id)):
+                step.sequence += 10 * len(new)
+            for offset, bench in enumerate(new, start=1):
+                Operation.create({
+                    'bom_id': bom.id, 'name': bench.name, 'workcenter_id': bench.id,
+                    'sequence': setting.sequence + 10 * offset, 'time_mode': 'manual',
+                    'time_cycle_manual': 0.0,
+                })
+            changed += 1
+        _logger.info("lab_masters: Trail Carving and Wax Up added after Teeth Setting "
+                     "in %s bills of materials", changed)
+        return changed
 
     # ------------------------------------------------------------------- routes
     @api.model

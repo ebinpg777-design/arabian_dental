@@ -26,7 +26,7 @@ class TestFloorLayout(TransactionCase):
                      'Acrylic/Polishing', 'Acrylic/Packing', 'Packing', 'Scanning', 'Finishing'):
             self.assertIn(name, names)
         self.assertEqual(len(names), len(set(names)), "no two benches share a name")
-        self.assertEqual(len(names), 31)
+        self.assertEqual(len(names), 33)
 
     def test_the_benches_are_the_rows_of_the_sheets(self):
         for key, xmlid, _row, code, _dept, _rate, _shared in BENCHES:
@@ -38,6 +38,23 @@ class TestFloorLayout(TransactionCase):
             self.assertTrue(bench.analytic_distribution, "%s cannot post its time" % name)
         old = self.env.ref('lab_masters.wc_wash_firing')
         self.assertFalse(old.active, "a bench that is on no sheet is put away")
+
+    def test_trail_carving_and_wax_up_follow_teeth_setting(self):
+        """In every bill of materials with Teeth Setting, and only once however
+        often it runs. (client, 2026-11-25)"""
+        Loader = self.env['lab.masters.loader']
+        teeth = self.env.ref('lab_masters.wc_teeth_setting')
+        bom = self.env['mrp.bom'].create({
+            'product_tmpl_id': self.env['product.template'].create({'name': 'ZZ Denture'}).id,
+            'operation_ids': [(0, 0, {'name': 'Teeth Setting', 'workcenter_id': teeth.id, 'sequence': 10}),
+                              (0, 0, {'name': 'Flasking', 'sequence': 20,
+                                      'workcenter_id': self.env.ref('lab_masters.wc_flasking').id})]})
+        Loader._floor_add_after_teeth_setting()
+        Loader._floor_add_after_teeth_setting()
+        steps = bom.operation_ids.sorted(lambda o: (o.sequence, o.id))
+        self.assertEqual(steps.mapped('workcenter_id.name'),
+                         ['Teeth Setting', 'Trail Carving', 'Wax Up', 'Flasking'])
+        self.assertFalse(sum(steps[1:3].mapped('time_cycle_manual')), "no minutes, no cost")
 
     def test_every_route_is_its_sheets_rows_in_order(self):
         for xmlid, route in BOM_ROUTE.items():
