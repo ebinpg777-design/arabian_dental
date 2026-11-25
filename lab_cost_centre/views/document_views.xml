@@ -41,7 +41,8 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale_custom.view_sales_order_filter_route_panel"/>
         <field name="arch" type="xml">
-            <xpath expr="//searchpanel" position="inside">
+            <!-- first in the panel, above the routes (client, 2026-11-25) -->
+            <xpath expr="//searchpanel/field[@name='team_id']" position="before">
                 <field name="department_id" string="Department" icon="fa-building"
                        enable_counters="1" expand="1"/>
             </xpath>
