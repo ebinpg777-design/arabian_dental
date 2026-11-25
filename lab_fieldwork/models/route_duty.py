@@ -58,6 +58,11 @@ UPCOMING_DAYS = 14
 OFF_WEEKDAY = 6
 
 
+def _not_ended_before(day):
+    """A duty still running on `day`: it ends on or after it, or it has no end."""
+    return ['|', ('date_to', '=', False), ('date_to', '>=', day)]
+
+
 class LabRouteDuty(models.Model):
     _name = 'lab.route.duty'
     _description = 'Route Duty'
@@ -74,9 +79,13 @@ class LabRouteDuty(models.Model):
     color = fields.Integer(related='team_id.color')
     date_from = fields.Date(
         required=True, tracking=True, default=fields.Date.context_today)
+    # Empty: until further notice - an executive who works the route alongside its
+    # owner from now on, a new one learning it with no end set. (client, 2026-11-25:
+    # "able to create without end date")
     date_to = fields.Date(
-        required=True, tracking=True, default=fields.Date.context_today,
-        help="The same day as the start for a single day.")
+        tracking=True, default=fields.Date.context_today,
+        help="The same day as the start for a single day. Leave it empty for until "
+             "further notice.")
     kind = fields.Selection(
         KINDS, required=True, default='regular', tracking=True,
         help="Assigned: a manager put them on the route. Covering: they stand in "
@@ -157,7 +166,7 @@ class LabRouteDuty(models.Model):
         if 'scheduled' in wanted:
             parts.append([('date_from', '>', today)])
         if 'running' in wanted:
-            parts.append([('date_from', '<=', today), ('date_to', '>=', today)])
+            parts.append([('date_from', '<=', today), *_not_ended_before(today)])
         if not parts:
             return [(0, '=', 1)]
         domain = parts[0]
@@ -192,8 +201,10 @@ class LabRouteDuty(models.Model):
 
     def _span(self):
         self.ensure_one()
-        if not (self.date_from and self.date_to):
+        if not self.date_from:
             return ''
+        if not self.date_to:
+            return _("from %s", format_date(self.env, self.date_from, date_format='d MMM'))
         if self.date_from == self.date_to:
             return format_date(self.env, self.date_from, date_format='EEE d MMM')
         return "%s – %s" % (
@@ -226,7 +237,7 @@ class LabRouteDuty(models.Model):
         """A person's confirmed duties that include `day`."""
         return self.sudo().search([
             ('user_id', '=', user.id), ('state', '=', 'active'),
-            ('date_from', '<=', day), ('date_to', '>=', day)])
+            ('date_from', '<=', day), *_not_ended_before(day)])
 
     @api.model
     def _routes_on(self, user, day=None):
@@ -243,7 +254,8 @@ class LabRouteDuty(models.Model):
             return True
         return bool(self.sudo().search_count([
             ('user_id', '=', user.id), ('team_id', '=', team.id), ('state', '=', 'active'),
-            ('date_from', '<=', date_from), ('date_to', '>=', date_to)], limit=1))
+            ('date_from', '<=', date_from), *_not_ended_before(date_to or date_from)],
+            limit=1))
 
     @api.model
     def _cover_for(self, user, team, day):
@@ -253,7 +265,7 @@ class LabRouteDuty(models.Model):
         duty = self.sudo().search([
             ('kind', '=', 'cover'), ('state', '=', 'active'),
             ('origin_user_id', '=', user.id), ('team_id', '=', team.id),
-            ('date_from', '<=', day), ('date_to', '>=', day)], limit=1)
+            ('date_from', '<=', day), *_not_ended_before(day)], limit=1)
         return duty.user_id
 
     @api.model
@@ -414,7 +426,8 @@ class LabRouteDuty(models.Model):
                 lambda d: d.kind == 'cover' and d.state == 'active' and d.origin_user_id):
             visits = Visit.search([
                 ('user_id', '=', duty.origin_user_id.id), ('state', '=', 'planned'),
-                ('date', '>=', duty.date_from), ('date', '<=', duty.date_to),
+                ('date', '>=', duty.date_from),
+                *([('date', '<=', duty.date_to)] if duty.date_to else []),
                 *duty._route_clinic_domain(duty.team_id, prefix='partner_id.'),
                 ('id', 'not in', duty.moved_visit_ids.ids)])
             if not visits:
@@ -541,7 +554,7 @@ class LabRouteDuty(models.Model):
             visits_by_team[team.id] += 1
         clinics = self._clinic_counts(teams)
         on_route = Duty.search([('team_id', 'in', teams.ids), ('state', '=', 'active'),
-                                ('date_from', '<=', day), ('date_to', '>=', day),
+                                ('date_from', '<=', day), *_not_ended_before(day),
                                 ('user_id', '!=', me.id)])
         rows, seen = [], set()
 
@@ -566,17 +579,18 @@ class LabRouteDuty(models.Model):
                 'id': duty.team_id.id, 'name': duty.team_id.name,
                 'color': duty.team_id.color or 0, 'kind': duty.kind,
                 'for': duty.origin_user_id.name or '',
-                'until': format_date(self.env, duty.date_to, date_format='d MMM')
-                if duty.date_to != day else _("today"),
+                'until': (_("for now") if not duty.date_to
+                          else format_date(self.env, duty.date_to, date_format='d MMM')
+                          if duty.date_to != day else _("today")),
                 'duty_id': duty.id, 'with': others_on(duty.team_id),
                 'clinics': clinics.get(duty.team_id.id, 0),
                 'visits': visits_by_team.get(duty.team_id.id, 0)})
         requests = Duty.search([('user_id', '=', me.id), ('state', '=', 'pending'),
-                                ('date_to', '>=', today)], order='date_from, id')
+                                *_not_ended_before(today)], order='date_from, id')
         outgoing = Duty.search([
             '|', ('origin_user_id', '=', me.id), ('requester_id', '=', me.id),
             ('user_id', '!=', me.id), ('state', 'in', ('pending', 'active')),
-            ('date_to', '>=', today)], order='date_from, id')
+            *_not_ended_before(today)], order='date_from, id')
         upcoming = Duty.search([
             ('user_id', '=', me.id), ('state', '=', 'active'),
             ('date_from', '>', day),
@@ -621,7 +635,7 @@ class LabRouteDuty(models.Model):
         clinics = self._clinic_counts(teams)
         Duty = self.sudo()
         on_day = Duty.search([('user_id', 'in', people.ids), ('state', '=', 'active'),
-                              ('date_from', '<=', day), ('date_to', '>=', day)])
+                              ('date_from', '<=', day), *_not_ended_before(day)])
         ever = Duty.search([('user_id', 'in', people.ids), ('state', '=', 'active')])
         load, knows = defaultdict(int), defaultdict(set)
         for duty in on_day:
@@ -693,7 +707,7 @@ class LabRouteDuty(models.Model):
                 twin = self.sudo().search([
                     ('user_id', '=', user.id), ('team_id', '=', team.id),
                     ('kind', '=', kind), ('state', 'in', ('pending', 'active')),
-                    ('date_from', '<=', date_to), ('date_to', '>=', date_from)], limit=1)
+                    ('date_from', '<=', date_to), *_not_ended_before(date_from)], limit=1)
                 if twin:
                     skipped.append(_("%(who)s is already on %(route)s %(span)s.",
                                      who=user.name, route=team.name, span=twin._span()))
@@ -723,7 +737,8 @@ class LabRouteDuty(models.Model):
             day = fields.Date.to_date(day)
             if day != duty.date_from:
                 vals['date_from'] = day
-                vals['date_to'] = day + (duty.date_to - duty.date_from)
+                if duty.date_to:      # until further notice stays so
+                    vals['date_to'] = day + (duty.date_to - duty.date_from)
         if not vals:
             return False
         privileged = duty.sudo()
@@ -764,7 +779,7 @@ class LabRouteDuty(models.Model):
                     person_rows[user.id] = self._person_row(user, len(person_rows))
         duties = self.sudo().search([
             ('state', 'in', ('pending', 'active')),
-            ('date_from', '<=', d1), ('date_to', '>=', d0)], order='date_from, id')
+            ('date_from', '<=', d1), *_not_ended_before(d0)], order='date_from, id')
         cells = defaultdict(list)
         for team in teams:
             for day in days:
@@ -779,7 +794,8 @@ class LabRouteDuty(models.Model):
             duty_rows.append({
                 'id': duty.id, 'user_id': duty.user_id.id, 'team_id': duty.team_id.id,
                 'date_from': fields.Date.to_string(duty.date_from),
-                'date_to': fields.Date.to_string(duty.date_to), 'span': duty._span(),
+                'date_to': fields.Date.to_string(duty.date_to) if duty.date_to else '',
+                'span': duty._span(),
                 'kind': duty.kind, 'state': duty.state, 'note': duty.note or '',
                 'origin_user_id': duty.origin_user_id.id or 0,
                 'origin': duty.origin_user_id.name or '',
@@ -789,7 +805,7 @@ class LabRouteDuty(models.Model):
             if duty.user_id.id not in person_rows:
                 person_rows[duty.user_id.id] = self._person_row(duty.user_id, len(person_rows))
             cursor = max(duty.date_from, d0)
-            while cursor <= min(duty.date_to, d1):
+            while cursor <= min(duty.date_to or d1, d1):
                 key = '%d|%s' % (duty.team_id.id, fields.Date.to_string(cursor))
                 cells[key].append({
                     'user_id': duty.user_id.id, 'kind': duty.kind, 'duty_id': duty.id,

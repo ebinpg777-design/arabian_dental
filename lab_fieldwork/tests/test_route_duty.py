@@ -87,6 +87,27 @@ class TestRouteDuty(TransactionCase):
         rows = self.env['lab.my.day'].with_user(self.exec_c).get_clinics()['rows']
         self.assertEqual({r['name'] for r in rows}, {'RD Clinic A1', 'RD Clinic A2'})
 
+    def test_a_duty_with_no_end_runs_until_further_notice(self):
+        """Working a route alongside its owner from now on: no end date. (client,
+        2026-11-25: "able to create without end date")"""
+        duty = self.Duty.create({
+            'user_id': self.exec_c.id, 'team_id': self.route_a.id, 'kind': 'assist',
+            'origin_user_id': self.exec_a.id, 'date_from': self.today, 'date_to': False})
+        for later in (0, 30, 400):
+            self.assertIn(self.route_a, self.Duty._routes_on(self.exec_c, self.today + timedelta(days=later)))
+        self.assertNotIn(self.route_a, self.Duty._routes_on(self.exec_c, self.today - timedelta(days=1)))
+        self.assertEqual(duty.phase, 'running')
+        self.assertIn(duty, self.Duty.search([('phase', '=', 'running'), ('id', '=', duty.id)]))
+        self.assertTrue(duty._span().startswith('from'))
+        roster = self._as(self.manager).get_roster(self.today, self.today + timedelta(days=6))
+        self.assertIn(duty.id, [d['id'] for d in roster['duties']])
+        # My Day says how long: for now
+        rows = self._as(self.exec_c).get_my_routes()['rows']
+        self.assertEqual([r['until'] for r in rows if r['id'] == self.route_a.id], ['for now'])
+        # the roster moves it and it stays open
+        self._as(self.manager).move_duty(duty.id, day=self.today + timedelta(days=1))
+        self.assertFalse(duty.date_to)
+
     def test_nobody_on_a_route_reads_nothing_and_the_roster_says_so(self):
         seen = self.env['res.partner'].with_user(self.exec_c).search(
             [('id', 'in', (self.clinic_a1 | self.clinic_b1).ids)])

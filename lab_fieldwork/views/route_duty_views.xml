@@ -70,8 +70,8 @@
                         </group>
                         <group string="When">
                             <field name="date_from"/>
-                            <field name="date_to"/>
-                            <field name="days"/>
+                            <field name="date_to" placeholder="Until further notice"/>
+                            <field name="days" invisible="not date_to"/>
                             <field name="phase"/>
                         </group>
                     </group>
