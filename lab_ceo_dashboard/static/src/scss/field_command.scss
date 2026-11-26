@@ -53,3 +53,49 @@ html .o_web_client > .o_action_manager > .o_action.o_fcmd {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
 }
+
+// FIELD LIVE FILLS WHATEVER IT IS OPENED IN.
+//
+// Field Live is a full-window screen: a head, a strip of figures and a map that
+// takes whatever height is left (`.o_fw_fl { height: 100% }`). From the Field Work
+// menu it is the action itself and has the window. Behind this switcher it sat in
+// two blocks of automatic height, so "100%" was 100% of nothing: the map fell back
+// to its 240 px minimum with an empty page under it - the same screen, a quarter
+// of the size. The height is handed down instead: every box between the window
+// and Field Live becomes a column that gives its last child the room left over.
+// Only while Field Live is the screen showing - the analysis and the production
+// screens are pages that scroll, and keep doing so.
+// (client, 2026-11-26: "field force widget in the Management menu is not the same
+// as in Field Work")
+.o_fcmd:has(> .o_fcmd_stage > .o_fw_fl) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+
+    > .o_fcmd_bar { flex: 0 0 auto; }
+    > .o_fcmd_stage {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    > .o_fcmd_stage > .o_fw_fl {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+    }
+}
+
+// ...inside the Management hub, whose stage is the box above it,
+.o_ceo_dash .o_ceo_stage:has(> .o_fcmd > .o_fcmd_stage > .o_fw_fl) {
+    display: flex;
+    flex-direction: column;
+}
+
+// ...and opened full-page, where this root is the action and scrolled as a page.
+html .o_web_client > .o_action_manager > .o_action.o_fcmd:has(> .o_fcmd_stage > .o_fw_fl) {
+    display: flex;
+    overflow: hidden;
+}
+
