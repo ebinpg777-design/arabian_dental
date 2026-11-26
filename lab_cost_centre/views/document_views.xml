@@ -17,10 +17,10 @@
         </field>
     </record>
 
-    <!-- Orders by department: searched, grouped, and in the left panel beside the
-         routes - the panel is sale_custom's, and a search view holds only one.
-         (client, 2026-11-25: "Group by Department in SOs, and a department filter in
-         the search panel") -->
+    <!-- Orders by department: searched and grouped. It was in the left panel as
+         well (client, 2026-11-25), and came out of it again the next day - the
+         panel has the product category instead, which is sale_custom's.
+         (client, 2026-11-26: "department filter is not needed") -->
     <record id="view_sales_order_filter_department" model="ir.ui.view">
         <field name="name">sale.order.search.department</field>
         <field name="model">sale.order</field>
@@ -33,19 +33,6 @@
                 <filter name="group_department" string="Department"
                         context="{'group_by': 'department_id'}"/>
             </filter>
-        </field>
-    </record>
-
-    <record id="view_sales_order_panel_department" model="ir.ui.view">
-        <field name="name">sale.order.search.panel.department</field>
-        <field name="model">sale.order</field>
-        <field name="inherit_id" ref="sale_custom.view_sales_order_filter_route_panel"/>
-        <field name="arch" type="xml">
-            <!-- first in the panel, above the routes (client, 2026-11-25) -->
-            <xpath expr="//searchpanel/field[@name='team_id']" position="before">
-                <field name="department_id" string="Department" icon="fa-building"
-                       enable_counters="1" expand="1"/>
-            </xpath>
         </field>
     </record>
 

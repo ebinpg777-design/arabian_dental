@@ -11,6 +11,11 @@ from odoo.tools.misc import formatLang
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    @api.depends('order_line.product_id', 'order_line.product_id.categ_id')
+    def _compute_product_categ_ids(self):
+        for order in self:
+            order.product_categ_ids = order.order_line.product_id.categ_id
+
     # Relabel the initial state as "Registered" (dental lab terminology) while
     # keeping the native v19 states (draft/sent/sale/cancel).
     state = fields.Selection(
@@ -61,6 +66,14 @@ class SaleOrder(models.Model):
         string='3D Model Print', tracking=True,
         help="This case is (or includes) a 3D-printed model.")
     is_rework = fields.Boolean(string='Rework', default=False)
+    # WHAT KIND OF WORK the order is, for the list's side panel: the categories of
+    # the products on it. Several, because a case can carry a crown and a denture;
+    # stored, because a panel counts and filters in SQL. (client, 2026-11-26: "in
+    # the SO search panel ... add the Product Category filter")
+    product_categ_ids = fields.Many2many(
+        'product.category', 'sale_order_product_categ_rel', 'order_id', 'categ_id',
+        string='Product Categories', compute='_compute_product_categ_ids', store=True,
+        readonly=True, copy=False)
     is_edit_number = fields.Boolean(string='Edit number')
     # v10 added `active` to sale.order (reworks are archived); kept for the
     # Reworks menu and to line up with the preserved column in the upgraded DB.

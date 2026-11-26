@@ -13,8 +13,17 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_sales_order_filter"/>
         <field name="arch" type="xml">
+            <field name="team_id" position="after">
+                <field name="product_categ_ids" string="Product Category"/>
+            </field>
             <search position="inside">
                 <searchpanel>
+                    <!-- What kind of work, above where it comes from. Tick boxes: an
+                         order with a crown and a denture is under both, and two
+                         kinds can be looked at together. Only the categories some
+                         order carries are listed. (client, 2026-11-26) -->
+                    <field name="product_categ_ids" string="Product Category"
+                           select="multi" icon="fa-cubes" enable_counters="1"/>
                     <field name="team_id" string="Sales Route" icon="fa-map-marker"
                            enable_counters="1" expand="1"/>
                 </searchpanel>

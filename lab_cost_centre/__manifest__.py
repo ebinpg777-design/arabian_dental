@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Departments & Cost Centres',
-    'version': '20.0.1.2.1',
+    'version': '20.0.1.2.2',
     'summary': "Every order, job, purchase, invoice and movement carries the department "
                "that owns it and the cost centre it lands on",
     'description': """
