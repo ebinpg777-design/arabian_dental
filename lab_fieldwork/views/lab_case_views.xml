@@ -313,7 +313,7 @@
                         </div>
                         <div class="o_fw_sec_l">Material</div>
                         <field name="impression_type" widget="fw_choice" readonly="state != 'draft'"
-                               options="{'colors': {'Alginate': 'teal', 'Rubber Base': 'indigo'}}"/>
+                               options="{'colors': {'Alginate': 'teal', 'Rubber Base': 'indigo', 'Cast': 'amber'}}"/>
                         <div class="o_fw_sec_l">Tray</div>
                         <field name="impression_tray" widget="fw_choice" readonly="state != 'draft'"
                                options="{'colors': {'Upper': 'blue', 'Lower': 'teal', 'Both': 'violet'}}"/>
@@ -322,6 +322,14 @@
                                options="{'colors': {'Yes': 'green', 'No': 'slate'}}"/>
                         <div class="o_fw_sec_l">Wax bite</div>
                         <field name="wax_bite" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'Yes': 'green', 'No': 'slate'}}"/>
+                        <!-- The two models the production sheet asks about: taken here so
+                             the sheet prints the answer. (client, 2026-11-26) -->
+                        <div class="o_fw_sec_l">Opposing model</div>
+                        <field name="opposing_model" widget="fw_choice" readonly="state != 'draft'"
+                               options="{'colors': {'Yes': 'green', 'No': 'slate'}}"/>
+                        <div class="o_fw_sec_l">Pre cutting model</div>
+                        <field name="pre_cutting_model" widget="fw_choice" readonly="state != 'draft'"
                                options="{'colors': {'Yes': 'green', 'No': 'slate'}}"/>
                         <div class="o_fw_sec_l">Send through</div>
                         <field name="send_through_id" readonly="state != 'draft'"

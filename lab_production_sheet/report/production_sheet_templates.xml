@@ -189,27 +189,22 @@
                     </span>
                 </td>
             </tr>
+            <!-- What was entered, as words: no row of empty boxes to tick by hand.
+                 The case registration and the order take these now.
+                 (client, 2026-11-26: "no need to show the check boxes, only show the
+                 value entered") -->
             <tr class="ps-row">
                 <td class="ps-k">Impression type</td>
-                <td colspan="3">
-                    <t t-foreach="s['impression_types']" t-as="choice">
-                        <t t-out="choice[1]"/><t t-call="lab_production_sheet.sheet_tick" on="s['impression_type'] == choice[0]"/>
-                    </t>
-                </td>
+                <td class="ps-v" colspan="3"
+                    t-out="dict(s['impression_types']).get(s['impression_type'], s['impression_type'])"/>
             </tr>
             <tr class="ps-row">
                 <td class="ps-k">Wax Bite</td>
-                <td colspan="3">
-                    Yes<t t-call="lab_production_sheet.sheet_tick" on="s['wax_bite'] == 'Yes'"/>
-                    No<t t-call="lab_production_sheet.sheet_tick" on="s['wax_bite'] == 'No'"/>
-                </td>
+                <td class="ps-v" colspan="3" t-out="s['wax_bite']"/>
             </tr>
             <tr class="ps-row">
                 <td class="ps-k">Opposing Model</td>
-                <td colspan="3">
-                    Yes<t t-call="lab_production_sheet.sheet_tick" on="s['opposing_model'] == 'Yes'"/>
-                    No<t t-call="lab_production_sheet.sheet_tick" on="s['opposing_model'] == 'No'"/>
-                </td>
+                <td class="ps-v" colspan="3" t-out="s['opposing_model']"/>
             </tr>
             <tr class="ps-row">
                 <td class="ps-k">Prepared By</td>
@@ -217,10 +212,7 @@
                 <td style="padding:0;">
                     <table><tr>
                         <td style="border:none;border-right:1px solid #333;width:36mm;">Pre Cutting Model</td>
-                        <td style="border:none;">
-                            Yes<t t-call="lab_production_sheet.sheet_tick" on="s['pre_cutting_model'] == 'Yes'"/>
-                            No<t t-call="lab_production_sheet.sheet_tick" on="s['pre_cutting_model'] == 'No'"/>
-                        </td>
+                        <td class="ps-v" style="border:none;" t-out="s['pre_cutting_model']"/>
                     </tr></table>
                 </td>
             </tr>
@@ -232,11 +224,8 @@
                 <td style="padding:0;">
                     <table><tr>
                         <td style="border:none;border-right:1px solid #333;width:36mm;">Impression Tray</td>
-                        <td style="border:none;">
-                            <t t-foreach="s['impression_trays']" t-as="choice">
-                                <t t-out="choice[1]"/><t t-call="lab_production_sheet.sheet_tick" on="s['impression_tray'] == choice[0]"/>
-                            </t>
-                        </td>
+                        <td class="ps-v" style="border:none;"
+                            t-out="dict(s['impression_trays']).get(s['impression_tray'], s['impression_tray'])"/>
                     </tr></table>
                 </td>
             </tr>

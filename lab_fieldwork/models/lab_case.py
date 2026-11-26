@@ -135,12 +135,23 @@ class LabCase(models.Model):
         compute='_compute_is_urgent_open', store=True,
         help="Urgent or emergency and not yet turned into an order — the slips that "
              "need somebody to move.")
+    # What came with the case, as the production sheet asks it: the impression (or a
+    # poured cast), the tray, the wax bite and the two models. Taken here, at the
+    # counter, so the sheet prints the answers instead of boxes the floor ticks by
+    # hand. (client, 2026-11-26)
     impression_type = fields.Selection(
-        [('Alginate', 'Alginate'), ('Rubber Base', 'Rubber Base')], string='Impression')
+        [('Alginate', 'Alginate'), ('Rubber Base', 'Rubber Base'), ('Cast', 'Cast')],
+        string='Impression')
     impression_tray = fields.Selection(
         [('Upper', 'Upper'), ('Lower', 'Lower'), ('Both', 'Both')], string='Tray')
     scanned_impression = fields.Selection([('Yes', 'Yes'), ('No', 'No')], string='Scanned')
     wax_bite = fields.Selection([('Yes', 'Yes'), ('No', 'No')], string='Wax Bite')
+    opposing_model = fields.Selection(
+        [('Yes', 'Yes'), ('No', 'No')], string='Opposing Model',
+        help="Did the model of the opposing arch come with the case?")
+    pre_cutting_model = fields.Selection(
+        [('Yes', 'Yes'), ('No', 'No')], string='Pre Cutting Model',
+        help="Is a model to be kept as it was before the dies are cut?")
     send_through_id = fields.Many2one('send.through', string='Send Through')
 
     # What came in the bag. Booleans rather than a many2many so they match the job card
@@ -701,7 +712,7 @@ class LabCase(models.Model):
 
     def _order_values(self):
         self.ensure_one()
-        return {
+        vals = {
             'partner_id': self.partner_id.id,
             'visit_id': self.visit_id.id,
             'case_received_via': self.received_via,
@@ -722,7 +733,7 @@ class LabCase(models.Model):
             'call_doctor_required': self.needs_doctor_call,
             'call_doctor_reason': 'unclear_prescription' if self.needs_doctor_call else False,
             'call_doctor_note': self.doctor_call_note or False,
-            'impression_type': self.impression_type,
+            'impression_type': self._order_choice('impression_type', self.impression_type),
             'impression_tray': self.impression_tray,
             'scanned_impression': self.scanned_impression,
             'wax_bite': self.wax_bite,
@@ -752,6 +763,23 @@ class LabCase(models.Model):
             'is_teeth': self.is_teeth, 'is_facebow': self.is_facebow,
             'order_line': [(0, 0, line._line_values()) for line in self.line_ids],
         }
+        # the two models, where the order has them (the production sheet's fields)
+        for name in ('opposing_model', 'pre_cutting_model'):
+            if name in self.env['sale.order']._fields:
+                vals[name] = self._order_choice(name, self[name])
+        return vals
+
+    def _order_choice(self, name, value):
+        """`value` for the order's field `name`, where the order knows that value.
+
+        The order learns "Cast" and the two models from the production sheet module,
+        which this one does not depend on: without it, a case still makes its order
+        and the answer the order cannot hold is left off."""
+        field = self.env['sale.order']._fields.get(name)
+        if not field or not value:
+            return False
+        keys = [key for key, _label in field._description_selection(self.env)]
+        return value if value in keys else False
 
     def action_create_order(self):
         """Turn the slip into an order awaiting verification.

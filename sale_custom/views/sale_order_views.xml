@@ -155,14 +155,26 @@
                             <field name="is_others"/>
                             <field name="is_3d_model_print"/>
                         </group>
-                        <group string="Impression">
-                            <field name="impression_type"/>
-                            <field name="scanned_impression"/>
-                            <field name="impression_tray"/>
-                            <field name="wax_bite"/>
-                        </group>
                     </group>
                 </page>
+            </xpath>
+
+            <!-- WHAT CAME WITH THE CASE, on the form the counter registers on. It sat in
+                 the Registration Details tab, which nobody opens at the counter, so the
+                 production sheet printed it blank and the floor ticked it by hand.
+                 (client, 2026-11-26: "these infos should be taken on case registration
+                 and SO registration") -->
+            <xpath expr="//group[@name='sale_header']" position="after">
+                <group name="lab_impression">
+                    <group string="Impression">
+                        <field name="impression_type"/>
+                        <field name="impression_tray"/>
+                        <field name="scanned_impression"/>
+                    </group>
+                    <group string="Models">
+                        <field name="wax_bite"/>
+                    </group>
+                </group>
             </xpath>
 
             <!-- Once a case is confirmed its lines are frozen (client, 2026-08-17): the

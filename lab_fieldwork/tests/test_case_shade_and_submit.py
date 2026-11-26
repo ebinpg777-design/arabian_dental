@@ -172,3 +172,24 @@ class TestCaseShadeAndSubmit(TransactionCase):
         self.assertEqual(context.get('default_partner_id'), self.clinic.id)
         self.assertEqual(context.get('default_received_via'), 'courier')
         self.assertNotIn('default_visit_id', context)
+
+    # ---------------------------------------------- what came with the case
+    def test_what_came_with_the_case_goes_to_the_order(self):
+        """Impression, tray, wax bite and the two models: taken on the case, carried to
+        the order the production sheet prints from. (client, 2026-11-26)"""
+        case = self._case(impression_type='Cast', impression_tray='Both', wax_bite='Yes',
+                          opposing_model='Yes', pre_cutting_model='No')
+        case.action_submit()
+        order = case.sudo().sale_order_id
+        self.assertEqual(order.wax_bite, 'Yes')
+        self.assertEqual(order.impression_tray, 'Both')
+        if 'opposing_model' in order._fields:       # the production sheet's fields
+            self.assertEqual((order.impression_type, order.opposing_model, order.pre_cutting_model),
+                             ('Cast', 'Yes', 'No'))
+        # corrected from the field: the same order changes
+        case.action_reset_to_draft()
+        case.write({'opposing_model': 'No', 'impression_type': 'Rubber Base'})
+        case.action_submit()
+        self.assertEqual(order.impression_type, 'Rubber Base')
+        if 'opposing_model' in order._fields:
+            self.assertEqual(order.opposing_model, 'No')
