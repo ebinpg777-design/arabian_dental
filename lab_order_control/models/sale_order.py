@@ -234,48 +234,10 @@ class SaleOrder(models.Model):
                 user=self.env.user.name, reason=order.credit_override_reason))
         return True
 
-    def action_set_to_draft(self):
-        """Take a confirmed case back to Registered so it can be corrected.
-
-        Confirmed lines are frozen (sale_custom form). To change what is being made,
-        the case comes back to draft: its open delivery transfers and not-yet-started
-        manufacturing orders are cancelled, verification is reset (a second person
-        checks it again), and the same order number is kept. Refused once anything
-        irreversible exists — a posted invoice, a done delivery, or an MO already in
-        progress — because those need a credit note / a rework, not a rewrite.
-        """
-        if not (self.env.user.has_group('lab_order_control.group_lab_order_checker')
-                or self.env.user.has_group('sales_team.group_sale_manager')):
-            raise UserError(_("Only an Order Checker or a Sales Manager can set a "
-                              "confirmed case back to draft."))
-        for order in self:
-            if order.state != 'sale':
-                raise UserError(_("%s is not a confirmed order.", order.name))
-            if order.invoice_ids.filtered(lambda i: i.state == 'posted'):
-                raise UserError(_(
-                    "%s already has a posted invoice. Cancel the invoice with a credit "
-                    "note first, or raise a rework.", order.name))
-            if order.picking_ids.filtered(lambda p: p.state == 'done'):
-                raise UserError(_(
-                    "%s has already been delivered. Raise a rework instead.", order.name))
-            productions = order.mrp_production_ids if 'mrp_production_ids' in order._fields \
-                else self.env['mrp.production']
-            started = productions.filtered(lambda m: m.state in ('progress', 'to_close', 'done'))
-            if started:
-                raise UserError(_(
-                    "Work on %(order)s has already started (%(mos)s). Raise a rework "
-                    "instead of changing the order.",
-                    order=order.name, mos=', '.join(started.mapped('name'))))
-            # cancel what confirmation created, then reopen
-            productions.filtered(lambda m: m.state not in ('done', 'cancel')).action_cancel()
-            order.with_context(disable_cancel_warning=True)._action_cancel()
-            order.write({'locked': False})
-            order.action_draft()
-            order.action_reset_verification()
-            order.message_post(body=_(
-                "Set back to draft by %(user)s for correction; production and delivery "
-                "documents cancelled.", user=self.env.user.name))
-        return True
+    # `action_set_to_draft`, the form's button, is an amendment now and lives in
+    # sale_order_amend.py: it used to cancel the jobs nobody had started and refuse
+    # once one had, so nobody used it - they pressed Cancel instead, which stops
+    # every job. (client, 2026-11-26)
 
     # ------------------------------------------------- production follows the order
     def _lab_open_productions(self):

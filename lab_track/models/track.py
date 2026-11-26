@@ -239,6 +239,9 @@ class LabTrack(models.AbstractModel):
                 'date': self._stamp(o.date_order, '%d %b %Y %H:%M'),
                 'priority': o.priority,
                 'is_rework': o.is_rework,
+                # Taken back to draft to be amended, with its jobs going on: said, or
+                # "Quotation" beside a case on the benches reads as a mistake.
+                'amending': bool('lab_amending' in o._fields and o.lab_amending),
                 'state': o.state,
                 'state_label': dict(o._fields['state'].selection).get(o.state, ''),
                 'verification': o.verification_state,

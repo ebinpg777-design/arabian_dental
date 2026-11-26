@@ -219,6 +219,8 @@
                         <span t-if="this.order.priority === 'emergency'" class="o_trk_chip o_trk_chip_danger">EMERGENCY</span>
                         <span t-elif="this.order.priority === 'urgent'" class="o_trk_chip o_trk_chip_warn">URGENT</span>
                         <span t-if="this.order.is_rework" class="o_trk_chip o_trk_chip_info">REWORK</span>
+                        <span t-if="this.order.amending" class="o_trk_chip o_trk_chip_warn"
+                              title="The order is being amended in the office; production goes on">BEING AMENDED</span>
                         <!-- The bench has said a job of this case cannot go on for
                              now. Said first, and loudly: it is the answer to "why
                              has it not moved". (client, 2026-11-26) -->

@@ -592,6 +592,12 @@ class LabCase(models.Model):
         """The order is still a quotation the office has not verified."""
         self.ensure_one()
         order = self.sudo().sale_order_id
+        # An order the office took back to AMEND is a draft too, but it is not a
+        # quotation: the lab is already making it, and its jobs hang on its lines.
+        # Corrections from the field would replace those lines. (lab_order_control's
+        # flag, which this module does not depend on; client, 2026-11-26)
+        if order and 'lab_amending' in order._fields and order.lab_amending:
+            return False
         return bool(order) and order.state in ('draft', 'sent') \
             and order.verification_state != 'verified'
 
