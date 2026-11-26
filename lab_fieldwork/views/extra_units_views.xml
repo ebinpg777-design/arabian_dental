@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Which product the further units of this one are sold as. (client, 2026-11-26) -->
+    <record id="view_product_template_form_extra_units" model="ir.ui.view">
+        <field name="name">product.template.form.lab.extra.units</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <group name="sale" position="inside">
+                <group string="Units on a Case" name="lab_extra_units">
+                    <field name="lab_extra_unit_product_id" options="{'no_create': True}"
+                           placeholder="e.g. the ADDITIONAL PER UNIT product"/>
+                </group>
+            </group>
+        </field>
+    </record>
+</odoo>

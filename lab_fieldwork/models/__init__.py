@@ -46,3 +46,4 @@ from . import field_app
 from . import field_live
 from . import weekly_report
 from . import ir_http
+from . import extra_units

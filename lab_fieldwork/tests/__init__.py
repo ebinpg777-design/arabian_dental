@@ -30,3 +30,4 @@ from . import test_field_live_day_js
 from . import test_case_without_visit
 from . import test_case_correction
 from . import test_case_shade_and_submit
+from . import test_extra_units

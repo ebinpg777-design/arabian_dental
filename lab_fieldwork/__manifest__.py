@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.9.10.1',
+    'version': '20.0.9.11.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -79,6 +79,7 @@ in the server, not merely in the form.
         'views/res_users_views.xml',
         'views/lab_beat_views.xml',
         'views/lab_case_views.xml',
+        'views/extra_units_views.xml',
         'views/lab_visit_views.xml',
         # must follow lab_visit_views.xml: it inherits view_visit_search
         'views/quick_entry_views.xml',
