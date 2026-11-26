@@ -19,13 +19,18 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
+            <!-- "Has this order any job" is asked of `job_card_state`, which anybody who
+                 can open the order may read. Not core's `mrp_production_count`: that is
+                 for manufacturing users only, and a field executive or a salesman opening
+                 the order crashed on it ("field is undefined"). (client, 2026-11-26:
+                 "Field executives getting error on clicking view order") -->
             <xpath expr="//header" position="inside">
-                <field name="mrp_production_count" invisible="1"/>
+                <field name="job_card_state" invisible="1"/>
                 <button name="action_print_job_sheets" type="object" string="Job Sheet"
-                        icon="fa-barcode" invisible="not mrp_production_count"
+                        icon="fa-barcode" invisible="job_card_state in (False, 'none')"
                         help="The technician's sheet of every job of this order, with its barcode."/>
                 <button name="action_print_production_reports" type="object" string="Production Report"
-                        icon="fa-print" invisible="not mrp_production_count"
+                        icon="fa-print" invisible="job_card_state in (False, 'none')"
                         help="The Daily Production Report of every job of this order."/>
             </xpath>
         </field>

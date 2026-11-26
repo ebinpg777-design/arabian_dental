@@ -290,3 +290,31 @@ class TestProductionSheet(TransactionCase):
             'lab_production_sheet.report_job_sheet', production.ids)
         self.assertIn('Type of work : <b>%s</b>' % category, html.decode())
 
+    def test_somebody_without_manufacturing_rights_can_open_an_order(self):
+        """A field executive opened an order from a case and the screen crashed: the
+        form named a field only manufacturing users may read. Every field the form
+        names must be one the reader is given. (client, 2026-11-26)"""
+        from lxml import etree
+        G = self.env.ref
+        executive = self.env['res.users'].create({
+            'name': 'Sheet Executive', 'login': 'sheet_executive',
+            'group_ids': [(6, 0, [G('base.group_user').id,
+                                  G('sales_team.group_sale_salesman').id])]})
+        self.assertFalse(executive.has_group('mrp.group_mrp_user'))
+        order, _production = self._order('MC-BSC')
+        views = self.env['sale.order'].with_user(executive).get_views([(False, 'form')])
+        known = set(views['models']['sale.order']['fields'])
+        arch = etree.fromstring(views['views']['form']['arch'])
+        named = set()
+
+        def walk(node):
+            for child in node:
+                if child.tag == 'field':
+                    named.add(child.get('name'))
+                    continue            # a sub-view is another model's
+                walk(child)
+        walk(arch)
+        self.assertFalse(named - known, "the form names fields this user is not given")
+        self.assertEqual(order.with_user(executive).job_card_state, 'pending',
+                         "and the buttons still know the order has a job")
+
