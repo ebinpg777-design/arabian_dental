@@ -47,11 +47,14 @@ CATEGORY_ROUTE = {
     'CERAMIC': 'by_material',
 }
 
-# Routes that are not a whole sheet. A printed model is a CAD/CAM job: no model to
-# prepare, no metal, no ceramic. A special tray and a bite registration are each
-# ONE row of the acrylic sheet, sent and returned on their own before the denture.
+# Routes that are not a whole sheet. A printed model is a CAD/CAM job - no metal, no
+# ceramic - and then a model like any other: it goes to model preparation once it is
+# cured (client, 2026-11-26), the model bench of the product's own department
+# (`_floor_model_bench_of`). A special tray and a bite registration are each ONE
+# row of the acrylic sheet, sent and returned on their own before the denture.
 EXTRA_ROUTES = {
-    'model': ['scanning', 'designing', 'printing', 'light_curing', 'final_check', 'packing'],
+    'model': ['scanning', 'designing', 'printing', 'light_curing', 'model_preparation',
+              'final_check', 'packing'],
     'special_tray': ['acrylic_model_preparation', 'special_tray', 'final_check', 'packing'],
     'bite_registration': ['acrylic_model_preparation', 'wax_bite', 'final_check', 'packing'],
 }
@@ -152,7 +155,10 @@ class LabMastersLoader(models.AbstractModel):
             bench = self.env.ref('lab_masters.%s' % xmlid_of[key], raise_if_not_found=False)
             if not bench or not bench.active:
                 raise UserError(_("The work centre for %s is missing or archived.", key))
-            steps.append((bench, minutes.get(bench.id, 0.0)))
+            # a printed model's preparation has never been timed: no minutes, as on
+            # the models already in the list - not the crown's model preparation
+            timed = not (route == 'model' and key == 'model_preparation')
+            steps.append((bench, minutes.get(bench.id, 0.0) if timed else 0.0))
         return steps
 
     @api.model
@@ -182,6 +188,13 @@ class LabMastersLoader(models.AbstractModel):
                 continue
             if route not in operations:
                 operations[route] = self._route_operations(route)
+            steps = operations[route]
+            if route == 'model':
+                # its own department's model bench, where it has one
+                general = self.env.ref('lab_masters.wc_model_preparation')
+                own = self._floor_model_bench_of(product, self._floor_benches())
+                steps = [(own if bench == general else bench, minutes)
+                         for bench, minutes in steps]
             if product.type != 'consu' or product.is_storable or \
                     set(routes.ids) - set(product.route_ids.ids):
                 product.write({
@@ -198,7 +211,7 @@ class LabMastersLoader(models.AbstractModel):
                     'name': bench.name, 'workcenter_id': bench.id,
                     'sequence': index * 10, 'time_mode': 'manual',
                     'time_cycle_manual': minutes,
-                }) for index, (bench, minutes) in enumerate(operations[route], start=1)],
+                }) for index, (bench, minutes) in enumerate(steps, start=1)],
             })
         if apply:
             _logger.info("lab_masters: %s products now made on their category's route, %s left "

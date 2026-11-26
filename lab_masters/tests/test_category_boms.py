@@ -66,8 +66,9 @@ class TestCategoryBoms(TransactionCase):
         implant = self._service('ZZ SCREW RETAINED IMPLANT', 'IMPLANT PROSTHEIS')
         coping = self._service('ZZ METAL COPING', 'CERAMIC')
         self.Loader.make_category_boms(model | tray | bite | essix | rme | implant | coping)
+        # cured, then prepared like any model - at its own department's bench
         self.assertEqual(self._route(model), ['Scanning', 'Designing', 'Printing', 'Light Curing',
-                                              'Final Check', 'Packing'])
+                                              'Acrylic/Model Preparation', 'Final Check', 'Packing'])
         self.assertEqual(self._route(tray), ['Acrylic/Model Preparation', 'Special Tray',
                                              'Final Check', 'Packing'])
         self.assertEqual(self._route(bite), ['Acrylic/Model Preparation', 'Wax Bite',

@@ -23,6 +23,14 @@ minute, at no rate, exactly as before.
 
 So the labour cost of each of the fifteen products is the same before and after,
 to the paisa, and `TestFloorLayout` holds it there.
+
+Opaque and Buildup, apart (client, 2026-11-26)
+----------------------------------------------
+The ceramic table's first row was one bench, "Opaque & Buildup". The lab works it
+as two - one group lays the opaque, another builds up - so it is two benches and
+two steps now. The minutes go where the old stages say they belong: the model
+check and the opaque coats to Opaque, the two build-ups to Buildup. Same rate on
+both, so again no product's labour cost moves.
 """
 import logging
 from collections import OrderedDict
@@ -61,9 +69,12 @@ BENCHES = [
     ('metal_trimming', 'wc_metal_trimming', 'Trimming', 'MT-02', 'dept_metal', LABOUR, True),
     ('metal_polishing', 'wc_metal_polishing', 'Polishing', 'MT-03', 'dept_metal', LABOUR, True),
     # ---- Ceramic
-    ('opaque_buildup', 'wc_opaque_buildup', 'Opaque & Buildup', 'CR-01', 'dept_ceramic', LABOUR, False),
-    ('ceramic_trimming', 'wc_trimming_carving', 'Trimming', 'CR-02', 'dept_ceramic', LABOUR, True),
-    ('ceramic_finishing', 'wc_ceramic_finishing', 'Finishing', 'CR-03', 'dept_ceramic', LABOUR, False),
+    # one bench until 2026-11-26 ("Opaque & Buildup"): the record that was both is
+    # the Opaque bench now, which is why its xmlid still says both
+    ('opaque', 'wc_opaque_buildup', 'Opaque', 'CR-01', 'dept_ceramic', LABOUR, False),
+    ('buildup', 'wc_ceramic_buildup', 'Buildup', 'CR-02', 'dept_ceramic', LABOUR, False),
+    ('ceramic_trimming', 'wc_trimming_carving', 'Trimming', 'CR-03', 'dept_ceramic', LABOUR, True),
+    ('ceramic_finishing', 'wc_ceramic_finishing', 'Finishing', 'CR-04', 'dept_ceramic', LABOUR, False),
     # ---- Orthodontic
     ('ortho_model_preparation', 'wc_ortho_model_prep', 'Model Preparation', 'OR-01', 'dept_ortho', LABOUR, True),
     ('wire_bending', 'wc_wire_bending', 'Wire Bending', 'OR-02', 'dept_ortho', LABOUR, False),
@@ -127,15 +138,15 @@ STAGE_OF = {
     'wc_sand_blasting': ['metal_trimming', 'acrylic_trimming', 'ceramic_trimming'],
     'wc_metal_model_prep': ['metal_trimming'],
     'wc_metal_polishing': ['metal_polishing'],
-    'wc_model_checking': ['opaque_buildup'],
-    'wc_wash_opaque': ['opaque_buildup'],
-    'wc_opaque_firing': ['opaque_buildup'],
-    'wc_second_opaque': ['opaque_buildup'],
-    'wc_wash_firing': ['opaque_buildup'],
-    'wc_first_build_up': ['opaque_buildup'],
-    'wc_first_build_firing': ['opaque_buildup'],
-    'wc_second_build_up': ['opaque_buildup'],
-    'wc_second_build_firing': ['opaque_buildup'],
+    'wc_model_checking': ['opaque'],
+    'wc_wash_opaque': ['opaque'],
+    'wc_opaque_firing': ['opaque'],
+    'wc_second_opaque': ['opaque'],
+    'wc_wash_firing': ['opaque'],
+    'wc_first_build_up': ['buildup'],
+    'wc_first_build_firing': ['buildup'],
+    'wc_second_build_up': ['buildup'],
+    'wc_second_build_firing': ['buildup'],
     'wc_trimming_carving': ['ceramic_trimming'],
     'wc_correction_firing': ['ceramic_trimming'],
     'wc_staining_glazing': ['ceramic_finishing'],
@@ -166,18 +177,18 @@ FOOT = ['final_check', 'packing']
 ROUTES = {
     # the blue sheet
     'zirconia': ['model_preparation', 'scanning', 'designing', 'milling', 'sintering',
-                 'opaque_buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
+                 'opaque', 'buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the white sheet, every section of it
     'metal_ceramic': ['model_preparation', 'scanning', 'designing', 'printing', 'light_curing',
                       'spruing', 'investing', 'casting', 'metal_trimming', 'metal_polishing',
-                      'opaque_buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
+                      'opaque', 'buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the white sheet without its ceramic section
     'full_metal': ['model_preparation', 'scanning', 'designing', 'printing', 'light_curing',
                    'spruing', 'investing', 'casting', 'metal_trimming', 'metal_polishing'] + FOOT,
     # pressed, not cast: the press is the casting of it, and there is no metal to polish
     'pressed': ['model_preparation', 'scanning', 'designing', 'printing', 'light_curing',
                 'spruing', 'investing', 'casting', 'metal_trimming',
-                'opaque_buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
+                'opaque', 'buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the yellow sheet
     'orthodontic': ['ortho_model_preparation', 'wire_bending', 'acrylization',
                     'ortho_trimming'] + FOOT,
@@ -294,6 +305,271 @@ class LabMastersLoader(models.AbstractModel):
         _logger.info("lab_masters: Trail Carving and Wax Up added after Teeth Setting "
                      "in %s bills of materials", changed)
         return changed
+
+    @api.model
+    def _floor_slot_after(self, steps, step):
+        """The number for a new step right after `step` among `steps` - operations
+        of a bill of materials, or work orders of a job: halfway to the one that
+        follows. Steps stand ten apart, so that is five on, and nothing else is
+        touched (every write to an operation marks the open jobs of its bill of
+        materials outdated - renumbering the later steps was most of a minute of
+        upgrade). Where two stand shoulder to shoulder, the later ones move down
+        ten first."""
+        later = steps.filtered(lambda s: (s.sequence, s.id) > (step.sequence, step.id))
+        if not later:
+            return step.sequence + 10
+        gap = min(later.mapped('sequence')) - step.sequence
+        if gap < 2:
+            for other in later:
+                other.sequence += 10
+            gap += 10
+        return step.sequence + gap // 2
+
+    @api.model
+    def _floor_split_opaque_buildup(self):
+        """One step "Opaque & Buildup" becomes two, Opaque then Buildup, in every bill
+        of materials that has it (client, 2026-11-26: "Split opaque and buildup to two
+        work centres and split operations also").
+
+        The bench that was both is the Opaque bench (`_floor_benches` renames it); the
+        Buildup bench is new, at the same rate, calendar and cost centre, with the same
+        technicians and leads until the lab says who is where. The step's minutes are
+        divided the way the old stages had them - the fifteen costed products still
+        carry those stages, archived; a product made on a category route has the
+        minutes of its route's costed product, and takes that product's division. So
+        no product's labour cost moves.
+
+        A bill of materials that already has a Buildup step is left alone: this runs
+        again harmlessly. Returns how many were changed.
+        """
+        benches = self._floor_benches()
+        opaque, buildup = benches['opaque'], benches['buildup']
+        Operation = self.env['mrp.routing.workcenter'].sudo()
+        if not Operation.with_context(active_test=False).search_count(
+                [('workcenter_id', '=', buildup.id)], limit=1):
+            # a bench nothing stands at yet: the twin of the one it was split from
+            vals = {'costs_hour': opaque.costs_hour}
+            for field in ('resource_calendar_id', 'analytic_distribution', 'users',
+                          'head_user_ids', 'is_finisher', 'scan_confirm'):
+                if field not in buildup._fields:
+                    continue        # other modules' fields: not there in a fresh install
+                if buildup._fields[field].type == 'many2many':
+                    if not buildup[field]:
+                        vals[field] = [(6, 0, opaque[field].ids)]
+                elif buildup._fields[field].type == 'many2one':
+                    vals[field] = opaque[field].id
+                else:
+                    vals[field] = opaque[field]
+            buildup.write(vals)
+        old_stages = self._floor_old_stages()
+        todo, known = [], {}
+        for bom in self.env['mrp.bom'].sudo().search(
+                [('operation_ids.workcenter_id', '=', opaque.id)]):
+            steps = bom.operation_ids
+            if steps.filtered(lambda o: o.workcenter_id == buildup):
+                continue
+            step = steps.filtered(lambda o: o.workcenter_id == opaque).sorted(
+                lambda o: (o.sequence, o.id))[:1]
+            # what the old stages say, where the product still carries them
+            old = Operation.with_context(active_test=False).search([
+                ('bom_id', '=', bom.id), ('active', '=', False),
+                ('workcenter_id', 'in', list(old_stages))])
+            minutes = self._floor_minutes(old, ['opaque', 'buildup'], benches, old_stages)[0] \
+                if old else {}
+            share = None
+            if minutes and sum(minutes.values()):
+                share = minutes['opaque'] / sum(minutes.values())
+                if abs(sum(minutes.values()) - step.time_cycle_manual) < 0.01:
+                    known[round(step.time_cycle_manual, 2)] = share
+            todo.append((bom, step, share))
+        for bom, step, share in todo:
+            total = step.time_cycle_manual
+            if share is None:
+                share = known.get(round(total, 2))
+            if share is None:
+                # re-timed by hand since: nothing says how it divides, so the bench
+                # that does the long work keeps it
+                share = 0.0
+                _logger.info("lab_masters: %s - Opaque & Buildup of %s min has no known "
+                             "division; all of it left on Buildup", bom.display_name, total)
+            first = round(total * share, 2)
+            before = self._floor_labour(bom)
+            step.write({'name': opaque.name, 'time_cycle_manual': first})
+            Operation.create({
+                'bom_id': bom.id, 'name': buildup.name, 'workcenter_id': buildup.id,
+                'sequence': self._floor_slot_after(bom.operation_ids, step),
+                'time_mode': 'manual', 'time_cycle_manual': total - first,
+            })
+            bom.invalidate_recordset(['operation_ids'])
+            after = self._floor_labour(bom)
+            if abs(before - after) > 0.005:
+                _logger.warning("lab_masters: %s labour moved from %.2f to %.2f",
+                                bom.display_name, before, after)
+        _logger.info("lab_masters: Opaque and Buildup made two steps in %s bills of "
+                     "materials", len(todo))
+        return len(todo)
+
+    @api.model
+    def _floor_model_bench_of(self, product, benches):
+        """The model preparation a product's printed model goes to: its own
+        department's, where that department has one."""
+        department = product.categ_id._lab_department() \
+            if hasattr(product.categ_id, '_lab_department') else False
+        for key in ('ortho_model_preparation', 'acrylic_model_preparation'):
+            if department and benches[key].department_id == department:
+                return benches[key]
+        return benches['model_preparation']
+
+    @api.model
+    def _floor_printed_model_boms(self, benches):
+        """The bills of materials of a printed model: the CAD/CAM steps and the foot
+        of the sheet, nothing between - whatever product they were made for."""
+        printing, curing = benches['printing'], benches['light_curing']
+        allowed = benches['scanning'] | benches['designing'] | printing | curing \
+            | benches['final_check'] | benches['packing']
+        boms = self.env['mrp.bom'].sudo().search(
+            [('operation_ids.workcenter_id', '=', printing.id)])
+        return boms.filtered(lambda b: curing in b.operation_ids.workcenter_id
+                             and not (b.operation_ids.workcenter_id - allowed))
+
+    @api.model
+    def _floor_add_model_preparation(self):
+        """Model Preparation after Light Curing on every printed model (client,
+        2026-11-26: "Model preparation workorder should be added to the MOs with SO
+        is 3d printing").
+
+        A printed model was a CAD/CAM job from end to end - "no model to prepare".
+        There is: the print comes off the plate to be cleaned, trimmed and die-cut
+        like a poured one. The step goes to the model bench of the product's own
+        department, at no minutes (nobody has timed it), so no cost moves. A bill
+        of materials that has the step already is not one `_floor_printed_model_boms`
+        returns. Returns how many were changed.
+        """
+        benches = self._floor_benches()
+        Operation = self.env['mrp.routing.workcenter'].sudo()
+        boms = self._floor_printed_model_boms(benches)
+        for bom in boms:
+            curing = bom.operation_ids.filtered(
+                lambda o: o.workcenter_id == benches['light_curing']).sorted(
+                    lambda o: (o.sequence, o.id))[-1:]
+            bench = self._floor_model_bench_of(bom.product_tmpl_id, benches)
+            Operation.create({
+                'bom_id': bom.id, 'name': bench.name, 'workcenter_id': bench.id,
+                'sequence': self._floor_slot_after(bom.operation_ids, curing),
+                'time_mode': 'manual', 'time_cycle_manual': 0.0,
+            })
+        _logger.info("lab_masters: Model Preparation added after Light Curing in %s "
+                     "bills of materials", len(boms))
+        return len(boms)
+
+    # ------------------------------------------- the jobs already on the floor
+    @api.model
+    def _floor_insert_step(self, after, bench, operation, minutes=0.0):
+        """A step for `bench` right after the work order `after`, in its own chain:
+        the same arch, between it and whatever followed."""
+        # Its number puts it in its place, and that is all it needs: on a job that
+        # is confirmed, core links every step to the one before it by number again
+        # whenever a step is added (mrp.workorder.create), which is the chain the
+        # board reads "where does it go next" from. Never the same number as
+        # another step - core renumbers the whole job from its bill of materials
+        # when two steps share one.
+        return self.env['mrp.workorder'].sudo().create({
+            'name': bench.name,
+            'production_id': after.production_id.id,
+            'workcenter_id': bench.id,
+            'operation_id': operation.id or False,
+            'duration_expected': minutes,
+            'sequence': self._floor_slot_after(after.production_id.workorder_ids, after),
+            'state': 'ready' if after.state in ('done', 'cancel') else 'blocked',
+            **({'arch': after.arch} if 'arch' in after._fields and after.arch else {}),
+        })
+
+    @api.model
+    def _floor_job_is_current(self, job):
+        """Changing a bill of materials marks its open jobs outdated (core offers
+        "Update BoM" on them). A job this module has just given the missing step
+        has every step of its bill of materials again, so the mark comes off."""
+        if 'is_outdated_bom' in job._fields and job.is_outdated_bom \
+                and not (job.bom_id.operation_ids - job.workorder_ids.operation_id):
+            job.is_outdated_bom = False
+
+    @api.model
+    def split_open_opaque_steps(self, limit=None, productions=None):
+        """The jobs waiting at "Opaque & Buildup": the step becomes Opaque, and a
+        Buildup step follows it. Only a step nobody has finished - one already done
+        was done as one, and stays one. Returns how many are left to do.
+
+        Run with a limit and commit between calls, after the upgrade: it is a few
+        hundred small writes, and there is no reason to hold the site down for it.
+        `productions` narrows it to those jobs - a test gives it its own.
+        """
+        benches = self._floor_benches()
+        opaque, buildup = benches['opaque'], benches['buildup']
+        Workorder = self.env['mrp.workorder'].sudo()
+        domain = [('workcenter_id', '=', opaque.id), ('state', 'not in', ('done', 'cancel')),
+                  ('production_id.state', 'not in', ('done', 'cancel')),
+                  ('name', '!=', opaque.name)]
+        if productions is not None:
+            domain.append(('production_id', 'in', productions.ids))
+        for step in Workorder.search(domain, order='id desc', limit=limit):
+            has_arch = 'arch' in step._fields
+            twin = step.production_id.workorder_ids.filtered(
+                lambda w: w.workcenter_id == buildup
+                and (not has_arch or (w.arch or '') == (step.arch or '')))
+            if not twin:
+                ops = step.production_id.bom_id.operation_ids
+                first = ops.filtered(lambda o: o.workcenter_id == opaque)[:1]
+                second = ops.filtered(lambda o: o.workcenter_id == buildup)[:1]
+                total = step.duration_expected or 0.0
+                both = (first.time_cycle_manual or 0.0) + (second.time_cycle_manual or 0.0)
+                part = round(total * first.time_cycle_manual / both, 2) if both else 0.0
+                self._floor_insert_step(step, buildup, second, total - part)
+                step.duration_expected = part
+            step.name = opaque.name
+            self._floor_job_is_current(step.production_id)
+        return Workorder.search_count(domain)
+
+    @api.model
+    def add_open_model_preparation(self, limit=None, productions=None):
+        """The printed models already on the floor: Model Preparation after Light
+        Curing, where the job has not passed its final check. Returns how many
+        steps were added. `productions` narrows it to those jobs."""
+        benches = self._floor_benches()
+        curing, check = benches['light_curing'], benches['final_check']
+        model_benches = benches['model_preparation'] | benches['ortho_model_preparation'] \
+            | benches['acrylic_model_preparation']
+        boms = self.env['mrp.bom'].sudo().search(
+            [('operation_ids.workcenter_id', '=', curing.id),
+             ('operation_ids.workcenter_id', 'in', model_benches.ids)])
+        allowed = benches['scanning'] | benches['designing'] | benches['printing'] | curing \
+            | check | benches['packing'] | model_benches
+        boms = boms.filtered(lambda b: not (b.operation_ids.workcenter_id - allowed))
+        domain = [('bom_id', 'in', boms.ids), ('state', 'not in', ('done', 'cancel'))]
+        if productions is not None:
+            domain.append(('id', 'in', productions.ids))
+        jobs = self.env['mrp.production'].sudo().search(domain, order='id desc')
+        done = 0
+        for job in jobs:
+            steps = job.workorder_ids
+            if steps.filtered(lambda w: w.workcenter_id in model_benches):
+                continue
+            operation = job.bom_id.operation_ids.filtered(
+                lambda o: o.workcenter_id in model_benches)[:1]
+            if not operation:
+                continue
+            for cured in steps.filtered(lambda w: w.workcenter_id == curing
+                                        and w.state != 'cancel'):
+                has_arch = 'arch' in cured._fields
+                checked = steps.filtered(
+                    lambda w: w.workcenter_id == check and w.state == 'done'
+                    and (not has_arch or (w.arch or '') == (cured.arch or '')))
+                if not checked:
+                    self._floor_insert_step(cured, operation.workcenter_id, operation)
+                    done += 1
+            self._floor_job_is_current(job)
+            if limit and done >= limit:
+                break
+        return done
 
     # ------------------------------------------------------------------- routes
     @api.model
