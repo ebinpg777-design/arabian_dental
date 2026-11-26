@@ -164,7 +164,9 @@
                         <tr><td class="tl" t-out="s['teeth']['upper_right']"/><td class="tr" t-out="s['teeth']['upper_left']"/></tr>
                         <tr><td class="bl" t-out="s['teeth']['lower_right']"/><td class="br" t-out="s['teeth']['lower_left']"/></tr>
                     </table>
-                    <div>Type of work :</div>
+                    <!-- the category beside the label, so it costs no line: the job
+                         sheet is cut two to a page (client, 2026-11-26) -->
+                    <div>Type of work : <b t-out="s['category']"/></div>
                     <div class="ps-work-name" t-out="s['work']"/>
                     <div>
                         <t t-out="s['quantity']"/> <t t-out="s['uom']"/>

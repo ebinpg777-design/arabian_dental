@@ -191,3 +191,21 @@ class TestAmendKeepsProduction(TransactionCase):
         wizard.action_cancel_order()
         self.assertEqual(order.state, 'cancel')
         self.assertEqual(job.state, 'cancel', "a cancelled order stops its production, as before")
+
+    # ------------------------------------------------------ amended, afterwards
+    def test_an_amended_order_is_found_afterwards(self):
+        """(client, 2026-11-26: "filter of amended SO")"""
+        order, other = self._order(), self._order()
+        self.assertFalse(order.lab_amend_count)
+        order.action_amend()
+        self.assertEqual(order.lab_amend_count, 1, "counted from the moment it is taken back")
+        order.action_confirm()
+        self.assertEqual(order.lab_amend_count, 1)
+        self.assertTrue(order.lab_amended_on)
+        self.assertEqual(order.lab_amended_by_id, self.env.user)
+        found = self.env['sale.order'].search(
+            [('lab_amend_count', '>', 0), ('id', 'in', (order | other).ids)])
+        self.assertEqual(found, order)
+        self._amend_and_confirm(order)
+        self.assertEqual(order.lab_amend_count, 2)
+

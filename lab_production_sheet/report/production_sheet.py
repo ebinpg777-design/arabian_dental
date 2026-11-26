@@ -29,3 +29,11 @@ class ReportJobSheet(models.AbstractModel):
     _name = 'report.lab_production_sheet.report_job_sheet'
     _inherit = 'report.lab_production_sheet.mixin'
     _description = 'Technician Job Sheet'
+
+    @api.model
+    def _get_report_values(self, docids, data=None):
+        # The job card is being made: say so on each job. Here and not on the
+        # buttons, so the Print menu and a card printed from the order count too.
+        values = super()._get_report_values(docids, data=data)
+        values['docs']._lab_stamp_job_sheet()
+        return values

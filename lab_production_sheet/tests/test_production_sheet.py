@@ -246,3 +246,47 @@ class TestProductionSheet(TransactionCase):
             self.env.ref('mrp.mrp_production_tree_view').id, 'list')['arch']
         self.assertIn('name="action_print_job_sheet"', arch, "the button in the list's header")
 
+    # ------------------------------------------- the job card: printed, or not yet
+    def test_printing_the_job_card_says_so_on_the_job(self):
+        """(client, 2026-11-26: "able to filter confirmed orders which are not printed
+        job card")"""
+        order, production = self._order('MC-BSC')
+        self.assertFalse(production.job_sheet_printed_at)
+        self.assertEqual((order.job_card_state, order.job_card_pending), ('pending', True))
+        waiting = self.env['sale.order'].search(
+            [('job_card_pending', '=', True), ('id', '=', order.id)])
+        self.assertEqual(waiting, order)
+        # the Daily Production Report is not the job card
+        self.env['ir.actions.report']._render_qweb_html(
+            'lab_production_sheet.report_production_report', production.ids)
+        self.assertFalse(production.job_sheet_printed_at)
+        self.env['ir.actions.report']._render_qweb_html(
+            'lab_production_sheet.report_job_sheet', production.ids)
+        self.assertTrue(production.job_sheet_printed_at)
+        self.assertEqual((production.job_sheet_printed_by_id, production.job_sheet_print_count),
+                         (self.env.user, 1))
+        order.invalidate_recordset(['job_card_state', 'job_card_pending'])
+        self.assertEqual((order.job_card_state, order.job_card_pending), ('printed', False))
+        self.assertFalse(self.env['sale.order'].search(
+            [('job_card_pending', '=', True), ('id', '=', order.id)]))
+        self.assertEqual(self.env['sale.order'].search(
+            [('job_card_pending', '=', False), ('id', '=', order.id)]), order)
+
+    def test_an_order_with_one_card_of_two_is_partly_printed(self):
+        order, first = self._order('MC-BSC')
+        second = first.copy({'sale_line_id': order.order_line.id})
+        second.action_confirm()
+        first._lab_stamp_job_sheet()
+        self.assertEqual((order.job_card_state, order.job_card_pending), ('partial', True))
+
+    def test_the_job_card_names_the_category(self):
+        """(client, 2026-11-26: "category name should show in the job card")"""
+        _order, production = self._order('MC-BSC')
+        category = production.product_id.categ_id.name
+        self.assertTrue(category)
+        self.assertEqual(production._lab_sheet()['category'], category)
+        self.assertEqual(production.product_categ_id, production.product_id.categ_id)
+        html, _kind = self.env['ir.actions.report']._render_qweb_html(
+            'lab_production_sheet.report_job_sheet', production.ids)
+        self.assertIn('Type of work : <b>%s</b>' % category, html.decode())
+

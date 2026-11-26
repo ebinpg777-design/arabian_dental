@@ -43,4 +43,37 @@
             </xpath>
         </field>
     </record>
+    <!-- WHICH CONFIRMED ORDERS STILL NEED A JOB CARD, and of what kind of work.
+         (client, 2026-11-26: "able to filter confirmed orders which are not printed
+         job card; also filter by product category") -->
+    <record id="view_sales_order_filter_job_card" model="ir.ui.view">
+        <field name="name">sale.order.search.job.card</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <filter string="Job Card Not Printed" name="job_card_pending"
+                        domain="[('state', '=', 'sale'), ('job_card_pending', '=', True)]"/>
+                <filter string="Product Category" name="group_product_category"
+                        context="{'group_by': 'product_categ_ids'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_order_list_job_card" model="ir.ui.view">
+        <field name="name">sale.order.list.job.card</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="product_categ_ids" widget="many2many_tags" optional="show"
+                       string="Category"/>
+                <field name="job_card_state" optional="show" widget="badge"
+                       decoration-danger="job_card_state == 'pending'"
+                       decoration-warning="job_card_state == 'partial'"
+                       decoration-success="job_card_state == 'printed'"
+                       decoration-muted="job_card_state == 'none'"/>
+            </field>
+        </field>
+    </record>
 </odoo>

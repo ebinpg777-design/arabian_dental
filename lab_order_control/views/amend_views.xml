@@ -24,6 +24,15 @@
             </xpath>
             <xpath expr="//sheet" position="before">
                 <field name="lab_amending" invisible="1"/>
+                <field name="lab_amend_count" invisible="1"/>
+                <div class="alert alert-secondary m-0 rounded-0 py-1 small" role="status"
+                     invisible="lab_amending or not lab_amend_count">
+                    <i class="fa fa-pencil me-1" title="Amended"/>
+                    Amended <field name="lab_amend_count" nolabel="1" readonly="1" class="d-inline"/> time(s),
+                    last on <field name="lab_amended_on" nolabel="1" readonly="1" class="d-inline"/>
+                    by <field name="lab_amended_by_id" nolabel="1" readonly="1" class="d-inline"
+                              options="{'no_open': True}"/>.
+                </div>
                 <div class="alert alert-info m-0 rounded-0" role="alert"
                      invisible="not lab_amending or state not in ('draft', 'sent')">
                     <i class="fa fa-pencil me-1" title="Being amended"/>
@@ -52,7 +61,24 @@
             <search position="inside">
                 <filter string="Being Amended" name="lab_amending"
                         domain="[('lab_amending', '=', True)]"/>
+                <!-- every order that has been through an amendment, whether it is
+                     in one now or was confirmed again (client, 2026-11-26) -->
+                <filter string="Amended" name="lab_amended"
+                        domain="[('lab_amend_count', '&gt;', 0)]"/>
             </search>
+        </field>
+    </record>
+
+    <record id="view_order_list_amended" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.amended</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="after">
+                <field name="lab_amend_count" string="Amended" optional="hide"/>
+                <field name="lab_amended_on" optional="hide"/>
+                <field name="lab_amended_by_id" optional="hide"/>
+            </field>
         </field>
     </record>
 

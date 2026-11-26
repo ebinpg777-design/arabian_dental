@@ -110,6 +110,33 @@
             <xpath expr="//header" position="inside">
                 <button name="action_print_job_sheet" type="object" string="Job Sheet" icon="fa-barcode"/>
             </xpath>
+            <!-- Was its job card printed, and what kind of work it is.
+                 (client, 2026-11-26) -->
+            <field name="product_id" position="after">
+                <field name="product_categ_id" optional="show"/>
+            </field>
+            <field name="state" position="before">
+                <field name="job_sheet_printed_at" optional="show"/>
+                <field name="job_sheet_printed_by_id" optional="hide"/>
+                <field name="job_sheet_print_count" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_production_search_job_sheet" model="ir.ui.view">
+        <field name="name">mrp.production.search.job.sheet</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.view_mrp_production_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <field name="product_categ_id"/>
+                <filter string="Job Card Not Printed" name="job_sheet_not_printed"
+                        domain="[('job_sheet_printed_at', '=', False), ('state', 'not in', ('done', 'cancel'))]"/>
+                <filter string="Job Card Printed" name="job_sheet_printed"
+                        domain="[('job_sheet_printed_at', '!=', False)]"/>
+                <filter string="Product Category" name="group_product_category"
+                        context="{'group_by': 'product_categ_id'}"/>
+            </search>
         </field>
     </record>
 </odoo>

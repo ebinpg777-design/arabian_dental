@@ -77,6 +77,30 @@ class MrpProduction(models.Model):
                 order[source] = production[name]
 
     # ------------------------------------------------------------------ printing
+    # WAS ITS JOB CARD PRINTED. The card is what puts a case on a bench: a confirmed
+    # order whose card nobody printed is a case the floor has not been handed.
+    # Stamped when the sheet is made (the report itself, so every way of printing
+    # it counts), kept as when, by whom and how often. (client, 2026-11-26: "able
+    # to filter confirmed orders which are not printed job card")
+    job_sheet_printed_at = fields.Datetime(
+        'Job Card Printed', copy=False, readonly=True, index='btree_not_null')
+    job_sheet_printed_by_id = fields.Many2one(
+        'res.users', 'Job Card Printed By', copy=False, readonly=True)
+    job_sheet_print_count = fields.Integer('Job Card Prints', copy=False, readonly=True)
+    # What kind of work, on the job itself: to group the list by, and to search.
+    product_categ_id = fields.Many2one(
+        'product.category', 'Product Category', related='product_id.categ_id',
+        store=True, index=True)
+
+    def _lab_stamp_job_sheet(self):
+        now = fields.Datetime.now()
+        for job in self.sudo():
+            job.write({
+                'job_sheet_printed_at': now,
+                'job_sheet_printed_by_id': self.env.uid,
+                'job_sheet_print_count': job.job_sheet_print_count + 1,
+            })
+
     def action_print_production_report(self):
         return self.env.ref(
             'lab_production_sheet.action_report_production_report').report_action(self)
@@ -290,6 +314,9 @@ class MrpProduction(models.Model):
             'date': created.strftime('%d-%m-%Y') if created else '',
             'time': created.strftime('%H:%M') if created else '',
             'work': self.product_id.display_name or '',
+            # what kind of work it is, said before what it is (client, 2026-11-26:
+            # "category name should show in the job card")
+            'category': self.product_id.categ_id.name or '',
             'quantity': ('%.2f' % self.product_qty).rstrip('0').rstrip('.'),
             'uom': self.uom_id.name or '',
             'arch': dict(self._fields['ul']._description_selection(self.env)).get(self.ul, ''),

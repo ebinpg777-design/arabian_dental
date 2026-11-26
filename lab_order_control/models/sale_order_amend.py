@@ -44,6 +44,16 @@ class SaleOrder(models.Model):
     lab_amending_by_id = fields.Many2one(
         'res.users', 'Amendment Started By', copy=False, readonly=True)
     lab_amending_at = fields.Datetime('Amendment Started On', copy=False, readonly=True)
+    # HAS IT BEEN AMENDED, and how often: the list's filter, after the fact.
+    # (client, 2026-11-26: "filter of amended SO")
+    lab_amend_count = fields.Integer(
+        'Amendments', copy=False, readonly=True,
+        help="How many times this order was taken back to draft to be amended.")
+    lab_amended_on = fields.Datetime(
+        'Last Amended', copy=False, readonly=True, index='btree_not_null',
+        help="When the order was last confirmed again after an amendment.")
+    lab_amended_by_id = fields.Many2one(
+        'res.users', 'Last Amended By', copy=False, readonly=True)
     lab_amending_jobs = fields.Char(
         'Jobs Going On', compute='_compute_lab_amending_jobs',
         help="The jobs that go on while the order is being amended.")
@@ -90,6 +100,7 @@ class SaleOrder(models.Model):
                 'state': 'draft', 'locked': False, 'lab_amending': True,
                 'lab_amending_by_id': self.env.uid,
                 'lab_amending_at': fields.Datetime.now(),
+                'lab_amend_count': order.lab_amend_count + 1,
             })
             order.sudo().action_reset_verification()
             body = _("Taken back to draft by %(user)s to be amended. Nothing was "
@@ -134,9 +145,11 @@ class SaleOrder(models.Model):
             order._lab_stop_jobs_of_removed_lines()
         res = super().action_confirm()
         done = amended.filtered(lambda o: o.state == 'sale')
-        if done:
-            done.sudo().write({'lab_amending': False, 'lab_amending_by_id': False,
-                               'lab_amending_at': False})
+        for order in done.sudo():
+            order.write({'lab_amending': False, 'lab_amending_by_id': False,
+                         'lab_amending_at': False,
+                         'lab_amended_on': fields.Datetime.now(),
+                         'lab_amended_by_id': order.lab_amending_by_id.id or self.env.uid})
         return res
 
     def _lab_stop_jobs_of_removed_lines(self):
