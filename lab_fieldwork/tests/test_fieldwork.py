@@ -1406,28 +1406,35 @@ class TestFieldwork(TransactionCase):
                       "executive would recognise — not their own keystrokes")
         self.assertTrue(first.sale_order_id)
 
-    def test_a_suspected_duplicate_blocks_check_out_until_acknowledged(self):
-        """Never silently dropped and never silently duplicated — the executive is still
-        at the counter and is the only person who can tell which it is."""
+    def test_the_same_patient_again_goes_through_and_the_office_is_told(self):
+        """The same patient's work does come from the same doctor twice in a week, so
+        the case is not stopped; the order says so for the office to check.
+        (client, 2026-11-26: "Some time same patients work will receive from same
+        doctor, so do not block")"""
         v = self._open_visit()
-        self._case(v, 'Anu Raj')
+        first = self._case(v, 'Anu Raj')
         v.do_check_out(LAT, LON)
 
         v2 = self._open_visit()
         dup = self._case(v2, 'Anu Raj', submit=False)
-        with self.assertRaises(UserError):
-            dup.action_submit()
-        self.assertEqual(dup.state, 'draft')
-        with self.assertRaises(UserError):
-            v2.do_check_out(LAT, LON)
-        self.assertEqual(v2.state, 'open',
-                         "the visit stays open so it can be fixed on the spot")
-
-        dup.duplicate_ack = True
+        self.assertTrue(dup.duplicate_warning, "the executive is still told")
         dup.action_submit()
+        order = dup.sudo().sale_order_id
+        self.assertTrue(order, "not stopped")
+        self.assertIn(first.sudo().sale_order_id.name, order.repeat_patient_note)
+        self.assertIn('check it is not the same case', order.repeat_patient_note)
         v2.do_check_out(LAT, LON)
         self.assertEqual(v2.state, 'done')
-        self.assertTrue(dup.sale_order_id)
+
+        v3 = self._open_visit()
+        again = self._case(v3, 'Anu Raj', submit=False)
+        again.duplicate_ack = True
+        again.action_submit()
+        self.assertIn('marked it as a different case', again.sudo().sale_order_id.repeat_patient_note)
+
+        v4 = self._open_visit()
+        other = self._case(v4, 'Someone Else')
+        self.assertFalse(other.sudo().sale_order_id.repeat_patient_note, "nothing to say")
 
     def test_duplicates_are_found_across_branches_of_the_same_clinic(self):
         """A clinic with three branch contacts is still one doctor, and a case entered

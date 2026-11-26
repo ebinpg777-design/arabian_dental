@@ -68,11 +68,11 @@
                         </span>
                         <i class="fa fa-chevron-right o_fw_another_go" title="Open"/>
                     </button>
-                    <div class="alert alert-warning m-0 mb-3 rounded"
-                         role="alert" invisible="not duplicate_warning or duplicate_ack">
+                    <div class="alert alert-info m-0 mb-3 rounded"
+                         role="status" invisible="not duplicate_warning or duplicate_ack">
                         <div class="d-flex align-items-start">
-                            <i class="fa fa-exclamation-triangle me-2 mt-1"
-                               title="Possible duplicate"/>
+                            <i class="fa fa-info-circle me-2 mt-1"
+                               title="Same patient recently"/>
                             <div class="flex-grow-1">
                                 <field name="duplicate_warning" nolabel="1" readonly="1"/>
                                 <div class="mt-2 d-flex flex-wrap align-items-center gap-3">
@@ -80,12 +80,14 @@
                                             string="See the earlier case"
                                             class="btn btn-sm btn-outline-secondary"
                                             invisible="not duplicate_ids"/>
-                                    <label class="d-flex align-items-center gap-2 mb-0"
-                                           for="duplicate_ack">
+                                    <!-- Not a <label for=...>: the form draws that as the
+                                         field's own caption and drops what is inside it,
+                                         so the switch never showed on a phone. (2026-11-26) -->
+                                    <div class="d-flex align-items-center gap-2 mb-0">
                                         <field name="duplicate_ack" nolabel="1"
                                                widget="boolean_toggle"/>
-                                        <span class="fw-bold">This is a different case</span>
-                                    </label>
+                                        <span class="fw-bold">Yes, more work for this patient</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -420,7 +422,7 @@
                                 <span t-if="record.received_via.raw_value === 'transport'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-bus me-1" title="Transport"/>Transport</span>
                                 <span t-if="record.needs_doctor_call.raw_value" class="o_fw_cs_chip o_fw_cs_call"><i class="fa fa-phone me-1" title="Call the doctor"/>Call doctor</span>
                                 <span t-if="record.duplicate_warning.raw_value and !record.duplicate_ack.raw_value"
-                                      class="o_fw_cs_chip o_fw_cs_dup"><i class="fa fa-clone me-1" title="Possible duplicate"/>Possible duplicate</span>
+                                      class="o_fw_cs_chip o_fw_cs_dup"><i class="fa fa-clone me-1" title="Same patient recently"/>Same patient recently</span>
                                 <field name="state" widget="badge" class="ms-auto"
                                        decoration-warning="state == 'draft'"
                                        decoration-info="state == 'submitted'"
@@ -531,6 +533,27 @@
                        options="{'no_create': True}"/>
                 <field name="case_contact_note" invisible="not case_contact_user_id"/>
             </xpath>
+            <!-- For the verifier: the same patient had a case here recently. -->
+            <xpath expr="//sheet" position="before">
+                <field name="repeat_patient_note" invisible="1"/>
+                <div class="alert alert-info m-0 rounded-0 py-2" role="status"
+                     invisible="not repeat_patient_note or state not in ('draft', 'sent')">
+                    <i class="fa fa-clone me-1" title="Same patient recently"/>
+                    <field name="repeat_patient_note" nolabel="1" readonly="1" class="d-inline"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_sales_order_filter_repeat_patient" model="ir.ui.view">
+        <field name="name">sale.order.search.repeat.patient</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <filter string="Same Patient Recently" name="repeat_patient"
+                        domain="[('repeat_patient_note', '!=', False)]"/>
+            </search>
         </field>
     </record>
 </odoo>

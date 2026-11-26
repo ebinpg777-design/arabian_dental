@@ -235,8 +235,9 @@ class LabCase(models.Model):
     duplicate_warning = fields.Char(compute='_compute_duplicates')
     duplicate_ack = fields.Boolean(
         'Different case', copy=False, tracking=True,
-        help="Tick to confirm this is genuinely a separate case and not the same one "
-             "entered twice.")
+        help="Tick to say this is more work for the same patient, not the same case "
+             "entered twice. Not required: the case goes through either way, and the "
+             "office is told on the order.")
 
     # ------------------------------------------------------------------ computes
     # One compute per field, deliberately. With one shared method, Odoo treats the
@@ -342,11 +343,16 @@ class LabCase(models.Model):
             # slip, not their own keystrokes read back at them.
             earlier = orders[:1] or cases[:1]
             where = orders[:1].name if orders else _('another slip on this visit')
+            # Advisory, not a gate: the same patient's work does come from the same
+            # doctor twice in a week - the other jaw, a repair, the next stage. The
+            # case goes through; the office sees the earlier one on the order.
+            # (client, 2026-11-26: "Some time same patients work will receive from
+            # same doctor, so do not block")
             case.duplicate_warning = _(
-                "%(who)s already has %(n)s case(s) registered at %(clinic)s in the last "
-                "%(days)s days — most recently %(ref)s. If this is the same case, delete "
-                "this slip; if the doctor really has handed over a second one, tick "
-                "“Different case”.",
+                "%(who)s also has %(n)s case(s) at %(clinic)s in the last %(days)s "
+                "days — most recently %(ref)s. More work for the same patient? Carry "
+                "on: the office is shown the earlier case. Only if this is the same "
+                "case entered twice, delete this slip.",
                 who=earlier.patient or case.patient, n=len(orders) + len(cases),
                 clinic=case.partner_id.display_name, days=window, ref=where)
 
@@ -701,20 +707,27 @@ class LabCase(models.Model):
                     "%(patient)s is to be delivered to %(where)s: write the address, or the "
                     "sticker has nowhere to go.", patient=case.patient,
                     where=dict(case._fields['deliver_to'].selection)[case.deliver_to].lower()))
-            orders, cases = case._find_duplicates()
-            if (orders or cases) and not case.duplicate_ack:
-                # Same reasoning as the banner: name the EARLIER spelling, which is the
-                # one the executive can recognise.
-                earlier = orders[:1] or cases[:1]
-                raise UserError(_(
-                    "%(who)s already has a case registered at %(clinic)s within the "
-                    "last %(days)s days (%(refs)s).\n\nIf it is the same case, delete "
-                    "this slip. If the doctor has genuinely handed over another, open "
-                    "the case and tick “Different case”.",
-                    who=earlier.patient or case.patient,
-                    clinic=case.partner_id.display_name,
-                    days=case._duplicate_window(),
-                    refs=', '.join(orders.mapped('name')[:3]) or _('an unsaved slip')))
+            # The same patient at the same clinic recently is NOT a reason to stop
+            # here any more: it is said on the order instead (`_repeat_note`), where
+            # the office verifies it. (client, 2026-11-26: "do not block")
+
+    def _repeat_note(self, order):
+        """What the office should know when the same patient had a case at this
+        clinic recently: which, and whether the executive said it is separate work.
+        False when there is nothing to say."""
+        self.ensure_one()
+        orders, cases = self._find_duplicates()
+        orders -= order
+        if not orders and not cases:
+            return False
+        refs = ['%s (%s)' % (o.name, fields.Date.to_string(o.date_order.date()))
+                for o in orders.sorted('date_order', reverse=True)[:3]]
+        if cases:
+            refs.append(_('%s slip(s) still being entered', len(cases)))
+        said = _("the executive marked it as a different case") if self.duplicate_ack \
+            else _("check it is not the same case entered twice")
+        return _("Same patient at this clinic in the last %(days)s days: %(refs)s - %(said)s.",
+                 days=self._duplicate_window(), refs=', '.join(refs), said=said)
 
     def _order_values(self):
         self.ensure_one()
@@ -817,6 +830,10 @@ class LabCase(models.Model):
             # which the executive is entitled to set. (client, 2026-08-24)
             order = self.env['sale.order'].sudo().create(case._order_values())
             case._link_order_lines(order)
+            note = case._repeat_note(order)
+            if note:
+                order.write({'repeat_patient_note': note})
+                order.message_post(body=note, subtype_xmlid='mail.mt_note')
             if order.order_line:
                 # Reuse the existing maker-checker entry point rather than writing
                 # the field: that method owns what "submitted" means, including its

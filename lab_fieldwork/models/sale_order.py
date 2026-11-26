@@ -29,6 +29,9 @@ class SaleOrder(models.Model):
         help="The one person at the lab who should contact this doctor or clinic "
              "about this case, as the executive recorded it.")
     case_contact_note = fields.Char('Why this person', copy=False)
+    # The same patient at the same clinic recently: said on the order for the office
+    # to check, instead of stopping the executive at the counter. (client, 2026-11-26)
+    repeat_patient_note = fields.Char('Same Patient Recently', readonly=True, copy=False)
 
     @api.depends('patient')
     def _compute_patient_key(self):
