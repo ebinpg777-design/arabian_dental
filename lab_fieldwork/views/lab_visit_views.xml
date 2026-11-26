@@ -356,7 +356,7 @@
                                     <field name="date_order"/>
                                     <field name="verification_state" widget="badge"/>
                                     <field name="state" widget="badge"/>
-                                    <field name="amount_untaxed" sum="Total"/>
+                                    <field name="amount_total" sum="Total"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>

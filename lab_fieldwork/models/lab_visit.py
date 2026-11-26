@@ -319,8 +319,14 @@ class LabVisit(models.Model):
     activity_count = fields.Integer(compute='_compute_activity_count')
     clinic_last_visit = fields.Date(compute='_compute_clinic_history',
                                     string='Previously Visited')
-    order_value = fields.Monetary(compute='_compute_orders', store=True,
-                                  currency_field='currency_id')
+    # What the clinic pays for the cases of the visit, GST included - the figure
+    # the executive quotes and collects, and the one My Day's open orders and the
+    # collections already use. It was the amount before tax, so a Hawley's
+    # quoted at Rs 350 read Rs 333.33 on the executive's list. (client,
+    # 2026-11-26: "Prices wrong in case list of executives")
+    order_value = fields.Monetary(
+        'Case Value', compute='_compute_orders', store=True, currency_field='currency_id',
+        help="What the clinic pays for the cases taken at this visit, GST included.")
     collected = fields.Monetary('Payment Collected', currency_field='currency_id',
                                 tracking=True)
     pay_mode = fields.Selection(
@@ -494,12 +500,12 @@ class LabVisit(models.Model):
             v.case_draft_count = len(live.filtered(lambda c: c.state == 'draft'))
             v.case_ready_count = len(live.filtered(lambda c: c.state == 'submitted'))
 
-    @api.depends('order_ids.amount_untaxed', 'order_ids.state')
+    @api.depends('order_ids.amount_total', 'order_ids.state')
     def _compute_orders(self):
         for v in self:
             live = v.order_ids.filtered(lambda o: o.state != 'cancel')
             v.order_count = len(live)
-            v.order_value = sum(live.mapped('amount_untaxed'))
+            v.order_value = sum(live.mapped('amount_total'))
 
     # ----------------------------------------------------------- the payment
     @api.depends('pay_mode', 'collected', 'collected_cash', 'collected_cheque',

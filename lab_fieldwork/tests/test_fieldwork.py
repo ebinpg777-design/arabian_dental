@@ -143,8 +143,26 @@ class TestFieldwork(TransactionCase):
                 'partner_id': self.clinic.id,
                 'order_line': [(0, 0, {'product_id': product.id, 'product_uom_qty': qty})]})
         self.assertEqual(v.order_count, 3)
-        self.assertEqual(v.order_value, 600.0)
+        self.assertEqual(v.order_value, sum(v.order_ids.mapped('amount_total')))
         self.assertEqual(v.outcome, 'order', "taking a case sets the outcome for you")
+
+    def test_the_case_value_is_what_the_clinic_pays(self):
+        """GST included: a Hawley's quoted at Rs 350 is Rs 333.33 before tax, and the
+        executive's list said 333.33. (client, 2026-11-26: "Prices wrong in case list
+        of executives")"""
+        tax = self.env['account.tax'].create({
+            'name': 'ZZ GST 5', 'amount': 5.0, 'amount_type': 'percent', 'type_tax_use': 'sale'})
+        product = self.env['product.product'].create({
+            'name': 'ZZ Hawleys', 'list_price': 333.33, 'taxes_id': [(6, 0, tax.ids)]})
+        v = self._visit()
+        v.do_check_in(LAT, LON)
+        order = self.env['sale.order'].with_context(default_visit_id=v.id).create({
+            'partner_id': self.clinic.id,
+            'order_line': [(0, 0, {'product_id': product.id, 'product_uom_qty': 2,
+                                   'tax_ids': [(6, 0, tax.ids)]})]})
+        self.assertAlmostEqual(order.amount_untaxed, 666.66, places=2)
+        self.assertAlmostEqual(v.order_value, order.amount_total, places=2)
+        self.assertAlmostEqual(v.order_value, 700.0, places=1)
 
     # ------------------------------------------------------------------ locking
     def test_a_closed_visit_is_read_only_in_the_server(self):
@@ -239,8 +257,10 @@ class TestFieldwork(TransactionCase):
         # Stored figures follow the visits when refreshed - which the screens
         # do before reading them, and a cron does hourly. (2026-09-15)
         target._refresh_done()
-        self.assertEqual(target.done_value, 50.0)
-        self.assertEqual(target.progress, 50.0)
+        # the case value is what the clinic pays, GST included (client, 2026-11-26)
+        paid = v.order_ids.amount_total
+        self.assertEqual(target.done_value, paid)
+        self.assertAlmostEqual(target.progress, paid, places=2)
 
     def test_the_hourly_job_brings_running_targets_up_to_date(self):
         today = local_now(self.env).date()
@@ -601,7 +621,9 @@ class TestFieldwork(TransactionCase):
         self.assertTrue(rows)
         self.assertEqual(sum(rows.mapped('done')), 1)
         self.assertEqual(sum(rows.mapped('cases')), 1)
-        self.assertEqual(sum(rows.mapped('case_value')), 200.0)
+        # GST included, as the visit counts it (client, 2026-11-26)
+        self.assertEqual(sum(rows.mapped('case_value')),
+                         sum(v.order_ids.mapped('amount_total')))
         self.assertEqual(max(rows.mapped('location_ok')), 100.0)
 
     def test_performance_location_ratio_ignores_visits_with_no_fix(self):
