@@ -34,8 +34,8 @@ class TestTechnicians(TransactionCase):
 
     def test_the_field_offers_technicians_and_makes_them(self):
         field = self.env['sale.order']._fields['technician_ids']
-        self.assertEqual(field.domain, "[('is_technician', '=', True)]")
-        self.assertEqual(field.context, {'default_is_technician': True})
+        self.assertEqual(field.domain, "[('is_technician', '=', True), ('active', '=', True)]")
+        self.assertEqual(field.context, {'active_test': False, 'default_is_technician': True})
         made = self.Partner.with_context(**field.context).name_create('TT QUICK')[0]
         self.assertTrue(self.Partner.browse(made).is_technician, "quick-create from the field marks one")
         form = self.env['sale.order'].get_view(view_type='form')['arch']
@@ -77,3 +77,34 @@ class TestTechnicians(TransactionCase):
         self.assertEqual(self.Partner.lab_technician_lookup('t'), [], "too short to say anything")
         contact.lab_mark_technician()
         self.assertTrue(contact.is_technician)
+
+    def test_an_archived_technician_stays_on_the_order_and_cannot_be_picked(self):
+        """(client, 2026-11-26: "show the archived technicians which are already selected
+        in the SO; do not allow to select archived technicians in SO when selecting")"""
+        still = self.Partner.create({'name': 'TT STILL HERE', 'is_technician': True})
+        gone = self.Partner.create({'name': 'TT LEFT THE LAB', 'is_technician': True})
+        order = self._order(still | gone)
+        gone.action_archive()
+        order.invalidate_recordset()
+        self.assertEqual(order.technician_ids, still | gone, "the order still names both")
+        # what the form reads
+        names = [t['display_name'] for t in order.web_read(
+            {'technician_ids': {'fields': {'display_name': {}}}})[0]['technician_ids']]
+        self.assertEqual(sorted(names), ['TT LEFT THE LAB', 'TT STILL HERE'])
+        # what the picker offers: the field's own domain and context, as the web client sends them
+        field = self.env['sale.order']._fields['technician_ids']
+        offered = self.Partner.with_context(**field.context).name_search(
+            'TT ', domain=[('is_technician', '=', True), ('active', '=', True)], limit=20)
+        offered_ids = [pid for pid, _name in offered]
+        self.assertIn(still.id, offered_ids)
+        self.assertNotIn(gone.id, offered_ids)
+        # saving the order again keeps the archived one, and adding someone keeps it too
+        other = self.Partner.create({'name': 'TT NEW HAND', 'is_technician': True})
+        order.write({'technician_ids': [(4, other.id)]})
+        self.assertEqual(order.technician_ids, still | gone | other)
+        # the New button's lookup and creation do not hand an archived one back
+        self.assertNotIn(gone.id, [m['id'] for m in self.Partner.lab_technician_lookup('TT LEFT')])
+        made = self.Partner.with_context(active_test=False).lab_create_technician('TT LEFT THE LAB')
+        self.assertTrue(made['created'])
+        self.assertNotEqual(made['id'], gone.id)
+

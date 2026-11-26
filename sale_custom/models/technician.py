@@ -71,7 +71,9 @@ class ResPartner(models.Model):
         key = technician_key(clean)
         if not key:
             raise UserError(_("Type the technician's name."))
-        for same in self.search([('is_technician', '=', True), ('name', '=ilike', clean[:1] + '%')]):
+        # an archived technician is not handed back: it is not to be picked again
+        for same in self.with_context(active_test=True).search(
+                [('is_technician', '=', True), ('name', '=ilike', clean[:1] + '%')]):
             if technician_key(same.name) == key:
                 return {'id': same.id, 'name': same.display_name, 'created': False}
         partner = self.create({

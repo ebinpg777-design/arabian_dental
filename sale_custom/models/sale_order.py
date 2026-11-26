@@ -409,8 +409,16 @@ class SaleOrder(models.Model):
         'res.partner', 'sale_order_technician_rel', 'order_id', 'partner_id',
         string='Technicians', copy=False,
         # only contacts marked Technician are offered, and one made from here is one
-        # (client, 2026-10-29)
-        domain="[('is_technician', '=', True)]", context={'default_is_technician': True},
+        # (client, 2026-10-29). A string domain is the web client's only: it picks,
+        # it never filters what the order already names.
+        # ARCHIVED TECHNICIANS: 87 technician contacts were archived on 2026-11-24,
+        # and an archived record drops out of every order that names it - 24,094
+        # orders lost a name from their Technicians. Read with active_test off, the
+        # order shows everyone it names; the domain keeps an archived one from being
+        # picked again. (client, 2026-11-26: "show the archived technicians already
+        # selected in the SO; do not allow to select archived technicians")
+        domain="[('is_technician', '=', True), ('active', '=', True)]",
+        context={'active_test': False, 'default_is_technician': True},
         help="Who worked this case. Filled from the old system for migrated cases; "
              "new cases record the bench on their work orders.")
     register_person_id = fields.Many2one(
