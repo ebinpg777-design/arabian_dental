@@ -214,6 +214,8 @@ class LabStation(models.AbstractModel):
             # A technician still sees WHO has each job — that is the point of naming it —
             # they simply cannot move it to somebody else. (client, 2026-08-26)
             'can_assign': role in ('manager', 'lead'),
+            # Whether this database keeps amendments on its orders at all.
+            'amendments': self._amendments_on(),
             'staffed': bool(workcenter.users or workcenter.head_user_ids),
             # Arrived but nobody here has taken responsibility yet. This is the whole
             # point of the board: a job moved to a station that never noticed is a job
@@ -917,6 +919,12 @@ class LabStation(models.AbstractModel):
             'next_station': wo.next_workcenter_id.sudo().display_name or '',
             # Two things that change what the bench does before it touches the job.
             'call_doctor': bool(order.is_pending_work),
+            # The case is waiting on an amendment: the bench should know before it
+            # makes it the old way. (client, 2026-11-26)
+            'amendment': bool(order and 'has_amendment' in order._fields
+                              and order.sudo().has_amendment),
+            'amendment_note': (order.sudo().amendment_note or '')
+                              if order and 'has_amendment' in order._fields else '',
             'urgent': order.priority in URGENT,
             # HOW LONG IT HAS STOOD HERE. A queue of nine hundred is not read
             # by date; it is read by what is going stale. The clock starts when
@@ -1402,6 +1410,153 @@ class LabStation(models.AbstractModel):
             'board': self.get_station(workcenter_id, person_id),
             'message': _("%(job)s — %(step)s cancelled at %(bench)s.",
                          job=label, step=step, bench=bench),
+        }
+
+    # ------------------------------------------------------------ amendments
+    # The order's "amendment waiting" flag lives in lab_order_control (it stops the
+    # order being invoiced). The person who learns of an amendment is at a bench with
+    # the card in hand, and the order and manufacturing order forms are two screens
+    # away from the board - so the board says it too, and lets the flag be raised and
+    # cleared from a scan. Read only where that module is installed.
+    # (client, 2026-11-26: "How can I set the amend through station board")
+    @api.model
+    def _amendments_on(self):
+        return 'has_amendment' in self.env['sale.order']._fields
+
+    @api.model
+    def _amendment_bench(self, workcenter_id):
+        """The station asked from, and the asker's place at it: the board's own
+        rule for every act - you act at a bench you are posted to."""
+        if not self._amendments_on():
+            raise UserError(_("Amendments are not switched on in this database."))
+        workcenter = self.env['mrp.workcenter'].browse(int(workcenter_id)) \
+            if workcenter_id else self._default_workcenter()
+        if not workcenter:
+            raise UserError(_("Choose a station before scanning."))
+        if not self.env['mrp.workorder']._bench_role(workcenter):
+            raise UserError(_(
+                "You are not posted to %s, so you cannot mark an amendment from it.",
+                workcenter.display_name))
+        return workcenter
+
+    @api.model
+    def _order_from_code(self, code, workcenter):
+        """(order, work order) for a scanned or typed card.
+
+        Any job of the lab, not only one standing here: an amendment is about the
+        case, and the call that brings one often comes after the job has moved on -
+        or after the case is made and waiting to be billed, which is exactly the
+        moment the flag matters. So a case with nothing left open is found too, by
+        its manufacturing or sales order number."""
+        try:
+            wo = self._workorder_from_code(code, workcenter)
+        except UserError as error:
+            wo, missed = self.env['mrp.workorder'], error
+        else:
+            missed = None
+        if wo:
+            order = wo.sudo().production_id.sale_id
+            if not order:
+                raise UserError(_("%s was not made for a sales order.",
+                                  self._job_label(wo)))
+        else:
+            # `=` and not `=ilike`: the operator's text must not become a pattern
+            # (the same hole _workorder_from_code closes); the lab's numbers are
+            # upper case, a phone keyboard's are not always.
+            code = (code or '').strip().upper()
+            order = self.env['sale.order'].sudo().search([('name', '=', code)], limit=1)
+            if not order:
+                production = self.env['mrp.production'].sudo().search(
+                    [('name', '=', code)], limit=1)
+                if production and not production.sale_id:
+                    raise UserError(_("%s was not made for a sales order.", production.name))
+                order = production.sale_id
+            if not order:
+                raise missed or UserError(_("Nothing in the lab matches %s.", code))
+        if order.state == 'cancel':
+            raise UserError(_("%s is cancelled.", order.name))
+        return order, wo
+
+    @api.model
+    def _amendment_card(self, order, wo=None):
+        """The case, and the amendment waiting on it if there is one."""
+        order = order.sudo()
+        wo = (wo or self.env['mrp.workorder']).sudo()
+        if wo:
+            production = wo.production_id
+        elif 'mrp_production_ids' in order._fields:
+            production = order.mrp_production_ids[:1]
+        else:
+            production = self.env['mrp.production'].sudo()
+        invoices = order.invoice_ids.filtered(
+            lambda m: m.state == 'posted' and m.move_type == 'out_invoice')
+        when = order.amendment_date and fields.Datetime.context_timestamp(
+            self, order.amendment_date)
+        return {
+            'order_id': order.id,
+            'order': order.name,
+            'production': production.name or '',
+            'product_name': (production.product_id.name or '').strip(),
+            'patient': order.patient or '',
+            'clinic': order.partner_id.display_name or '',
+            'operation': wo.name if wo else '',
+            'at_station': wo.workcenter_id.sudo().display_name if wo else '',
+            'has_amendment': order.has_amendment,
+            'note': order.amendment_note or '',
+            'marked_by': order.amendment_user_id.name or '',
+            'marked_on': when.strftime('%d %b, %H:%M') if when else '',
+            # Already billed: the flag still tells the lab, but it no longer stops
+            # anything, and the person raising it should know that.
+            'invoiced': ', '.join(invoices.mapped('name')),
+        }
+
+    @api.model
+    def scan_to_amend(self, code, workcenter_id=None, person_id=None):
+        """Find the case a scanned card belongs to, and its amendment. READS ONLY:
+        the dialog asks what the amendment is before anything is marked."""
+        workcenter = self._amendment_bench(workcenter_id)
+        order, wo = self._order_from_code(code, workcenter)
+        return self._amendment_card(order, wo)
+
+    @api.model
+    def amendment_of_job(self, workorder_id, workcenter_id=None):
+        """The amendment on a card's case - the badge on the card, tapped."""
+        self._amendment_bench(workcenter_id)
+        wo = self.env['mrp.workorder'].sudo().browse(int(workorder_id)).exists()
+        order = wo.production_id.sale_id
+        if not order:
+            raise UserError(_("That job was not made for a sales order."))
+        return self._amendment_card(order, wo)
+
+    @api.model
+    def mark_amendment(self, order_id, note, workcenter_id=None, person_id=None):
+        """Mark the case's order as waiting on an amendment - or add to the one
+        already waiting. The order's own rule decides who may and records it."""
+        workcenter = self._amendment_bench(workcenter_id)
+        order = self.env['sale.order'].browse(int(order_id)).exists()
+        if not order:
+            raise UserError(_("That order no longer exists."))
+        added = order.sudo().has_amendment
+        order._mark_amendment(note)
+        return {
+            'board': self.get_station(workcenter.id, person_id),
+            'message': (_("%s: added to the amendment.", order.sudo().name) if added else
+                        _("%s marked: amendment waiting. It cannot be invoiced until "
+                          "the amendment is done.", order.sudo().name)),
+        }
+
+    @api.model
+    def amendment_done(self, order_id, workcenter_id=None, person_id=None):
+        """The amendment is done: the order may be invoiced again."""
+        workcenter = self._amendment_bench(workcenter_id)
+        order = self.env['sale.order'].browse(int(order_id)).exists()
+        if not order:
+            raise UserError(_("That order no longer exists."))
+        order.action_amendment_done()
+        return {
+            'board': self.get_station(workcenter.id, person_id),
+            'message': _("%s: amendment done. The order can be invoiced.",
+                         order.sudo().name),
         }
 
     @api.model

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.AmendmentDialog">
+    <Dialog title="this.props.job.has_amendment ? 'Amendment waiting' : 'Mark an amendment'"
+            size="'md'" footer="false" contentClass="'o_st_change_dlg o_st_amend_dlg'">
+
+        <!-- Which case. A wrong card must be obvious before anything changes. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-out="this.props.job.production or this.props.job.order"/>
+            <span class="o_st_ref" t-out="this.props.job.order"/>
+            <div t-if="this.props.job.product_name" class="o_st_product">
+                <i class="fa fa-cube me-1" title="Appliance"/><t t-out="this.props.job.product_name"/>
+            </div>
+            <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
+                <span t-if="this.props.job.patient" class="o_st_patient" t-out="this.props.job.patient"/>
+                <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
+                <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
+            </div>
+            <div t-if="this.props.job.at_station" class="o_st_doing_next">
+                <i class="fa fa-industry me-1" title="Where it is"/>
+                <t t-out="this.props.job.operation"/> at <strong t-out="this.props.job.at_station"/>
+            </div>
+        </div>
+
+        <!-- WAITING: what was asked, by whom, and the one button that clears it. -->
+        <t t-if="this.props.job.has_amendment">
+            <div class="o_st_amend_now">
+                <div class="o_st_amend_now_h">
+                    <i class="fa fa-pencil-square-o me-1" title="Amendment"/>Amendment waiting
+                </div>
+                <div class="o_st_amend_now_note" t-out="this.props.job.note or '(not written)'"/>
+                <div t-if="this.props.job.marked_by" class="o_st_amend_now_by">
+                    Marked by <strong t-out="this.props.job.marked_by"/>
+                    <t t-if="this.props.job.marked_on"> on <t t-out="this.props.job.marked_on"/></t>
+                </div>
+            </div>
+            <button class="o_st_change_go o_st_amend_done" t-att-disabled="this.state.busy"
+                    t-on-click="() => this.done()">
+                <i class="fa fa-check me-1" title="Done"/>
+                <t t-if="this.state.busy === 'done'">Saving…</t>
+                <t t-else="">Amendment Done</t>
+            </button>
+        </t>
+        <div t-else="" class="o_st_amend_rule">
+            <i class="fa fa-lock me-1" title="Invoicing stops"/>
+            <strong>The order cannot be invoiced</strong> until the amendment is
+            done and marked so.
+        </div>
+        <!-- Said beside the rule it qualifies, before the question. -->
+        <div t-if="this.props.job.invoiced" class="o_st_amend_billed">
+            <i class="fa fa-info-circle me-1" title="Already invoiced"/>
+            Already invoiced (<t t-out="this.props.job.invoiced"/>) — the mark tells the
+            lab, but it cannot hold back an invoice that is made.
+        </div>
+        <label class="o_st_doing_lead" for="o_st_amend_note">
+            <t t-if="this.props.job.has_amendment">Something more to amend?</t>
+            <t t-else="">What has to be amended?</t>
+        </label>
+        <textarea id="o_st_amend_note" class="form-control o_st_cancel_reason" rows="2"
+                  placeholder="e.g. doctor asked to add 16; shade changed to A3"
+                  t-model.proxy="this.state.note" t-att-disabled="this.state.busy"/>
+
+        <div t-if="this.state.error" class="o_st_change_err" role="alert">
+            <i class="fa fa-exclamation-triangle me-1" title="Refused"/>
+            <t t-out="this.state.error"/>
+        </div>
+
+        <button class="o_st_change_go o_st_amend_go"
+                t-att-class="{ o_st_amend_add: this.props.job.has_amendment }"
+                t-att-disabled="!this.hasNote or this.state.busy"
+                t-on-click="() => this.mark()">
+            <i class="fa fa-pencil-square-o me-1" title="Mark"/>
+            <t t-if="this.state.busy === 'mark'">Saving…</t>
+            <t t-elif="!this.hasNote">Write what to amend first</t>
+            <t t-elif="this.props.job.has_amendment">Add to the amendment</t>
+            <t t-else="">Mark Amendment</t>
+        </button>
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-att-disabled="this.state.busy"
+                    t-on-click="() => this.props.close()">Leave it as it is</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

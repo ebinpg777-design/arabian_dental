@@ -13,6 +13,7 @@ import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_d
 import { DoingItDialog } from "@lab_workcenter_scan/js/doing_it_dialog";
 import { WhereDialog } from "@lab_workcenter_scan/js/where_dialog";
 import { CancelDialog } from "@lab_workcenter_scan/js/cancel_dialog";
+import { AmendmentDialog } from "@lab_workcenter_scan/js/amendment_dialog";
 import { FindDialog } from "@lab_workcenter_scan/js/find_dialog";
 import { ChangeDialog } from "@lab_workcenter_scan/js/change_dialog";
 import { RestartDialog } from "@lab_workcenter_scan/js/restart_dialog";
@@ -632,6 +633,100 @@ export class LabStation extends Component {
                 this.state.data = result.board;
                 this.buzz(true);
                 this.notification.add(result.message, { type: "warning" });
+            },
+        });
+    }
+
+    /**
+     * Scan a job card to mark its case as waiting on an amendment, or to say the
+     * amendment is done. The scan only FINDS the case; the dialog asks what the
+     * amendment is. Any job of the lab, not only one at this bench: the call
+     * that brings an amendment often comes after the job has moved on.
+     * (client, 2026-11-26)
+     */
+    async amendByScan() {
+        if (this.state.busy) {
+            return;
+        }
+        let code = (this.state.typed || "").trim();
+        if (!code && this.canScan) {
+            try {
+                code = await scanBarcode(this.env);
+            } catch {
+                code = null;
+            }
+        }
+        if (!code) {
+            this.typedRef()?.focus();
+            return;
+        }
+        this.state.busy = -1;
+        let found;
+        try {
+            found = await this.orm.call("lab.station", "scan_to_amend", [
+                code,
+                this.state.data.workcenter.id,
+                this.state.person,
+            ]);
+        } catch (error) {
+            this.buzz(false);
+            this.notification.add(error.data?.message || error.message, {
+                type: "danger",
+            });
+            return;
+        } finally {
+            this.state.busy = 0;
+        }
+        this.buzz(true);
+        this.state.typed = "";
+        this.showAmendment(found);
+    }
+
+    /** The AMENDMENT badge on a card, tapped: what is waiting, and Done. */
+    async openAmendment(card) {
+        let found;
+        try {
+            found = await this.orm.call("lab.station", "amendment_of_job", [
+                card.id,
+                this.state.data.workcenter.id,
+            ]);
+        } catch (error) {
+            this.notification.add(error.data?.message || error.message, {
+                type: "danger",
+            });
+            return;
+        }
+        this.showAmendment(found);
+    }
+
+    showAmendment(found) {
+        const after = (result, type) => {
+            this.state.data = result.board;
+            this.buzz(true);
+            this.notification.add(result.message, { type });
+        };
+        this.dialog.add(AmendmentDialog, {
+            job: found,
+            onMark: async (note) => {
+                after(
+                    await this.orm.call("lab.station", "mark_amendment", [
+                        found.order_id,
+                        note,
+                        this.state.data.workcenter.id,
+                        this.state.person,
+                    ]),
+                    "warning"
+                );
+            },
+            onDone: async () => {
+                after(
+                    await this.orm.call("lab.station", "amendment_done", [
+                        found.order_id,
+                        this.state.data.workcenter.id,
+                        this.state.person,
+                    ]),
+                    "success"
+                );
             },
         });
     }

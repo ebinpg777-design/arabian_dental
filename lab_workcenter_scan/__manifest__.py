@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Work Centre Scanning',
-    'version': '20.0.3.21.0',
+    'version': '20.0.3.22.0',
     'summary': 'Move a work order to another work centre by scanning the station QR code',
     'description': """
 Work Centre Scanning
@@ -56,6 +56,7 @@ typing on a shared terminal.
             'lab_workcenter_scan/static/src/js/doing_it_dialog.js',
             'lab_workcenter_scan/static/src/js/where_dialog.js',
             'lab_workcenter_scan/static/src/js/cancel_dialog.js',
+            'lab_workcenter_scan/static/src/js/amendment_dialog.js',
             'lab_workcenter_scan/static/src/js/find_dialog.js',
             'lab_workcenter_scan/static/src/js/change_dialog.js',
             'lab_workcenter_scan/static/src/js/restart_dialog.js',
@@ -75,6 +76,7 @@ typing on a shared terminal.
             'lab_workcenter_scan/static/src/xml/doing_it_dialog.xml',
             'lab_workcenter_scan/static/src/xml/where_dialog.xml',
             'lab_workcenter_scan/static/src/xml/cancel_dialog.xml',
+            'lab_workcenter_scan/static/src/xml/amendment_dialog.xml',
             'lab_workcenter_scan/static/src/xml/find_dialog.xml',
             'lab_workcenter_scan/static/src/xml/change_dialog.xml',
             'lab_workcenter_scan/static/src/xml/restart_dialog.xml',

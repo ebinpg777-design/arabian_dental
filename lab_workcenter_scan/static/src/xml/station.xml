@@ -106,6 +106,17 @@
                             title="Scan a job card to start that case again">
                         <i class="fa fa-refresh me-1" title="Start again"/>Start again
                     </button>
+                    <!-- The case is waiting on a change - or the change is made.
+                         Marks the ORDER, so it cannot be invoiced in between. Any
+                         job of the lab: the call often comes after the job has
+                         moved on. (client, 2026-11-26) -->
+                    <button t-if="this.state.data.amendments"
+                            class="o_st_type_find o_st_type_amend"
+                            t-on-click="() => this.amendByScan()"
+                            t-att-disabled="this.state.busy"
+                            title="Scan a job card to mark an amendment on its order, or to mark it done">
+                        <i class="fa fa-pencil-square-o me-1" title="Amendment"/>Amendment
+                    </button>
                     </div>
                 </div>
             </div>
@@ -659,6 +670,14 @@
             <span t-if="c.call_doctor" class="o_st_flag o_st_flag_call">
                 <i class="fa fa-phone me-1" title="Call the doctor"/>CALL DOCTOR
             </span>
+            <!-- Waiting on a change: read before the job is made the old way.
+                 Tapped, it says what the change is and offers Done.
+                 (client, 2026-11-26) -->
+            <button t-if="c.amendment" type="button" class="o_st_flag o_st_flag_amend"
+                    t-att-title="'Amendment: ' + (c.amendment_note or '')"
+                    t-on-click.stop="() => this.openAmendment(c)">
+                <i class="fa fa-pencil-square-o me-1" title="Amendment"/>AMENDMENT
+            </button>
         </div>
         <div class="o_st_title">
             <span class="o_st_mo" t-out="c.production or c.name"/>

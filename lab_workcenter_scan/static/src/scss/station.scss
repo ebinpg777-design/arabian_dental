@@ -679,8 +679,10 @@ $st-danger: #b3261e; // start again — the one act that destroys work
     .o_st .o_st_type_acts {
         display: grid;
         // Four now - Where, Correct, Cancel, Start again - still one row, still
-        // thumb-sized. (client, 2026-09-14)
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        // thumb-sized. (client, 2026-09-14) Six with Track and Amendment: two
+        // rows of three, each still wide enough for "Start again" on one line.
+        // (client, 2026-11-26)
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: .3125rem;
         width: 100%;
         margin-top: .5rem;
@@ -1751,5 +1753,76 @@ $st-danger: #b3261e; // start again — the one act that destroys work
         background: rgba($st-in, .14);
         color: $st-in;
         font-weight: 700;
+    }
+}
+
+// ─── Amendment — the case is waiting on a change (client, 2026-11-26) ───────
+// The order's own badge is solid red, so the board's is too: of all the flags on
+// a card this is the one that says "do not make it as it stands". Solid, where
+// the redo flag beside it is a tint, so the two reds never read as one thing.
+.o_st .o_st_flag_amend {
+    border: 0;
+    background: $st-danger;
+    color: #fff;
+    cursor: pointer;
+    line-height: inherit;
+    &:hover, &:focus-visible { background: darken($st-danger, 8%); }
+}
+// A third flag in the row ran under the pick box in the card's corner: the row
+// wraps before it instead.
+.o_st .o_st_tick ~ .o_st_flags { padding-right: 2.25rem; }
+.o_st .o_st_type_find.o_st_type_amend {
+    color: $st-danger;
+    &:hover:not(:disabled) {
+        color: $st-danger;
+        background-color: rgba($st-danger, .08);
+    }
+}
+.o_st_amend_dlg {
+    .o_st_amend_rule {
+        padding: .5rem .75rem;
+        border-radius: .5rem;
+        border-left: .25rem solid $st-danger;
+        background: rgba($st-danger, .06);
+        color: darken($st-danger, 10%);
+        font-size: .875rem;
+        line-height: 1.35;
+    }
+    .o_st_amend_now {
+        padding: .625rem .75rem;
+        border-radius: .5rem;
+        border: 1px solid rgba($st-danger, .35);
+        border-left: .3125rem solid $st-danger;
+        background: rgba($st-danger, .06);
+    }
+    .o_st_amend_now_h {
+        font-size: .75rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: $st-danger;
+    }
+    .o_st_amend_now_note {
+        margin-top: .25rem;
+        white-space: pre-line;
+        font-size: .9375rem;
+        font-weight: 600;
+        color: $o-gray-900;
+    }
+    .o_st_amend_now_by { margin-top: .25rem; font-size: .8125rem; color: $o-gray-600; }
+    .o_st_amend_billed {
+        margin: .5rem 0 0;
+        font-size: .8125rem;
+        color: $o-gray-700;
+    }
+    .o_st_cancel_reason { min-height: 3.5rem; border-radius: .5rem; font-size: .9375rem; }
+    // Done is the act the dialog is for when one is waiting: filled, in the
+    // board's "in hand" teal. Marking is the stop sign: red.
+    .o_st_change_go.o_st_amend_done { margin-top: .75rem; }
+    .o_st_change_go.o_st_amend_go:not(:disabled) { background: $st-danger; }
+    .o_st_change_go.o_st_amend_go.o_st_amend_add:not(:disabled) {
+        background: $body-bg;
+        color: $st-danger;
+        border: 1px solid rgba($st-danger, .5);
     }
 }
