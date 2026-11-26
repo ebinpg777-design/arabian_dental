@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- An amendment waiting on a case: marked by the floor or the office, shown on
+         the order as a badge and a banner, and in the way of the invoice until it
+         is done. (client, 2026-11-26) -->
+    <record id="view_amendment_wizard_form" model="ir.ui.view">
+        <field name="name">lab.amendment.wizard.form</field>
+        <field name="model">lab.amendment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mark an Amendment">
+                <field name="order_id" invisible="1"/>
+                <div class="text-muted mb-2">
+                    The order is marked as having an amendment and cannot be invoiced
+                    until somebody presses <b>Amendment Done</b> on it.
+                </div>
+                <field name="note" placeholder="What has to be amended? e.g. doctor asked for one more unit on 36; shade changed to A3"/>
+                <footer>
+                    <button string="Mark Amendment" name="action_confirm" type="object"
+                            class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_order_form_amendment" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.amendment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="has_amendment" invisible="1"/>
+                <button name="action_amendment_needed" type="object" string="Mark Amendment"
+                        icon="fa-pencil-square-o"
+                        invisible="has_amendment or state == 'cancel'"
+                        groups="mrp.group_mrp_user,sales_team.group_sale_salesman"/>
+                <button name="action_amendment_done" type="object" string="Amendment Done"
+                        class="btn-warning" icon="fa-check"
+                        invisible="not has_amendment"
+                        confirm="Has the amendment been done on this order? It can be invoiced again after this."
+                        groups="mrp.group_mrp_user,sales_team.group_sale_salesman"/>
+            </xpath>
+
+            <!-- The badge, beside the order number: the first thing read on opening
+                 the order. Not a ribbon - that corner is the urgency's. -->
+            <!-- (the order number is a block of its own: made inline, so the badge
+                 sits on its line and not under it) -->
+            <xpath expr="//div[hasclass('oe_title')]/h1/field[@name='name']" position="attributes">
+                <attribute name="class" add="d-inline-block w-auto" separator=" "/>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]/h1" position="inside">
+                <span class="badge text-bg-danger ms-2 align-middle fs-6"
+                      invisible="not has_amendment" title="An amendment is waiting on this order">
+                    <i class="fa fa-pencil-square-o me-1" title="Amendment"/>AMENDMENT
+                </span>
+            </xpath>
+
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-danger m-0 rounded-0" role="alert"
+                     invisible="not has_amendment">
+                    <i class="fa fa-pencil-square-o me-1" title="Amendment"/>
+                    <strong>Amendment waiting — this order cannot be invoiced until it is done:</strong>
+                    <field name="amendment_note" nolabel="1" readonly="1" class="d-inline"/>
+                    <div class="small d-flex flex-wrap align-items-baseline gap-1">
+                        <span>Marked by</span>
+                        <field name="amendment_user_id" nolabel="1" readonly="1"
+                               class="w-auto" options="{'no_open': True}"/>
+                        <span>on</span>
+                        <field name="amendment_date" nolabel="1" readonly="1" class="w-auto"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_list_amendment" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.amendment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="has_amendment" string="Amendment" optional="show"
+                       widget="boolean" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_sales_order_filter_amendment" model="ir.ui.view">
+        <field name="name">sale.order.search.lab.amendment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <filter name="my_sale_orders_filter" position="after">
+                <filter name="has_amendment" string="Amendment Waiting"
+                        domain="[('has_amendment', '=', True)]"/>
+            </filter>
+        </field>
+    </record>
+
+    <!-- The job: where a manufacturing user actually is. -->
+    <record id="view_production_form_amendment" model="ir.ui.view">
+        <field name="name">mrp.production.form.lab.amendment</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="has_amendment" invisible="1"/>
+                <field name="sale_id" invisible="1"/>
+                <button name="action_amendment_needed" type="object" string="Mark Amendment"
+                        icon="fa-pencil-square-o"
+                        invisible="has_amendment or not sale_id or state == 'cancel'"
+                        groups="mrp.group_mrp_user"/>
+                <button name="action_amendment_done" type="object" string="Amendment Done"
+                        class="btn-warning" icon="fa-check"
+                        invisible="not has_amendment"
+                        confirm="Has the amendment been done on this order? It can be invoiced again after this."
+                        groups="mrp.group_mrp_user"/>
+            </xpath>
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-danger m-0 rounded-0" role="alert"
+                     invisible="not has_amendment">
+                    <i class="fa fa-pencil-square-o me-1" title="Amendment"/>
+                    <strong>Amendment waiting on this order:</strong>
+                    <field name="amendment_note" nolabel="1" readonly="1" class="d-inline"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

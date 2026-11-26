@@ -5,3 +5,4 @@ from . import test_ph2_epic_c
 from . import test_ph2_epic_d1
 from . import test_cancel_stops_production
 from . import test_cancel_cancels_invoice
+from . import test_amendment

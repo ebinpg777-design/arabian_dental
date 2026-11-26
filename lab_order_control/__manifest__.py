@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Order Control — Maker/Checker & Credit Limit',
-    'version': '20.0.1.12.0',
+    'version': '20.0.1.13.0',
     'category': 'Sales/Sales',
     'summary': 'Second-person verification of registered cases before processing, plus '
                'enforced customer credit limits',
@@ -34,6 +34,7 @@ This module only surfaces it on the verification screens.
         'data/ir_cron.xml',
         'views/doctor_call_views.xml',
         'views/hold_views.xml',
+        'views/amendment_views.xml',
         'views/sale_order_views.xml',
         'views/urgent_views.xml',
         'data/filter_tiles.xml',
