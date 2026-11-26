@@ -29,4 +29,13 @@
               action="action_collection_dashboard"
               groups="lab_fieldwork.group_fieldwork_executive"/>
 
+    <!-- The managers' door, on the Field Work bar beside Planning and Analysis:
+         the same screen, which shows a field work manager every route
+         (_viewer_route_ids). (client, 2026-11-26: "add the menu of Collections in
+         the field work menu for field work managers") -->
+    <menuitem id="menu_collections_fieldwork_manager" name="Collections"
+              parent="lab_fieldwork.menu_fieldwork_root" sequence="25"
+              action="action_collection_dashboard"
+              groups="lab_fieldwork.group_fieldwork_manager"/>
+
 </odoo>
