@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Work Centre Scanning',
-    'version': '20.0.3.22.0',
+    'version': '20.0.3.23.0',
     'summary': 'Move a work order to another work centre by scanning the station QR code',
     'description': """
 Work Centre Scanning
@@ -45,6 +45,7 @@ typing on a shared terminal.
         'views/production_performance_views.xml',
         'views/tech_day_views.xml',
         'views/mrp_redo_views.xml',
+        'views/reassign_pending_views.xml',
         'wizard/production_report_views.xml',
         'wizard/floor_print_views.xml',
         'security/ir.access.csv',
@@ -57,6 +58,9 @@ typing on a shared terminal.
             'lab_workcenter_scan/static/src/js/where_dialog.js',
             'lab_workcenter_scan/static/src/js/cancel_dialog.js',
             'lab_workcenter_scan/static/src/js/amendment_dialog.js',
+            'lab_workcenter_scan/static/src/js/job_code_dialog.js',
+            'lab_workcenter_scan/static/src/js/pending_dialog.js',
+            'lab_workcenter_scan/static/src/js/reassign_dialog.js',
             'lab_workcenter_scan/static/src/js/find_dialog.js',
             'lab_workcenter_scan/static/src/js/change_dialog.js',
             'lab_workcenter_scan/static/src/js/restart_dialog.js',
@@ -77,6 +81,9 @@ typing on a shared terminal.
             'lab_workcenter_scan/static/src/xml/where_dialog.xml',
             'lab_workcenter_scan/static/src/xml/cancel_dialog.xml',
             'lab_workcenter_scan/static/src/xml/amendment_dialog.xml',
+            'lab_workcenter_scan/static/src/xml/job_code_dialog.xml',
+            'lab_workcenter_scan/static/src/xml/pending_dialog.xml',
+            'lab_workcenter_scan/static/src/xml/reassign_dialog.xml',
             'lab_workcenter_scan/static/src/xml/find_dialog.xml',
             'lab_workcenter_scan/static/src/xml/change_dialog.xml',
             'lab_workcenter_scan/static/src/xml/restart_dialog.xml',

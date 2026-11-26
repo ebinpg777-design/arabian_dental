@@ -293,6 +293,29 @@ class LabTrack(models.AbstractModel):
         return ', '.join(people.mapped('name'))
 
     @api.model
+    def _lab_step_first(self, wo):
+        """Who worked on a step before it was reassigned to the people on it now -
+        '' when it never changed hands. Guarded like the names themselves.
+        (client, 2026-11-26)"""
+        if 'reassigned' not in wo._fields or not wo.reassigned:
+            return ''
+        return ', '.join(wo.initial_user_ids.sorted('name').mapped('name'))
+
+    @api.model
+    def _lab_pending(self, mo):
+        """What a job is waiting for, where the bench has said it cannot go on:
+        {reason, by, since} - or False. (client, 2026-11-26)"""
+        if 'lab_pending' not in mo._fields or not mo.lab_pending \
+                or mo.state in ('done', 'cancel'):
+            return False
+        return {
+            'reason': mo.lab_pending_reason or '',
+            'by': mo.lab_pending_by_id.name or '',
+            'since': self._stamp(mo.lab_pending_at),
+            'hours': self._hours_since(mo.lab_pending_at),
+        }
+
+    @api.model
     def _stamp(self, value, fmt='%d %b %H:%M'):
         """A stamp in the reader's own clock.
 
@@ -405,6 +428,10 @@ class LabTrack(models.AbstractModel):
                     'arch': (ARCH_SHORT.get(wo.arch)
                              if 'arch' in wo._fields else '') or '',
                     'person': self._lab_step_people(wo),
+                    # Reassigned: who worked on it first, and why it changed hands.
+                    'first_person': self._lab_step_first(wo),
+                    'reassign_note': (wo.reassign_note or '')
+                                     if self._lab_step_first(wo) else '',
                     'finisher': (wo.finisher_user_id.name
                                  if 'finisher_user_id' in wo._fields else '') or '',
                 })
@@ -420,6 +447,8 @@ class LabTrack(models.AbstractModel):
                 # the doctor, and on a UL case it explains why the rail below
                 # runs through every bench twice. (client, 2026-09-12)
                 'ul': (ul_labels.get(mo.ul, '') if 'ul' in mo._fields else ''),
+                # The bench has said this job cannot go on for now, and why.
+                'pending': self._lab_pending(mo),
                 'workorders': workorders,
                 'done': done,
                 'total': len(workorders),
@@ -853,6 +882,10 @@ class LabTrack(models.AbstractModel):
             'doctor': order.partner_id.display_name if order else '',
             'operation': wo.name or '',
             'technician': self._lab_step_people(wo),
+            'first_person': self._lab_step_first(wo),
+            'pending': bool(production and self._lab_pending(production)),
+            'pending_reason': (production.lab_pending_reason or '')
+                              if production and self._lab_pending(production) else '',
             'since': self._stamp(since, '%H:%M'),
             'hours': self._hours_since(since),
             # Whether the bench has taken it - not whether it has a name on it.

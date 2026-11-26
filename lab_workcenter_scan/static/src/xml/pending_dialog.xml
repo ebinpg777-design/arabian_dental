@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.PendingDialog">
+    <Dialog title="this.props.job.pending ? 'Pending' : 'Mark as pending'"
+            size="'md'" footer="false" contentClass="'o_st_change_dlg o_st_pend_dlg'">
+
+        <!-- Which job. A wrong card must be obvious before anything changes. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-out="this.props.job.production"/>
+            <span t-if="this.props.job.order" class="o_st_ref" t-out="this.props.job.order"/>
+            <div t-if="this.props.job.product_name" class="o_st_product">
+                <i class="fa fa-cube me-1" title="Appliance"/><t t-out="this.props.job.product_name"/>
+            </div>
+            <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
+                <span t-if="this.props.job.patient" class="o_st_patient" t-out="this.props.job.patient"/>
+                <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
+                <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
+            </div>
+            <div t-if="this.props.job.at_station" class="o_st_doing_next">
+                <i class="fa fa-industry me-1" title="Where it is"/>
+                <t t-out="this.props.job.operation"/> at <strong t-out="this.props.job.at_station"/>
+            </div>
+        </div>
+
+        <!-- PENDING: what for, who said so, and the one button that ends it. -->
+        <t t-if="this.props.job.pending">
+            <div class="o_st_pend_now">
+                <div class="o_st_pend_now_h">
+                    <i class="fa fa-pause-circle me-1" title="Pending"/>Pending
+                </div>
+                <div class="o_st_pend_now_note" t-out="this.props.job.reason or '(not written)'"/>
+                <div t-if="this.props.job.marked_by" class="o_st_pend_now_by">
+                    Marked by <strong t-out="this.props.job.marked_by"/>
+                    <t t-if="this.props.job.marked_on"> on <t t-out="this.props.job.marked_on"/></t>
+                </div>
+            </div>
+            <button class="o_st_change_go o_st_pend_resume" t-att-disabled="this.state.busy"
+                    t-on-click="() => this.resume()">
+                <i class="fa fa-play me-1" title="Resume"/>
+                <t t-if="this.state.busy === 'resume'">Saving…</t>
+                <t t-else="">Resume — work goes on</t>
+            </button>
+        </t>
+        <div t-else="" class="o_st_pend_rule">
+            <i class="fa fa-pause-circle me-1" title="Pending"/>
+            <strong>The job shows as pending</strong> here and on the tracking screen,
+            with the reason, until work on it goes on.
+        </div>
+
+        <label class="o_st_doing_lead" for="o_st_pend_reason">
+            <t t-if="this.props.job.pending">Waiting for something else now?</t>
+            <t t-else="">What is it waiting for?</t>
+        </label>
+        <div class="o_st_chips">
+            <button t-foreach="this.usual" t-as="text" t-key="text_index" class="o_st_chip"
+                    t-att-class="{ o_st_chip_on: this.state.reason === text }"
+                    t-att-disabled="this.state.busy"
+                    t-on-click="() => this.pick(text)" t-out="text"/>
+        </div>
+        <textarea id="o_st_pend_reason" class="form-control o_st_note_in" rows="2"
+                  placeholder="Write the reason, or tap one above and add to it"
+                  t-model.proxy="this.state.reason" t-att-disabled="this.state.busy"/>
+
+        <div t-if="this.state.error" class="o_st_change_err" role="alert">
+            <i class="fa fa-exclamation-triangle me-1" title="Refused"/>
+            <t t-out="this.state.error"/>
+        </div>
+
+        <button class="o_st_change_go o_st_pend_go"
+                t-att-class="{ o_st_pend_change: this.props.job.pending }"
+                t-att-disabled="!this.hasReason or this.state.busy"
+                t-on-click="() => this.mark()">
+            <i class="fa fa-pause me-1" title="Pending"/>
+            <t t-if="this.state.busy === 'mark'">Saving…</t>
+            <t t-elif="!this.hasReason">Write the reason first</t>
+            <t t-elif="this.props.job.pending">Change the reason</t>
+            <t t-else="">Mark as Pending</t>
+        </button>
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-att-disabled="this.state.busy"
+                    t-on-click="() => this.props.close()">Leave it as it is</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

@@ -14,6 +14,9 @@ import { DoingItDialog } from "@lab_workcenter_scan/js/doing_it_dialog";
 import { WhereDialog } from "@lab_workcenter_scan/js/where_dialog";
 import { CancelDialog } from "@lab_workcenter_scan/js/cancel_dialog";
 import { AmendmentDialog } from "@lab_workcenter_scan/js/amendment_dialog";
+import { JobCodeDialog } from "@lab_workcenter_scan/js/job_code_dialog";
+import { PendingDialog } from "@lab_workcenter_scan/js/pending_dialog";
+import { ReassignDialog } from "@lab_workcenter_scan/js/reassign_dialog";
 import { FindDialog } from "@lab_workcenter_scan/js/find_dialog";
 import { ChangeDialog } from "@lab_workcenter_scan/js/change_dialog";
 import { RestartDialog } from "@lab_workcenter_scan/js/restart_dialog";
@@ -480,16 +483,8 @@ export class LabStation extends Component {
         if (this.state.busy) {
             return;
         }
-        let code = (this.state.typed || "").trim();
-        if (!code && this.canScan) {
-            try {
-                code = await scanBarcode(this.env);
-            } catch {
-                code = null;
-            }
-        }
+        const code = await this.jobCode(_t("Start again"));
         if (!code) {
-            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;
@@ -524,16 +519,8 @@ export class LabStation extends Component {
         if (this.state.busy) {
             return;
         }
-        let code = (this.state.typed || "").trim();
-        if (!code && this.canScan) {
-            try {
-                code = await scanBarcode(this.env);
-            } catch {
-                code = null;
-            }
-        }
+        const code = await this.jobCode(_t("Correction"));
         if (!code) {
-            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;
@@ -591,16 +578,8 @@ export class LabStation extends Component {
         if (this.state.busy) {
             return;
         }
-        let code = (this.state.typed || "").trim();
-        if (!code && this.canScan) {
-            try {
-                code = await scanBarcode(this.env);
-            } catch {
-                code = null;
-            }
-        }
+        const code = await this.jobCode(_t("Cancel a step"));
         if (!code) {
-            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;
@@ -648,16 +627,8 @@ export class LabStation extends Component {
         if (this.state.busy) {
             return;
         }
-        let code = (this.state.typed || "").trim();
-        if (!code && this.canScan) {
-            try {
-                code = await scanBarcode(this.env);
-            } catch {
-                code = null;
-            }
-        }
+        const code = await this.jobCode(_t("Amendment"));
         if (!code) {
-            this.typedRef()?.focus();
             return;
         }
         this.state.busy = -1;
@@ -727,6 +698,186 @@ export class LabStation extends Component {
                     ]),
                     "success"
                 );
+            },
+        });
+    }
+
+    /**
+     * Which job? The number typed in the box if there is one; otherwise a small
+     * dialog that takes the number OR opens the camera. Pressing Correction used
+     * to go straight to the camera on a phone, and a card whose label would not
+     * read left no way to say which job was meant - the number had to be typed
+     * in the box BEFORE the button, which nobody guessed. Resolves with the code,
+     * or with nothing when the question is closed. (client, 2026-11-26: "Correct
+     * button also able to enter number along scanning")
+     */
+    jobCode(title) {
+        const typed = (this.state.typed || "").trim();
+        if (typed) {
+            return Promise.resolve(typed);
+        }
+        return new Promise((resolve) => {
+            let scanning = false;
+            let settled = false;
+            const done = (value) => {
+                if (!settled) {
+                    settled = true;
+                    resolve(value || null);
+                }
+            };
+            this.dialog.add(
+                JobCodeDialog,
+                {
+                    title,
+                    canScan: this.canScan,
+                    onCode: (code) => done(code),
+                    onScan: async () => {
+                        scanning = true;
+                        try {
+                            done(await scanBarcode(this.env));
+                        } catch {
+                            done(null);
+                        }
+                    },
+                },
+                { onClose: () => !scanning && done(null) }
+            );
+        });
+    }
+
+    /**
+     * Scan a job card to mark the job pending - it cannot go on for now - or to
+     * say work on it goes on. Any open job of the lab. (client, 2026-11-26)
+     */
+    async pendByScan() {
+        if (this.state.busy) {
+            return;
+        }
+        const code = await this.jobCode(_t("Pending"));
+        if (!code) {
+            return;
+        }
+        this.state.busy = -1;
+        let found;
+        try {
+            found = await this.orm.call("lab.station", "scan_to_pend", [
+                code,
+                this.state.data.workcenter.id,
+                this.state.person,
+            ]);
+        } catch (error) {
+            this.buzz(false);
+            this.notification.add(error.data?.message || error.message, {
+                type: "danger",
+            });
+            return;
+        } finally {
+            this.state.busy = 0;
+        }
+        this.buzz(true);
+        this.state.typed = "";
+        this.showPending(found);
+    }
+
+    /** The pause button or the PENDING badge on a card. */
+    async openPending(card) {
+        let found;
+        try {
+            found = await this.orm.call("lab.station", "pending_of_job", [
+                card.id,
+                this.state.data.workcenter.id,
+            ]);
+        } catch (error) {
+            this.notification.add(error.data?.message || error.message, {
+                type: "danger",
+            });
+            return;
+        }
+        this.showPending(found);
+    }
+
+    showPending(found) {
+        const after = (result, type) => {
+            this.state.data = result.board;
+            this.buzz(true);
+            this.notification.add(result.message, { type });
+        };
+        this.dialog.add(PendingDialog, {
+            job: found,
+            onMark: async (reason) => {
+                after(
+                    await this.orm.call("lab.station", "mark_pending", [
+                        found.production_id,
+                        reason,
+                        this.state.data.workcenter.id,
+                        this.state.person,
+                    ]),
+                    "warning"
+                );
+            },
+            onResume: async () => {
+                after(
+                    await this.orm.call("lab.station", "resume_pending", [
+                        found.production_id,
+                        this.state.data.workcenter.id,
+                        this.state.person,
+                    ]),
+                    "success"
+                );
+            },
+        });
+    }
+
+    /**
+     * Scan a job card to pass the job to somebody else at this bench. The scan
+     * only FINDS it; the dialog asks to whom and why. (client, 2026-11-26)
+     */
+    async reassignByScan() {
+        if (this.state.busy) {
+            return;
+        }
+        const code = await this.jobCode(_t("Reassign"));
+        if (!code) {
+            return;
+        }
+        this.state.busy = -1;
+        let found;
+        try {
+            found = await this.orm.call("lab.station", "scan_to_reassign", [
+                code,
+                this.state.data.workcenter.id,
+                this.state.person,
+            ]);
+        } catch (error) {
+            this.buzz(false);
+            this.notification.add(error.data?.message || error.message, {
+                type: "danger",
+            });
+            return;
+        } finally {
+            this.state.busy = 0;
+        }
+        this.buzz(true);
+        this.state.typed = "";
+        this.reassignJob(found.job);
+    }
+
+    /** The lead passes a job somebody has to somebody else, keeping both names. */
+    reassignJob(card) {
+        this.dialog.add(ReassignDialog, {
+            job: card,
+            people: this.benchPeople,
+            onConfirm: async (userIds, reason, note) => {
+                const result = await this.orm.call("lab.station", "reassign", [
+                    card.id,
+                    userIds,
+                    reason,
+                    note,
+                    this.state.person,
+                ]);
+                this.state.data = result.board;
+                this.buzz(true);
+                this.notification.add(result.message, { type: "success" });
             },
         });
     }

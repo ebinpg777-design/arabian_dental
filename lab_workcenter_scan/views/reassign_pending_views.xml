@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- REASSIGNED: both names on the work order, and how it came about.
+         (client, 2026-11-26) -->
+    <record id="view_workorder_form_reassign" model="ir.ui.view">
+        <field name="name">mrp.workorder.form.reassign</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="view_workorder_form_scan"/>
+        <field name="arch" type="xml">
+            <field name="bench_helper_ids" position="after">
+                <field name="reassigned" invisible="1"/>
+                <field name="initial_user_ids" widget="many2many_tags"
+                       invisible="not reassigned"/>
+                <field name="reassign_note" invisible="not reassigned"/>
+            </field>
+            <xpath expr="//notebook" position="inside">
+                <page string="Reassignments" name="lab_reassignments"
+                      invisible="not reassign_ids">
+                    <field name="reassign_ids" nolabel="1">
+                        <list create="false" edit="false" delete="false">
+                            <field name="date"/>
+                            <field name="workcenter_id" optional="hide"/>
+                            <field name="from_user_ids" widget="many2many_tags"/>
+                            <field name="to_user_ids" widget="many2many_tags"/>
+                            <field name="reason_label"/>
+                            <field name="user_id"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_workorder_list_case_reassign" model="ir.ui.view">
+        <field name="name">mrp.workorder.list.case.reassign</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="view_workorder_list_case"/>
+        <field name="arch" type="xml">
+            <field name="bench_helper_ids" position="after">
+                <field name="initial_user_ids" widget="many2many_tags" optional="show"/>
+                <field name="reassign_note" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_workorder_tree_reassign" model="ir.ui.view">
+        <field name="name">mrp.workorder.list.reassign</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.mrp_production_workorder_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='workcenter_id']" position="after">
+                <field name="initial_user_ids" widget="many2many_tags" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_workorder_search_reassign" model="ir.ui.view">
+        <field name="name">mrp.workorder.search.reassign</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.view_mrp_production_workorder_form_view_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <filter string="Reassigned" name="lab_reassigned"
+                        domain="[('reassigned', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- The record of every reassignment: who loses work, who picks it up, why. -->
+    <record id="view_workorder_reassign_list" model="ir.ui.view">
+        <field name="name">lab.workorder.reassign.list</field>
+        <field name="model">lab.workorder.reassign</field>
+        <field name="arch" type="xml">
+            <list string="Reassignments" create="false" edit="false" delete="false">
+                <field name="date"/>
+                <field name="production_id" string="Job"/>
+                <field name="workorder_id" string="Operation"/>
+                <field name="workcenter_id"/>
+                <field name="from_user_ids" widget="many2many_tags"/>
+                <field name="to_user_ids" widget="many2many_tags"/>
+                <field name="reason"/>
+                <field name="note" optional="show"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_workorder_reassign_search" model="ir.ui.view">
+        <field name="name">lab.workorder.reassign.search</field>
+        <field name="model">lab.workorder.reassign</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="production_id" string="Job"/>
+                <field name="from_user_ids"/>
+                <field name="to_user_ids"/>
+                <field name="workcenter_id"/>
+                <filter string="Today" name="today"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 30 days" name="month"
+                        domain="[('date', '&gt;=', (context_today() - relativedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <group>
+                    <filter string="Work Centre" name="by_workcenter"
+                            context="{'group_by': 'workcenter_id'}"/>
+                    <filter string="Reason" name="by_reason" context="{'group_by': 'reason'}"/>
+                    <filter string="Taken From" name="by_from"
+                            context="{'group_by': 'from_user_ids'}"/>
+                    <filter string="Given To" name="by_to"
+                            context="{'group_by': 'to_user_ids'}"/>
+                    <filter string="Reassigned By" name="by_user"
+                            context="{'group_by': 'user_id'}"/>
+                    <filter string="Day" name="by_day" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_workorder_reassign" model="ir.actions.act_window">
+        <field name="name">Reassignments</field>
+        <field name="res_model">lab.workorder.reassign</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_month': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No job has been reassigned</p>
+            <p>A lead reassigns a job from the station board when the technician who
+               took it cannot finish it. Each one is listed here.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_workorder_reassign" name="Reassignments"
+              parent="mrp.menu_mrp_reporting" action="action_workorder_reassign"
+              sequence="34" groups="mrp.group_mrp_user"/>
+
+    <!-- PENDING: said on the job, where a manufacturing user is. -->
+    <record id="view_production_form_pending" model="ir.ui.view">
+        <field name="name">mrp.production.form.lab.pending</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <field name="lab_pending" invisible="1"/>
+                <button name="action_lab_pending_ask" type="object" string="Mark Pending"
+                        icon="fa-pause"
+                        invisible="lab_pending or state in ('done', 'cancel')"
+                        groups="mrp.group_mrp_user"/>
+                <button name="action_lab_resume" type="object" string="Resume"
+                        class="btn-warning" icon="fa-play"
+                        invisible="not lab_pending"
+                        groups="mrp.group_mrp_user"/>
+            </xpath>
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning m-0 rounded-0" role="alert"
+                     invisible="not lab_pending">
+                    <i class="fa fa-pause-circle me-1" title="Pending"/>
+                    <strong>Pending:</strong>
+                    <field name="lab_pending_reason" nolabel="1" readonly="1" class="d-inline"/>
+                    <div class="small">
+                        Marked by <field name="lab_pending_by_id" nolabel="1" readonly="1"
+                                         class="d-inline" options="{'no_open': True}"/>
+                        on <field name="lab_pending_at" nolabel="1" readonly="1" class="d-inline"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_mrp_production_list_pending" model="ir.ui.view">
+        <field name="name">mrp.production.list.lab.pending</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="lab_pending" string="Pending" optional="show" widget="boolean"/>
+                <field name="lab_pending_reason" string="Pending Because" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_mrp_production_search_pending" model="ir.ui.view">
+        <field name="name">mrp.production.search.lab.pending</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.view_mrp_production_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <filter string="Pending" name="lab_pending"
+                        domain="[('lab_pending', '=', True), ('state', 'not in', ('done', 'cancel'))]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_lab_pending_wizard" model="ir.ui.view">
+        <field name="name">lab.pending.wizard.form</field>
+        <field name="model">lab.pending.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Mark Pending">
+                <group>
+                    <field name="production_id" options="{'no_open': True}"/>
+                    <field name="reason"
+                           placeholder="e.g. waiting for the doctor's reply on the shade; try-in not back"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Mark Pending"
+                            class="btn-primary"/>
+                    <button special="cancel" string="Discard" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

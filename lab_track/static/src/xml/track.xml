@@ -120,7 +120,7 @@
                                     <span class="o_trk_floor_main">
                                         <span class="o_trk_floor_who">
                                             <t t-out="w.patient or w.production"/>
-                                            <span t-if="w.urgent" class="o_trk_chip o_trk_chip_warn">URGENT</span>
+                                            <span t-if="w.urgent" class="o_trk_chip o_trk_chip_warn">URGENT</span><span t-if="w.pending" class="o_trk_chip o_trk_chip_pending" t-att-title="w.pending_reason">PENDING</span>
                                         </span>
                                         <span class="o_trk_floor_meta">
                                             <!-- The sales order first: it is how the lab says a
@@ -168,7 +168,7 @@
                         <span class="o_trk_floor_main">
                             <span class="o_trk_floor_who">
                                 <t t-out="w.patient or w.production"/>
-                                <span t-if="w.urgent" class="o_trk_chip o_trk_chip_warn">URGENT</span>
+                                <span t-if="w.urgent" class="o_trk_chip o_trk_chip_warn">URGENT</span><span t-if="w.pending" class="o_trk_chip o_trk_chip_pending" t-att-title="w.pending_reason">PENDING</span>
                             </span>
                             <span class="o_trk_floor_meta">
                                 <span t-if="w.order" class="o_trk_floor_so" t-out="w.order"/>
@@ -219,6 +219,12 @@
                         <span t-if="this.order.priority === 'emergency'" class="o_trk_chip o_trk_chip_danger">EMERGENCY</span>
                         <span t-elif="this.order.priority === 'urgent'" class="o_trk_chip o_trk_chip_warn">URGENT</span>
                         <span t-if="this.order.is_rework" class="o_trk_chip o_trk_chip_info">REWORK</span>
+                        <!-- The bench has said a job of this case cannot go on for
+                             now. Said first, and loudly: it is the answer to "why
+                             has it not moved". (client, 2026-11-26) -->
+                        <span t-if="this.pendingJobs.length" class="o_trk_chip o_trk_chip_lg o_trk_chip_pending">
+                            <i class="fa fa-pause-circle me-1" title="Pending"/>PENDING
+                        </span>
                     </div>
                     <div class="o_trk_hero_meta">
                         <button t-if="!this.readonly" class="o_trk_link" t-on-click="() => this.openRecord('sale.order', this.order.id)">
@@ -266,6 +272,25 @@
                 </div>
             </div>
 
+            <!-- PENDING, in full: which job, what it waits for, who said so and
+                 since when. Above everything else on the page, because it is the
+                 answer the caller rang for. (client, 2026-11-26) -->
+            <div t-if="this.pendingJobs.length" class="o_trk_pending" role="status">
+                <div class="o_trk_pending_h">
+                    <i class="fa fa-pause-circle me-2" title="Pending"/>Pending — work on this case is waiting
+                </div>
+                <div t-foreach="this.pendingJobs" t-as="mo" t-key="mo.id" class="o_trk_pending_row">
+                    <div class="o_trk_pending_reason" t-out="mo.pending.reason or 'No reason written'"/>
+                    <div class="o_trk_pending_meta">
+                        <span t-out="mo.name"/>
+                        <span t-if="mo.product"> · <t t-out="mo.product"/></span>
+                        <span t-if="mo.pending.by"> · marked by <t t-out="mo.pending.by"/></span>
+                        <span t-if="mo.pending.since"> · <t t-out="mo.pending.since"/></span>
+                        <span t-if="this.waited(mo.pending.hours)"> · waiting <t t-out="this.waited(mo.pending.hours)"/></span>
+                    </div>
+                </div>
+            </div>
+
             <div class="o_trk_grid">
 
                 <!-- Journey -->
@@ -308,6 +333,16 @@
                             <span t-if="mo.ul" class="o_trk_chip o_trk_chip_ul"
                                   title="Upper / Lower" t-out="mo.ul"/>
                             <span class="o_trk_chip" t-out="mo.state_label"/>
+                            <span t-if="mo.pending" class="o_trk_chip o_trk_chip_pending">
+                                <i class="fa fa-pause-circle me-1" title="Pending"/>PENDING
+                            </span>
+                        </div>
+                        <div t-if="mo.pending" class="o_trk_pending_line">
+                            <i class="fa fa-pause-circle me-1" title="Pending"/>
+                            <strong t-out="mo.pending.reason or 'Pending'"/>
+                            <span t-if="mo.pending.by or mo.pending.since" class="o_trk_pending_by">
+                                — <t t-if="mo.pending.by"><t t-out="mo.pending.by"/>, </t><t t-out="mo.pending.since"/>
+                            </span>
                         </div>
                         <div class="o_trk_progress o_trk_progress_sm">
                             <div class="o_trk_progress_fill" t-attf-style="width: #{mo.progress}%"/>
@@ -343,6 +378,13 @@
                                 <span t-if="wo.person" class="o_trk_station_who">
                                     <i class="fa fa-user me-1" title="Technician"/>
                                     <t t-out="wo.person"/>
+                                </span>
+                                <!-- Reassigned: who worked on it first stays named.
+                                     (client, 2026-11-26) -->
+                                <span t-if="wo.first_person" class="o_trk_station_who o_trk_station_first"
+                                      t-att-title="'Reassigned' + (wo.reassign_note ? ': ' + wo.reassign_note : '')">
+                                    <i class="fa fa-random me-1" title="Reassigned"/>
+                                    first <t t-out="wo.first_person"/>
                                 </span>
                                 <span t-if="wo.finisher" class="o_trk_station_who o_trk_station_fin">
                                     <i class="fa fa-check-square-o me-1"

@@ -479,6 +479,10 @@ class LabMyDay(models.AbstractModel):
             # everybody on the job where it was worked together
             technician = ', '.join((wo.bench_user_id | wo.bench_helper_ids).mapped('name')) \
                 if 'bench_helper_ids' in wo._fields else (wo.bench_user_id.name or '')
+            # reassigned: who worked on it first stays named (client, 2026-11-26)
+            if technician and 'reassigned' in wo._fields and wo.reassigned and wo.initial_user_ids:
+                technician = _("%(now)s (first: %(first)s)", now=technician,
+                               first=', '.join(wo.initial_user_ids.sorted('name').mapped('name')))
             finisher = (wo.finisher_user_id.name or '') if has_finisher else ''
             if not (technician or finisher):
                 continue

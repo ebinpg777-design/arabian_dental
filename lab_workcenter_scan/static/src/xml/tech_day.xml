@@ -407,7 +407,7 @@
                     <div t-foreach="dr.jobs" t-as="j" t-key="j_index" class="o_td_job" t-on-click="() => this.openJob(j.wo)">
                         <span class="o_td_swatch" t-attf-style="background: {{ this.stationColor(j.station_id) }}"/>
                         <div class="o_td_jobmain">
-                            <div><b t-out="j.so || j.mo || 'Job'"/><span t-if="j.so and j.mo" class="text-muted"> · <t t-out="j.mo"/></span><span t-if="j.patient" class="text-muted"> · <t t-out="j.patient"/></span>
+                            <div><b t-out="j.so || j.mo || 'Job'"/><span t-if="j.so and j.mo" class="text-muted"> · <t t-out="j.mo"/></span><span t-if="j.patient" class="text-muted"> · <t t-out="j.patient"/></span><span t-if="j.took_over_from" class="text-muted"> · took over from <t t-out="j.took_over_from"/></span><span t-if="j.passed_to" class="text-muted"> · passed to <t t-out="j.passed_to"/></span>
                                 <span t-if="j.priority === 'emergency' or j.priority === 'urgent'" class="o_td_flag bad" t-out="j.priority"/></div>
                             <div class="small text-muted"><t t-out="this.stationName(j.station_id)"/> · <t t-out="j.name"/> · <t t-out="this.state.data.partners[j.partner_id] || ''"/></div>
                         </div>
@@ -436,6 +436,12 @@
                         <div t-if="dr.doctor"><span>Doctor</span><b t-out="dr.doctor"/></div>
                         <div t-if="j.rush"><span>Priority</span><b class="text-danger text-uppercase" t-out="s.priority"/></div>
                         <div><span>Technician</span><b t-out="dr.row.name"/></div>
+                        <!-- Reassigned: the bar is this person's part of the job.
+                             (client, 2026-11-26) -->
+                        <div t-if="s.took_over_from"><span>Reassigned</span>
+                            <b>took over from <t t-out="s.took_over_from"/><t t-if="s.reassign_note"> · <t t-out="s.reassign_note"/></t></b></div>
+                        <div t-if="s.passed_to"><span>Reassigned</span>
+                            <b>passed to <t t-out="s.passed_to"/><t t-if="s.reassign_note"> · <t t-out="s.reassign_note"/></t></b></div>
                         <div t-if="j.due !== null"><span>Due (End Date)</span>
                             <b t-att-class="j.due &lt; j.b ? 'text-danger' : ''"><t t-out="s.due_label"/>
                                 <t t-if="j.due &lt; j.b"> · over by <t t-out="this.dur(j.b - j.due)"/></t></b></div>
@@ -470,7 +476,7 @@
                     <div t-foreach="dr.waited" t-as="j" t-key="j.wo" class="o_td_job" t-on-click="() => this.openJob(j.wo)">
                         <span class="o_td_swatch" t-attf-style="background: {{ this.stationColor(j.station_id) }}"/>
                         <div class="o_td_jobmain">
-                            <div><b t-out="j.so || j.mo || 'Job'"/><span t-if="j.patient" class="text-muted"> · <t t-out="j.patient"/></span>
+                            <div><b t-out="j.so || j.mo || 'Job'"/><span t-if="j.patient" class="text-muted"> · <t t-out="j.patient"/></span><span t-if="j.took_over_from" class="text-muted"> · took over from <t t-out="j.took_over_from"/></span><span t-if="j.passed_to" class="text-muted"> · passed to <t t-out="j.passed_to"/></span>
                                 <span t-if="j.priority === 'emergency' or j.priority === 'urgent'" class="o_td_flag bad" t-out="j.priority"/>
                                 <span t-if="j.given_to === dr.row.id" class="o_td_flag warn">given to them<t t-if="j.given_at !== null"> at <t t-out="this.hm(j.given_at)"/></t></span>
                                 <span t-elif="j.given_to" class="o_td_flag muted">given to <t t-out="this.state.data.names[j.given_to] || 'someone else'"/></span>

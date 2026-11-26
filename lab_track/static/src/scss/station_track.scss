@@ -1,6 +1,5 @@
-// Track joins Where, Correct, Cancel, Start again and Amendment: six on a phone,
-// as two rows of three - five in a row clipped "Start again" to "Start agai", and
-// a sixth then fell onto a row of its own. (client, 2026-11-26)
+// Track joins Where, Correction, Cancel, Start again, Amendment, Pending and
+// Reassign: eight on a phone, as two rows of four. (client, 2026-11-26)
 @media (max-width: 599.98px) {
-    .o_st .o_st_type_acts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .o_st .o_st_type_acts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }

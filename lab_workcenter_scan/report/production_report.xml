@@ -185,8 +185,11 @@
                                     t-out="row.workcenter_id.display_name"/>
                                 <td style="border:1px solid #ddd;padding:5px;"
                                     t-out="row.workorder_name"/>
-                                <td style="border:1px solid #ddd;padding:5px;"
-                                    t-out="row.bench_user_id.name or 'no technician yet'"/>
+                                <td style="border:1px solid #ddd;padding:5px;">
+                                    <t t-out="row.bench_user_id.name or 'no technician yet'"/>
+                                    <!-- reassigned: who worked on it first -->
+                                    <t t-if="row.initial_user_ids"> (first: <t t-out="', '.join(row.initial_user_ids.mapped('name'))"/>)</t>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

@@ -57,6 +57,11 @@ class LabProductionPerformance(models.Model):
     bench_helper_ids = fields.Many2many(
         'res.users', 'mrp_workorder_bench_helper_rel', 'workorder_id', 'user_id',
         string='Working With', readonly=True)
+    # Reassigned: who worked on the job before the people on it now. The work
+    # order's own relation again, read through the shared id. (client, 2026-11-26)
+    initial_user_ids = fields.Many2many(
+        'res.users', 'mrp_workorder_initial_user_rel', 'workorder_id', 'user_id',
+        string='First Worked By', readonly=True)
     accepted_by_id = fields.Many2one('res.users', 'Accepted By', readonly=True)
     handed_over_by_id = fields.Many2one('res.users', 'Finished By', readonly=True)
     bench_assigned_by_id = fields.Many2one('res.users', 'Given Out By', readonly=True)

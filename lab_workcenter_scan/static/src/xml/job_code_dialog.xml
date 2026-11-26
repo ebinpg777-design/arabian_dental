@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.JobCodeDialog">
+    <Dialog title="this.props.title" size="'sm'" footer="false"
+            contentClass="'o_st_change_dlg o_st_code_dlg'">
+        <label class="o_st_doing_lead" for="o_st_code_in">Which job? Type its MO or SO number</label>
+        <input id="o_st_code_in" type="text" class="form-control o_st_code_in"
+               t-ref="this.inputRef" t-model.proxy="this.state.code"
+               t-on-keydown="this.onKeydown"
+               placeholder="MO or SO number" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" enterkeyhint="go"/>
+        <button class="o_st_change_go" t-att-disabled="!this.state.code.trim()"
+                t-on-click="() => this.go()">
+            <i class="fa fa-search me-1" title="Find"/>Find the job
+        </button>
+        <button t-if="this.props.canScan" class="o_st_code_scan"
+                t-on-click="() => this.scan()">
+            <i class="fa fa-qrcode me-1" title="Scan"/>Scan the job card instead
+        </button>
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-on-click="() => this.props.close()">Not now</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

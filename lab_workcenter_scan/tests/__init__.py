@@ -18,3 +18,4 @@ from . import test_correct_finished
 from . import test_targets_access
 from . import test_bench_team
 from . import test_station_amendment
+from . import test_reassign_pending

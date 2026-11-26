@@ -139,9 +139,15 @@ class MrpProduction(models.Model):
             people = step.handed_over_by_id or step.accepted_by_id
         when = step.handed_over_at or (step.state == 'done' and step.date_finished) or False
         local = Station._lab_time(when) if when else False
+        technician = ' / '.join(people.mapped('name'))
+        # Reassigned: the sheet names who worked on it first as well - the paper
+        # version had both signatures in the box. (client, 2026-11-26)
+        if 'reassigned' in step._fields and step.reassigned and step.initial_user_ids:
+            technician = _("%(now)s (first: %(first)s)", now=technician,
+                           first=' / '.join(step.initial_user_ids.sorted('name').mapped('name')))
         return {
             'label': self._lab_sheet_label(step.name, step.workcenter_id.department_id),
-            'technician': ' / '.join(people.mapped('name')),
+            'technician': technician,
             'date': local.strftime('%d-%m-%Y') if local else '',
             'time': local.strftime('%H:%M') if local else '',
             'remarks': (step['remarks'] or '') if 'remarks' in step._fields else '',

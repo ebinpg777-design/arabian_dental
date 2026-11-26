@@ -189,7 +189,7 @@ class LabTechDay(models.AbstractModel):
         where = SQL("""(wo.bench_user_id IS NOT NULL OR wo.finisher_user_id IS NOT NULL)
                        AND (wo.date_start >= %(since)s OR wo.accepted_at >= %(since)s)
                        AND (wo.date_start < %(end)s OR wo.accepted_at < %(end)s)""", since=since, end=end)
-        return self.env.execute_query_dict(SQL("""
+        rows = self.env.execute_query_dict(SQL("""
             WITH j AS (%(jobs)s)
             SELECT wo.id, wo.name, wo.workcenter_id, wo.production_id, mo.name AS mo,
                    so.id AS so_id, so.name AS so,
@@ -216,6 +216,81 @@ class LabTechDay(models.AbstractModel):
                AND (j.finished >= %(start)s
                     OR (j.finished IS NULL AND wo.state NOT IN ('done', 'cancel')))
         """, jobs=self._job_times(where), start=start, end=end, since=since))
+        return self._reassigned_slices(rows, start, end)
+
+    @api.model
+    def _reassigned_slices(self, rows, start, end):
+        """A job that changed hands, drawn for each person for the time THEY had it.
+
+        The rows above name the people on a job now, from its start. For a job the
+        lead reassigned that is wrong twice: the technician who took it over is
+        shown working it since before they had it, and the one who worked on it
+        first is not shown at all. So the taker's bar starts at the reassignment,
+        and the first technician gets the job on their own lane from when they
+        took it until it was taken from them - a bar, not a finish: the job was not
+        handed on by them. Somebody on the job before AND after keeps one bar.
+        (client, 2026-11-26)
+        """
+        wo_ids = tuple({r['id'] for r in rows})
+        if not wo_ids:
+            return rows
+        history = self.env.execute_query_dict(SQL("""
+            SELECT r.workorder_id, r.date, r.since, r.reason, r.note,
+                   ARRAY(SELECT f.user_id FROM lab_wo_reassign_from_rel f
+                          WHERE f.reassign_id = r.id) AS old,
+                   ARRAY(SELECT t.user_id FROM lab_wo_reassign_to_rel t
+                          WHERE t.reassign_id = r.id) AS new
+              FROM lab_workorder_reassign r
+             WHERE r.workorder_id IN %s
+             ORDER BY r.workorder_id, r.date, r.id
+        """, wo_ids))
+        if not history:
+            return rows
+        steps = defaultdict(list)
+        people = set()
+        for h in history:
+            steps[h['workorder_id']].append(h)
+            people.update(h['old'], h['new'])
+        name = {u.id: u.name for u in self.env['res.users'].sudo().browse(list(people)).exists()}
+        reasons = dict(self.env['lab.workorder.reassign']._fields['reason']
+                       ._description_selection(self.env))
+
+        def names(ids):
+            return ', '.join(sorted(name.get(i, '') for i in ids if name.get(i)))
+
+        def why(h):
+            return ' - '.join(filter(None, [
+                reasons.get(h['reason'], '') if h['reason'] != 'other' else '', h['note']]))
+
+        out, base = [], {}
+        for row in rows:
+            mine = steps.get(row['id'])
+            if not mine:
+                out.append(row)
+                continue
+            base.setdefault(row['id'], row)
+            last = mine[-1]
+            row = dict(row, first_names=names(mine[0]['old']), reassign_note=why(last))
+            if row['uid'] in last['new'] and row['uid'] not in last['old']:
+                # took it over: theirs from the reassignment, not from the start
+                if last['date'] >= end:
+                    continue            # not theirs yet on the day being drawn
+                row['started'] = max(row['started'], last['date'])
+                row['took_over_from'] = names(last['old'])
+            out.append(row)
+        for wo_id, mine in steps.items():
+            for h in mine:
+                since = h['since'] or base[wo_id]['started']
+                if not since or since >= h['date']:
+                    since = min(base[wo_id]['started'], h['date'])
+                if since >= end or h['date'] < start:
+                    continue            # their part of it was on another day
+                for uid in set(h['old']) - set(h['new']):
+                    out.append(dict(
+                        base[wo_id], uid=uid, tech=uid, finisher=None, started=since,
+                        finished=h['date'], due=None, passed_to=names(h['new']),
+                        first_names=names(mine[0]['old']), reassign_note=why(h)))
+        return out
 
     @api.model
     def _finished(self, windows, uids=None):
@@ -582,7 +657,15 @@ class LabTechDay(models.AbstractModel):
                    'due': self._minute(min(job['due'], end), start) if job['due'] and not job['finished'] and job['due'] >= start else None,
                    'due_label': self._clock_label(job['due'], start, end) if job['due'] and not job['finished'] else None,
                    'accepted': fields.Datetime.to_string(job['accepted_at']) if job['accepted_at'] else None,
-                   'handed': fields.Datetime.to_string(job['handed_over_at']) if job['handed_over_at'] else None}
+                   'handed': fields.Datetime.to_string(job['handed_over_at']) if job['handed_over_at'] else None,
+                   # reassigned: who had it before, who took it, and why
+                   'took_over_from': job.get('took_over_from') or '',
+                   'passed_to': job.get('passed_to') or '',
+                   'reassign_note': job.get('reassign_note') or ''}
+            if job.get('passed_to'):
+                # taken from them, not handed on by them: a bar that ends, no finish
+                seg['open'] = False
+                seg['finished'] = self._clock_label(job['finished'], start, end)
             u['segments'].append(seg)
             for t in own_timers:
                 ta, tb = self._minute(max(t['date_start'], start), start), self._minute(min(t['date_end'], end), start)
@@ -608,7 +691,7 @@ class LabTechDay(models.AbstractModel):
                 accepted_station[job['id']] = job['workcenter_id']
                 u['events'].append({'kind': 'accept', 'm': m, 'wo': job['id'],
                                     'station_id': job['workcenter_id'], 'label': job['mo']})
-            if job['finished'] and start <= job['finished'] < end:
+            if job['finished'] and start <= job['finished'] < end and not job.get('passed_to'):
                 m = self._minute(job['finished'], start)
                 u['handed'] += 1
                 u['earned'] += job['expected'] or 0.0

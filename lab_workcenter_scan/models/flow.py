@@ -771,7 +771,7 @@ class LabFlow(models.AbstractModel):
                 'emergency': priority == 'emergency',
                 'days': days,
                 'taken': taken,
-                'who': ', '.join(step._bench_people().mapped('name')),
+                'who': step._bench_people_label(),
             })
         # Emergency above urgent; within each, whoever has waited longest.
         rows.sort(key=lambda r: (0 if r['emergency'] else 1, -r['days']))
@@ -876,7 +876,7 @@ class LabFlow(models.AbstractModel):
                 'station': wo.workcenter_id.display_name,
                 'hours': hours,
                 'accepted': bool(wo.accepted_at),
-                'with_person': ', '.join(wo._bench_people().mapped('name')),
+                'with_person': wo._bench_people_label(),
                 'urgent': bool(order) and order.priority == 'urgent',
             })
         return rows

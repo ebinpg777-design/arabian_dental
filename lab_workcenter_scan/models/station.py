@@ -919,6 +919,18 @@ class LabStation(models.AbstractModel):
             'next_station': wo.next_workcenter_id.sudo().display_name or '',
             # Two things that change what the bench does before it touches the job.
             'call_doctor': bool(order.is_pending_work),
+            # Waiting, and for what: said before anybody picks the job up.
+            # (client, 2026-11-26)
+            'pending': bool(production and production.lab_pending
+                            and production.state not in ('done', 'cancel')),
+            'pending_reason': (production.lab_pending_reason or '')
+                              if production and production.lab_pending else '',
+            # Passed from the technician who first worked on it to the one who has
+            # it now: both names, and why. (client, 2026-11-26)
+            'reassigned': bool(wo.reassigned),
+            'first_team': ', '.join(wo.initial_user_ids.sorted('name').mapped('name'))
+                          if wo.reassigned else '',
+            'reassign_note': (wo.reassign_note or '') if wo.reassigned else '',
             # The case is waiting on an amendment: the bench should know before it
             # makes it the old way. (client, 2026-11-26)
             'amendment': bool(order and 'has_amendment' in order._fields
@@ -1424,20 +1436,24 @@ class LabStation(models.AbstractModel):
         return 'has_amendment' in self.env['sale.order']._fields
 
     @api.model
-    def _amendment_bench(self, workcenter_id):
+    def _bench_asked_from(self, workcenter_id, what):
         """The station asked from, and the asker's place at it: the board's own
         rule for every act - you act at a bench you are posted to."""
-        if not self._amendments_on():
-            raise UserError(_("Amendments are not switched on in this database."))
         workcenter = self.env['mrp.workcenter'].browse(int(workcenter_id)) \
             if workcenter_id else self._default_workcenter()
         if not workcenter:
             raise UserError(_("Choose a station before scanning."))
         if not self.env['mrp.workorder']._bench_role(workcenter):
             raise UserError(_(
-                "You are not posted to %s, so you cannot mark an amendment from it.",
-                workcenter.display_name))
+                "You are not posted to %(wc)s, so you cannot %(what)s from it.",
+                wc=workcenter.display_name, what=what))
         return workcenter
+
+    @api.model
+    def _amendment_bench(self, workcenter_id):
+        if not self._amendments_on():
+            raise UserError(_("Amendments are not switched on in this database."))
+        return self._bench_asked_from(workcenter_id, _('mark an amendment'))
 
     @api.model
     def _order_from_code(self, code, workcenter):
@@ -1557,6 +1573,116 @@ class LabStation(models.AbstractModel):
             'board': self.get_station(workcenter.id, person_id),
             'message': _("%s: amendment done. The order can be invoiced.",
                          order.sudo().name),
+        }
+
+    # ---------------------------------------------------------------- pending
+    # A job that cannot go on for now: the doctor has to answer, a try-in has not
+    # come back, a material is out. Said from the bench, with what it waits for;
+    # the card and the tracking screen wear it until work on the job goes on.
+    # (client, 2026-11-26: "option to make a work to Pending status by production
+    # team ... add note for reason")
+    @api.model
+    def _pending_card(self, production, wo=None):
+        production = production.sudo()
+        order = production.sale_id
+        wo = (wo or self.env['mrp.workorder']).sudo()
+        when = production.lab_pending_at and fields.Datetime.context_timestamp(
+            self, production.lab_pending_at)
+        return {
+            'production_id': production.id,
+            'production': production.name,
+            'order': order.name or '',
+            'product_name': (production.product_id.name or '').strip(),
+            'patient': order.patient or '',
+            'clinic': order.partner_id.display_name if order else '',
+            'operation': wo.name if wo else '',
+            'at_station': wo.workcenter_id.display_name if wo else '',
+            'pending': production.lab_pending,
+            'reason': production.lab_pending_reason or '',
+            'marked_by': production.lab_pending_by_id.name or '',
+            'marked_on': when.strftime('%d %b, %H:%M') if when else '',
+        }
+
+    @api.model
+    def scan_to_pend(self, code, workcenter_id=None, person_id=None):
+        """Find the job a scanned card belongs to, and whether it is pending.
+        READS ONLY. Any open job of the lab - the card in hand need not be one
+        this bench has taken yet."""
+        workcenter = self._bench_asked_from(workcenter_id, _('mark a job pending'))
+        wo = self._workorder_from_code(code, workcenter)
+        return self._pending_card(wo.production_id, wo)
+
+    @api.model
+    def pending_of_job(self, workorder_id, workcenter_id=None):
+        """The job behind a card - its PENDING badge, or its pause button, tapped."""
+        self._bench_asked_from(workcenter_id, _('mark a job pending'))
+        wo = self.env['mrp.workorder'].sudo().browse(int(workorder_id)).exists()
+        if not wo.production_id:
+            raise UserError(_("That job no longer exists."))
+        return self._pending_card(wo.production_id, wo)
+
+    @api.model
+    def mark_pending(self, production_id, reason, workcenter_id=None, person_id=None):
+        workcenter = self._bench_asked_from(workcenter_id, _('mark a job pending'))
+        production = self.env['mrp.production'].browse(int(production_id)).exists()
+        if not production:
+            raise UserError(_("That job no longer exists."))
+        production.action_lab_pending(reason)
+        return {
+            'board': self.get_station(workcenter.id, person_id),
+            'message': _("%s is marked pending.", production.sudo().name),
+        }
+
+    @api.model
+    def resume_pending(self, production_id, workcenter_id=None, person_id=None):
+        workcenter = self._bench_asked_from(workcenter_id, _('resume a job'))
+        production = self.env['mrp.production'].browse(int(production_id)).exists()
+        if not production:
+            raise UserError(_("That job no longer exists."))
+        production.action_lab_resume()
+        return {
+            'board': self.get_station(workcenter.id, person_id),
+            'message': _("%s is no longer pending.", production.sudo().name),
+        }
+
+    # --------------------------------------------------------------- reassign
+    # A job somebody is working on, passed to somebody else at the bench - with
+    # both names kept. (client, 2026-11-26)
+    @api.model
+    def _check_reassignable(self, wo, workcenter):
+        if wo.workcenter_id != workcenter:
+            raise UserError(_(
+                "%(job)s is at %(where)s, not here. A job is reassigned at the bench "
+                "it is standing at.", job=self._job_label(wo),
+                where=wo.workcenter_id.sudo().display_name))
+        wo._check_bench_access(_('reassign work'), leads_only=True)
+        if not wo.bench_user_id:
+            raise UserError(_(
+                "Nobody is named on %s yet, so there is nothing to reassign. Give it "
+                "out instead.", self._job_label(wo)))
+
+    @api.model
+    def scan_to_reassign(self, code, workcenter_id=None, person_id=None):
+        """Find the job a scanned card refers to, so it can be given to somebody
+        else. READS ONLY: the dialog asks to whom and why."""
+        workcenter = self._bench_asked_from(workcenter_id, _('reassign work'))
+        wo = self._workorder_from_code(code, workcenter)
+        self._check_reassignable(wo, workcenter)
+        return {'job': self._card(wo, self._ul_labels())}
+
+    @api.model
+    def reassign(self, workorder_id, user_ids, reason='other', note='', person_id=None):
+        wo = self.env['mrp.workorder'].browse(int(workorder_id)).exists()
+        if not wo:
+            raise UserError(_("That step no longer exists."))
+        self._check_reassignable(wo, wo.workcenter_id)
+        before = ', '.join(wo._bench_people().mapped('name'))
+        wo.action_reassign_bench_team(user_ids, reason, note)
+        return {
+            'board': self.get_station(wo.workcenter_id.id, person_id),
+            'message': _("%(job)s reassigned from %(old)s to %(new)s.",
+                         job=self._job_label(wo), old=before,
+                         new=', '.join(wo._bench_people().mapped('name'))),
         }
 
     @api.model

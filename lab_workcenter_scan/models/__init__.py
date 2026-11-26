@@ -14,3 +14,4 @@ from . import ir_ui_menu
 from . import work_target
 from . import tech_day
 from . import floor_memo
+from . import reassign

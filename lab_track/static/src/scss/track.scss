@@ -474,3 +474,45 @@ html .o_web_client > .o_action_manager > .o_action.o_trk {
     .o_trk_floor_since { display: block; font-size: .72rem; color: $trk-muted; }
     .o_trk_floor_old { color: $trk-danger; font-weight: 600; }
 }
+
+// ─── Pending — the bench has said the job cannot go on (client, 2026-11-26) ──
+// Solid amber, where every other chip on this page is a tint: of all the things
+// the screen says, this is the one the caller rang to hear.
+.o_trk {
+    .o_trk_chip_pending { background: #b45309; color: #fff; font-weight: 800; letter-spacing: .03em; }
+    .o_trk_pending {
+        margin: .875rem 0;
+        padding: .875rem 1.125rem;
+        border: 1px solid rgba(180, 83, 9, .4);
+        border-left: .375rem solid #b45309;
+        border-radius: .875rem;
+        background: #fff7ed;
+        color: #7c2d12;
+    }
+    .o_trk_pending_h {
+        font-size: .8125rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #b45309;
+    }
+    .o_trk_pending_row { margin-top: .5rem; }
+    .o_trk_pending_row + .o_trk_pending_row {
+        padding-top: .5rem;
+        border-top: 1px dashed rgba(180, 83, 9, .35);
+    }
+    .o_trk_pending_reason { font-size: 1.0625rem; font-weight: 700; white-space: pre-line; }
+    .o_trk_pending_meta { margin-top: .125rem; font-size: .8125rem; color: #9a3412; }
+    .o_trk_pending_line {
+        margin: .25rem 0 .375rem;
+        padding: .25rem .625rem;
+        border-left: .1875rem solid #b45309;
+        border-radius: .375rem;
+        background: #fff7ed;
+        color: #7c2d12;
+        font-size: .875rem;
+    }
+    .o_trk_pending_by { font-weight: 400; color: #9a3412; }
+    // Reassigned: the first technician stays named, quieter than who has it now.
+    .o_trk_station_first { font-style: italic; opacity: .85; }
+}

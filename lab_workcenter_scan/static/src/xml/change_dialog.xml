@@ -2,7 +2,7 @@
 <templates xml:space="preserve">
 
 <t t-name="lab_workcenter_scan.ChangeDialog">
-    <Dialog title="'Correct this job?'" size="'md'" footer="false"
+    <Dialog title="'Correction'" size="'md'" footer="false"
             contentClass="'o_st_change_dlg'">
 
         <!-- Which job. A wrong card must be obvious BEFORE anything is changed,
@@ -35,6 +35,14 @@
         <div t-if="!this.props.canAssign" class="o_st_change_note">
             Giving work out is the bench lead's call, so the name is shown but
             cannot be changed here.
+        </div>
+        <!-- A correction writes the right name OVER the wrong one. Work passed to
+             somebody else is not that: Reassign keeps both names.
+             (client, 2026-11-26) -->
+        <div t-elif="!this.props.finished and this.props.job.bench_user_id" class="o_st_change_note">
+            <i class="fa fa-random me-1" title="Reassign"/>
+            Passing the job on because its technician could not finish it? Use
+            <strong>Reassign</strong> instead — it keeps both names.
         </div>
         <div class="o_st_tiles o_st_tiles_who">
             <button t-foreach="this.props.people" t-as="p" t-key="p.id"

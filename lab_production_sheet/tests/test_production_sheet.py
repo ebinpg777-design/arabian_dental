@@ -102,7 +102,7 @@ class TestProductionSheet(TransactionCase):
         self.assertEqual(rows['CAD/CAM'], ['Scanning', 'Designing', 'Printing', 'Light Curing'])
         self.assertEqual(rows['WAX UP'], ['Spruing', 'Investing'])
         self.assertEqual(rows['METAL'], ['Casting', 'Trimming', 'Polishing'])
-        self.assertEqual(rows['CERAMIC'], ['Opaque & Buildup', 'Trimming', 'Finishing'])
+        self.assertEqual(rows['CERAMIC'], ['Opaque', 'Buildup', 'Trimming', 'Finishing'])
         subtitles = {s['title']: s['subtitle'] for s in sheet['sections']}
         self.assertEqual((subtitles['CAD/CAM'], subtitles['CERAMIC']), ('3D', 'Metal Ceramic'))
         self.assertTrue(sheet['model'], "model preparation has its own line")
@@ -189,7 +189,7 @@ class TestProductionSheet(TransactionCase):
         text = html.decode()
         self.assertIn('DAILY PRODUCTION REPORT', text)
         self.assertIn(production.name, text)
-        self.assertIn('Opaque &amp; Buildup', text)
+        self.assertIn('Buildup', text)
         self.assertIn('Marketing Officer', text)
 
         html, _kind = Report._render_qweb_html(

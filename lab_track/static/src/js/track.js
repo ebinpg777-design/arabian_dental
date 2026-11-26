@@ -295,6 +295,11 @@ export class LabTrack extends Component {
         return this.state.data ? this.state.data.order : null;
     }
 
+    /** The jobs of this case the bench has marked pending - waiting, and why. */
+    get pendingJobs() {
+        return ((this.state.data && this.state.data.productions) || []).filter((mo) => mo.pending);
+    }
+
     // --- drill-downs. The only clicks on this screen.
     openRecord(model, resId) {
         if (this.readonly) {

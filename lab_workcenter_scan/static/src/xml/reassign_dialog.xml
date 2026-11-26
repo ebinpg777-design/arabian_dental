@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_workcenter_scan.ReassignDialog">
+    <Dialog title="'Reassign this job'" size="'md'" footer="false"
+            contentClass="'o_st_doing_dlg o_st_change_dlg o_st_reassign_dlg'">
+
+        <!-- Which job, and who has it. -->
+        <div class="o_st_doing_job">
+            <span class="o_st_mo" t-out="this.props.job.production or this.props.job.name"/>
+            <span t-if="this.props.job.order" class="o_st_ref" t-out="this.props.job.order"/>
+            <div t-if="this.props.job.product_name" class="o_st_product">
+                <i class="fa fa-cube me-1" title="Appliance"/><t t-out="this.props.job.product_name"/>
+            </div>
+            <div t-if="this.props.job.patient or this.props.job.clinic" class="o_st_case">
+                <span t-if="this.props.job.patient" class="o_st_patient" t-out="this.props.job.patient"/>
+                <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
+                <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
+            </div>
+        </div>
+        <div class="o_st_reassign_from">
+            <span class="o_st_reassign_l">With now</span>
+            <strong t-out="this.current"/>
+            <span t-if="this.props.job.reassigned and this.props.job.first_team"
+                  class="o_st_reassign_first">
+                · first worked by <t t-out="this.props.job.first_team"/>
+            </span>
+            <div class="o_st_reassign_keep">
+                <i class="fa fa-random me-1" title="Reassign"/>Both names are kept: who
+                worked on it first, and who takes it over.
+            </div>
+        </div>
+
+        <t t-if="this.props.people.length">
+            <div class="o_st_doing_lead">Who takes it over? The first you tick is its technician.</div>
+            <div class="o_st_tiles">
+                <button t-foreach="this.props.people" t-as="p" t-key="p.id"
+                        class="o_st_tile"
+                        t-att-class="{ 'o_st_tile_lead': p.is_lead, 'o_st_tile_on': this.isOn(p) }"
+                        t-att-aria-pressed="this.isOn(p) ? 'true' : 'false'"
+                        t-att-disabled="this.state.busy"
+                        t-on-click="() => this.tap(p)">
+                    <span t-if="this.isOn(p)" class="o_st_tile_tick">
+                        <i class="fa fa-check" title="Takes it over"/>
+                    </span>
+                    <span class="o_st_avatar" t-out="this.initials(p.name)"/>
+                    <span class="o_st_tile_name" t-out="p.name"/>
+                    <span class="o_st_tile_load">
+                        <t t-if="this.currentIds.includes(p.id)">has it now · </t>
+                        <t t-out="p.load or 0"/> in hand
+                    </span>
+                </button>
+            </div>
+
+            <div class="o_st_doing_lead">Why?</div>
+            <div class="o_st_chips">
+                <button t-foreach="this.reasons" t-as="r" t-key="r.key" class="o_st_chip"
+                        t-att-class="{ o_st_chip_on: this.state.reason === r.key }"
+                        t-att-disabled="this.state.busy"
+                        t-on-click="() => (this.state.reason = r.key)" t-out="r.label"/>
+            </div>
+            <input type="text" class="form-control o_st_note_in"
+                   t-att-placeholder="this.state.reason === 'other' ? 'Write the reason' : 'Anything to add (optional)'"
+                   t-model.proxy="this.state.note" t-att-disabled="this.state.busy"/>
+
+            <div t-if="this.state.error" class="o_st_change_err" role="alert">
+                <i class="fa fa-exclamation-triangle me-1" title="Refused"/>
+                <t t-out="this.state.error"/>
+            </div>
+
+            <button class="o_st_change_go" t-att-disabled="!this.ready"
+                    t-on-click="() => this.confirm()">
+                <i t-att-class="this.state.busy ? 'fa fa-circle-o-notch fa-spin me-1' : 'fa fa-random me-1'"
+                   title="Reassign"/>
+                <t t-out="this.goLabel"/>
+            </button>
+        </t>
+        <div t-else="" class="o_st_doing_lead o_st_doing_noone">
+            <i class="fa fa-lock me-1" title="Nobody"/>
+            Nobody else is posted to this station, so the job cannot be given to anyone.
+        </div>
+
+        <div class="o_st_doing_foot">
+            <button class="btn btn-link" t-att-disabled="this.state.busy"
+                    t-on-click="() => this.props.close()">Leave it as it is</button>
+        </div>
+    </Dialog>
+</t>
+
+</templates>

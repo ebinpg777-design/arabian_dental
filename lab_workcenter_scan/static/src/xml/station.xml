@@ -84,8 +84,8 @@
                     <button class="o_st_type_find o_st_type_fix"
                             t-on-click="() => this.changeByScan()"
                             t-att-disabled="this.state.busy"
-                            title="Scan a job card to correct its technician, finisher or status">
-                        <i class="fa fa-pencil me-1" title="Correct"/>Correct
+                            title="Type or scan a job to correct its technician, finisher or status">
+                        <i class="fa fa-pencil me-1" title="Correction"/>Correction
                     </button>
                     <!-- A job that does not belong at this bench: cancel its step
                          here and the case carries on to its next bench. Only
@@ -116,6 +116,23 @@
                             t-att-disabled="this.state.busy"
                             title="Scan a job card to mark an amendment on its order, or to mark it done">
                         <i class="fa fa-pencil-square-o me-1" title="Amendment"/>Amendment
+                    </button>
+                    <!-- The job cannot go on for now - or it can again. Any open
+                         job of the lab. (client, 2026-11-26) -->
+                    <button class="o_st_type_find o_st_type_pend"
+                            t-on-click="() => this.pendByScan()"
+                            t-att-disabled="this.state.busy"
+                            title="Type or scan a job to mark it pending with the reason, or to resume it">
+                        <i class="fa fa-pause me-1" title="Pending"/>Pending
+                    </button>
+                    <!-- The lead's: a job somebody has, passed to somebody else,
+                         with both names kept. (client, 2026-11-26) -->
+                    <button t-if="this.state.data.can_assign"
+                            class="o_st_type_find o_st_type_reassign"
+                            t-on-click="() => this.reassignByScan()"
+                            t-att-disabled="this.state.busy"
+                            title="Type or scan a job to give it to another technician, keeping who worked on it first">
+                        <i class="fa fa-random me-1" title="Reassign"/>Reassign
                     </button>
                     </div>
                 </div>
@@ -466,6 +483,13 @@
                                     title="Scanned by mistake? Take the last scan back">
                                 <i class="fa fa-undo" title="Undo the scan"/>
                             </button>
+                            <!-- Cannot be started for now: said before it is taken.
+                                 (client, 2026-11-26) -->
+                            <button t-if="!c.pending" class="o_st_alt o_st_alt_pend"
+                                    t-on-click="() => this.openPending(c)"
+                                    title="Mark this job pending, with the reason">
+                                <i class="fa fa-pause" title="Pending"/>
+                            </button>
                         </div>
                     </div>
                     <div t-if="this.state.data.totals.incoming > this.state.data.incoming.length"
@@ -515,6 +539,20 @@
                                     title="Send to a different station">
                                 <i t-att-class="this.canScan ? 'fa fa-qrcode' : 'fa fa-keyboard-o'"
                                    title="Send elsewhere"/>
+                            </button>
+                            <!-- The technician who took it cannot finish it: the lead
+                                 gives it to somebody else, and both names stay on
+                                 the job. (client, 2026-11-26) -->
+                            <button t-if="this.state.data.can_assign and c.bench_user_id"
+                                    class="o_st_alt o_st_alt_reassign"
+                                    t-on-click="() => this.reassignJob(c)"
+                                    title="Reassign to another technician">
+                                <i class="fa fa-random" title="Reassign"/>
+                            </button>
+                            <button t-if="!c.pending" class="o_st_alt o_st_alt_pend"
+                                    t-on-click="() => this.openPending(c)"
+                                    title="Mark this job pending, with the reason">
+                                <i class="fa fa-pause" title="Pending"/>
                             </button>
                             <!-- The wrong card gets scanned with gloves on. This puts
                                  the job back where it was and says so on the case.
@@ -670,6 +708,14 @@
             <span t-if="c.call_doctor" class="o_st_flag o_st_flag_call">
                 <i class="fa fa-phone me-1" title="Call the doctor"/>CALL DOCTOR
             </span>
+            <!-- Cannot go on for now, and why: read before anybody picks it up.
+                 Tapped, it says what it waits for and offers Resume.
+                 (client, 2026-11-26) -->
+            <button t-if="c.pending" type="button" class="o_st_flag o_st_flag_pend"
+                    t-att-title="'Pending: ' + (c.pending_reason or '')"
+                    t-on-click.stop="() => this.openPending(c)">
+                <i class="fa fa-pause me-1" title="Pending"/>PENDING
+            </button>
             <!-- Waiting on a change: read before the job is made the old way.
                  Tapped, it says what the change is and offers Done.
                  (client, 2026-11-26) -->
@@ -697,6 +743,10 @@
             <span t-if="c.ul"> · <t t-out="c.ul"/></span>
             <span t-if="c.colour"> · <t t-out="c.colour"/></span>
         </div>
+        <div t-if="c.pending and c.pending_reason" class="o_st_pend_line"
+             t-att-title="c.pending_reason">
+            <i class="fa fa-pause-circle me-1" title="Pending"/><t t-out="c.pending_reason"/>
+        </div>
         <div class="o_st_sub">
             <!-- Everybody on the job, where it is worked together. First names:
                  three people fit where one full name did. (client, 2026-11-25) -->
@@ -705,6 +755,12 @@
                   t-att-title="this.teamTitle(c)">
                 <i t-att-class="c.bench_team and c.bench_team.length > 1 ? 'fa fa-users me-1' : 'fa fa-user me-1'"
                    title="Technician"/><t t-out="this.teamLine(c)"/>
+            </span>
+            <!-- Passed on from the technician who first worked on it: both names
+                 stay on the job. (client, 2026-11-26) -->
+            <span t-if="c.reassigned and c.first_team" class="o_st_with o_st_with_first"
+                  t-att-title="'Reassigned' + (c.reassign_note ? ': ' + c.reassign_note : '')">
+                <i class="fa fa-random mx-1" title="Reassigned"/>first <t t-out="c.first_team"/>
             </span>
             <!-- The second name, where the bench records one. It lives on the
                  line that already carries the first rather than in a block of
