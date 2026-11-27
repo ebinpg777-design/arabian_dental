@@ -178,7 +178,6 @@ export class ScanStation extends Component {
         };
         onMounted(() => {
             window.addEventListener("keydown", this.onWedgeKey, true);
-            this.watchPosition();
             if (this.state.mode === "native") {
                 this.openScanner();
             } else if (this.state.mode === "camera") {
@@ -191,9 +190,6 @@ export class ScanStation extends Component {
             this.closed = true;
             clearTimeout(this.reopenTimer);
             window.removeEventListener("keydown", this.onWedgeKey, true);
-            if (this.positionWatch !== undefined && navigator.geolocation) {
-                navigator.geolocation.clearWatch(this.positionWatch);
-            }
             this.stopCamera();
         });
     }
@@ -785,76 +781,6 @@ export class ScanStation extends Component {
         }
     }
 
-    /**
-     * Where the phone is, kept up to date while the station is open: every scan
-     * waited up to four seconds for a fresh fix before it was even sent - most of
-     * the pause between a read and its card. (2026-11-27)
-     */
-    watchPosition() {
-        if (session.fw_location_exception || !navigator.geolocation) {
-            return;
-        }
-        try {
-            this.positionWatch = navigator.geolocation.watchPosition(
-                (position) => {
-                    this.lastCoords = position.coords;
-                    this.lastCoordsAt = Date.now();
-                },
-                () => {},
-                { enableHighAccuracy: true, maximumAge: 30000, timeout: 60000 }
-            );
-        } catch {
-            this.positionWatch = undefined;
-        }
-    }
-
-    /** A fix from the last minute: the station's own watch, or the app's recorder. */
-    freshPosition() {
-        if (this.lastCoords && Date.now() - this.lastCoordsAt < 60000) {
-            return this.lastCoords;
-        }
-        try {
-            const app = window.LabApp;
-            if (app && typeof app.status === "function") {
-                const fix = (JSON.parse(app.status() || "{}") || {}).last_fix;
-                if (fix && fix.at && Date.now() - fix.at < 120000 && (fix.accuracy_m || 0) < 250) {
-                    return { latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy_m };
-                }
-            }
-        } catch {
-            // no app, or an answer that does not parse: ask the browser below
-        }
-        return null;
-    }
-
-    /** A location fix, or nothing, but never a wait. */
-    positionOrNothing(ms) {
-        if (session.fw_location_exception) {
-            return Promise.resolve(null);   // an excused phone is not asked
-        }
-        const fresh = this.freshPosition();
-        if (fresh) {
-            return Promise.resolve(fresh);
-        }
-        return Promise.race([
-            new Promise((resolve) => {
-                try {
-                    if (!navigator.geolocation) {
-                        return resolve(null);
-                    }
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => resolve(position.coords),
-                        () => resolve(null),
-                        { enableHighAccuracy: true, timeout: ms, maximumAge: 30000 }
-                    );
-                } catch {
-                    resolve(null);
-                }
-            }),
-            new Promise((resolve) => setTimeout(() => resolve(null), ms)),
-        ]);
-    }
-
     card(entry) {
         this.state.run.unshift({
             key: Date.now() + "-" + Math.random().toString(36).slice(2, 6),
@@ -999,15 +925,10 @@ export class ScanStation extends Component {
         this.state.busy = true;
         this.state.stage = _t("Looking for %s…", token);
         try {
-            // The fix is taken at the scan - the moment the executive is at the
-            // door - and must never hold the hand-over up.
-            const coords = await this.positionOrNothing(4000);
-            const action = await this.orm.call("lab.delivery", "scan", [
-                token,
-                coords ? coords.latitude : false,
-                coords ? coords.longitude : false,
-                coords ? coords.accuracy : false,
-            ]);
+            // No location: the scan does not ask for one, so nothing waits for a
+            // fix. (client, 2026-11-27: "No need to use the location for scan.
+            // Please avoid it and make it fast")
+            const action = await this.orm.call("lab.delivery", "scan", [token]);
             return this.consume(token, action);
         } catch (error) {
             this.buzz([40, 60, 40]);
@@ -1175,12 +1096,8 @@ export class ScanStation extends Component {
         }
         entry.resolved = true;
         try {
-            const coords = await this.positionOrNothing(4000);
             const action = await this.orm.call("lab.delivery", "action_mark_delivered", [
                 [entry.summary.id],
-                coords ? coords.latitude : false,
-                coords ? coords.longitude : false,
-                coords ? coords.accuracy : false,
             ]);
             entry.tone = "ok";
             entry.title = _t("%s — delivering", entry.summary.delivery);

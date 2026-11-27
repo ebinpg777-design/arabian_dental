@@ -3,7 +3,6 @@
 import { patch } from "@web/core/utils/patch";
 import { LabMyDay } from "@lab_fieldwork/js/my_day";
 import { _t } from "@web/core/l10n/translation";
-import { session } from "@web/session";
 import { ScanStation } from "@lab_delivery/js/scan_station";
 
 /**
@@ -84,17 +83,9 @@ patch(LabMyDay.prototype, {
 
     /** The inbound mirror of Mark Delivered: the lab takes the bag in. */
     async receiveAtLab(d) {
-        // getPosition() settles on {coords} or {error} (lab_fieldwork e73104b);
-        // reading latitude straight off it sent every hand-over without a fix.
-        // No position still goes as nulls, as before. (2026-10-19)
-        const found = session.fw_location_exception ? {} : await this.getPosition();
-        const coords = found.coords || null;
-        const action = await this.orm.call("lab.delivery", "action_receive_at_lab", [
-            [d.id],
-            coords ? coords.latitude : false,
-            coords ? coords.longitude : false,
-            coords ? coords.accuracy : false,
-        ]);
+        // No location: a hand-over does not wait for a fix. (client, 2026-11-27:
+        // "No need to use the location for scan. Please avoid it and make it fast")
+        const action = await this.orm.call("lab.delivery", "action_receive_at_lab", [[d.id]]);
         this.action.doAction(action, { onClose: () => this.load() });
     },
 
@@ -116,17 +107,8 @@ patch(LabMyDay.prototype, {
      * near place, and if near, where. So it opens the same wizard the desk uses.
      */
     async markDelivered(d) {
-        // The fix is taken at THIS moment - pressing Delivered - because that is
-        // when standing at the clinic means something. (client, 2026-08-28)
-        // {coords} or {error} since e73104b - see receiveAtLab(). (2026-10-19)
-        const found = session.fw_location_exception ? {} : await this.getPosition();
-        const coords = found.coords || null;
-        const action = await this.orm.call("lab.delivery", "action_mark_delivered", [
-            [d.id],
-            coords ? coords.latitude : false,
-            coords ? coords.longitude : false,
-            coords ? coords.accuracy : false,
-        ]);
+        // No location, as for the scan. (client, 2026-11-27)
+        const action = await this.orm.call("lab.delivery", "action_mark_delivered", [[d.id]]);
         this.action.doAction(action, {
             onClose: () => this.load(),
         });

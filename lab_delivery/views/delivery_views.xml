@@ -216,7 +216,7 @@
                             <field name="delivered_gps_state" readonly="1" widget="badge"
                                    decoration-success="delivered_gps_state == 'ok'"
                                    decoration-danger="delivered_gps_state == 'far'"
-                                   decoration-warning="delivered_gps_state in ('nopin', 'nofix')"/>
+                                   decoration-warning="delivered_gps_state == 'nopin'"/>
                         </group>
                         <group>
                             <field name="delivered_distance_m" readonly="1"
@@ -233,8 +233,10 @@
                         </group>
                         <div colspan="2" class="text-muted"
                              invisible="delivered_gps_state != 'nofix'">
-                            No location was captured — it was confirmed from a desktop,
-                            the phone refused the fix, or the courier feed closed it.
+                            No location was taken: since 27 Nov 2026 a hand-over does not
+                            ask for one (the client's choice, to keep scanning fast).
+                            Before that, it was confirmed from a desktop, the phone
+                            refused the fix, or the courier feed closed it.
                         </div>
                         <div colspan="2" class="text-muted"
                              invisible="delivered_gps_state != 'exempt'">
