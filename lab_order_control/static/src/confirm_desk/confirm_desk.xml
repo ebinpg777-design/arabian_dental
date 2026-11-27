@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="lab_order_control.OrderConfirmDesk">
+    <div class="o_lab_ocd o_action">
+        <div class="o_lab_ocd_wrap">
+
+            <!-- ── the work: find one order, confirm it ── -->
+            <div class="o_lab_ocd_main">
+                <h1 class="o_lab_ocd_title">Confirm Orders</h1>
+                <p class="o_lab_ocd_lead">Type or scan the order number, then press <b>Find</b>.</p>
+
+                <div class="o_lab_ocd_find">
+                    <i class="fa fa-search o_lab_ocd_find_i" title="Search"/>
+                    <input type="text" class="o_lab_ocd_input" t-ref="this.inputRef"
+                           t-att-value="this.state.query" t-on-input="this.onInput"
+                           t-on-keydown="this.onKeydown" autocomplete="off" enterkeyhint="search"
+                           placeholder="Order number, e.g. 81488"/>
+                    <button class="btn btn-primary o_lab_ocd_find_btn" t-att-disabled="this.state.busy"
+                            t-on-click="() => this.find()">
+                        <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin me-2" title="Working"/>Find
+                    </button>
+                </div>
+
+                <div t-if="this.state.message" class="o_lab_ocd_msg"
+                     t-att-class="'o_lab_ocd_msg_' + this.state.message.tone">
+                    <i t-if="this.state.message.tone === 'success'" class="fa fa-check-circle me-2" title="Done"/>
+                    <i t-elif="this.state.message.tone === 'danger'" class="fa fa-exclamation-circle me-2" title="Problem"/>
+                    <i t-else="" class="fa fa-info-circle me-2" title="Note"/>
+                    <span t-out="this.state.message.text"/>
+                </div>
+
+                <!-- several orders match what was typed -->
+                <div t-if="this.state.choices.length" class="o_lab_ocd_choices">
+                    <button t-foreach="this.state.choices" t-as="row" t-key="row.id" class="o_lab_ocd_row"
+                            t-on-click="() => this.openOrder(row.id)">
+                        <span class="o_lab_ocd_row_name" t-out="row.name"/>
+                        <span class="o_lab_ocd_row_body">
+                            <span class="o_lab_ocd_row_clinic" t-out="row.clinic"/>
+                            <span class="o_lab_ocd_row_meta"><t t-out="row.date"/><t t-if="row.patient"> · <t t-out="row.patient"/></t></span>
+                        </span>
+                        <span class="o_lab_ocd_row_amount" t-out="row.amount"/>
+                    </button>
+                </div>
+
+                <!-- the order -->
+                <t t-set="o" t-value="this.state.order"/>
+                <div t-if="o" class="o_lab_ocd_card" t-att-class="'o_lab_ocd_card_' + o.state">
+                    <div class="o_lab_ocd_card_head">
+                        <div>
+                            <div class="o_lab_ocd_card_label">Order</div>
+                            <div class="o_lab_ocd_card_name" t-out="o.name"/>
+                        </div>
+                        <span class="o_lab_ocd_badge" t-att-class="'o_lab_ocd_badge_' + o.state">
+                            <i t-if="o.state === 'sale'" class="fa fa-check me-1" title="Confirmed"/>
+                            <t t-out="o.state_label"/>
+                        </span>
+                    </div>
+
+                    <div class="o_lab_ocd_facts">
+                        <div class="o_lab_ocd_fact o_lab_ocd_fact_wide">
+                            <div class="o_lab_ocd_fact_l">Clinic / Doctor</div>
+                            <div class="o_lab_ocd_fact_v o_lab_ocd_clinic" t-out="o.clinic or '—'"/>
+                        </div>
+                        <div class="o_lab_ocd_fact">
+                            <div class="o_lab_ocd_fact_l">Patient</div>
+                            <div class="o_lab_ocd_fact_v" t-out="o.patient or '—'"/>
+                        </div>
+                        <div class="o_lab_ocd_fact">
+                            <div class="o_lab_ocd_fact_l">Entered by</div>
+                            <div class="o_lab_ocd_fact_v" t-out="o.by or '—'"/>
+                        </div>
+                        <div class="o_lab_ocd_fact">
+                            <div class="o_lab_ocd_fact_l">Date</div>
+                            <div class="o_lab_ocd_fact_v" t-out="o.date or '—'"/>
+                        </div>
+                        <div class="o_lab_ocd_fact">
+                            <div class="o_lab_ocd_fact_l">Sales Route</div>
+                            <div class="o_lab_ocd_fact_v" t-out="o.route or '—'"/>
+                        </div>
+                    </div>
+
+                    <div t-if="o.flags.length" class="o_lab_ocd_flags">
+                        <div t-foreach="o.flags" t-as="flag" t-key="flag_index" class="o_lab_ocd_flag"
+                             t-att-class="'o_lab_ocd_flag_' + flag.tone">
+                            <i t-if="flag.tone === 'danger'" class="fa fa-exclamation-triangle me-2" title="Important"/>
+                            <i t-elif="flag.tone === 'warning'" class="fa fa-exclamation-circle me-2" title="Note"/>
+                            <i t-else="" class="fa fa-info-circle me-2" title="Note"/>
+                            <span t-out="flag.text"/>
+                        </div>
+                    </div>
+
+                    <table t-if="o.lines.length" class="o_lab_ocd_items">
+                        <thead>
+                            <tr><th>Item</th><th>Jaw</th><th>Teeth</th><th>Shade</th><th class="text-end">Qty</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="o.lines" t-as="line" t-key="line_index">
+                                <td class="o_lab_ocd_item" t-out="line.product"/>
+                                <td t-out="line.jaw"/>
+                                <td t-out="line.teeth"/>
+                                <td t-out="line.shade"/>
+                                <td class="text-end" t-out="line.qty"/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="o_lab_ocd_total">
+                        <span>Order total</span>
+                        <span class="o_lab_ocd_total_v" t-out="o.amount"/>
+                    </div>
+
+                    <div class="o_lab_ocd_actions">
+                        <button t-if="o.can_confirm" class="btn btn-success o_lab_ocd_confirm"
+                                t-att-disabled="this.state.busy" t-on-click="() => this.askConfirm()">
+                            <t t-if="this.state.busy"><i class="fa fa-circle-o-notch fa-spin me-2" title="Working"/>Confirming…</t>
+                            <t t-else=""><i class="fa fa-check me-2" title="Confirm"/>Confirm this order</t>
+                        </button>
+                        <div t-elif="o.why_not" class="o_lab_ocd_why" t-out="o.why_not"/>
+                        <div class="o_lab_ocd_actions_2">
+                            <button class="btn btn-light" t-on-click="() => this.openFullOrder()">
+                                <i class="fa fa-external-link me-1" title="Open"/>Open full order
+                            </button>
+                            <button class="btn btn-light" t-on-click="() => this.clear()">
+                                <i class="fa fa-arrow-right me-1" title="Next"/>Next order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- what was confirmed here, so nobody has to wonder -->
+                <div t-if="this.state.done.length" class="o_lab_ocd_done">
+                    <div class="o_lab_ocd_side_h">Confirmed just now</div>
+                    <div t-foreach="this.state.done" t-as="d" t-key="d.id" class="o_lab_ocd_done_row">
+                        <i class="fa fa-check-circle" title="Confirmed"/>
+                        <b t-out="d.name"/>
+                        <span class="o_lab_ocd_done_clinic" t-out="d.clinic"/>
+                        <span class="o_lab_ocd_done_at" t-out="d.at"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── what is waiting ── -->
+            <aside class="o_lab_ocd_side">
+                <div class="o_lab_ocd_side_top">
+                    <div class="o_lab_ocd_side_h">
+                        Waiting to be confirmed
+                        <span class="o_lab_ocd_count" t-out="this.state.waiting.count"/>
+                    </div>
+                    <button class="btn btn-link btn-sm" t-on-click="() => this.refreshWaiting()" title="Refresh the list">
+                        <i class="fa fa-refresh" title="Refresh"/>
+                    </button>
+                </div>
+                <div class="o_lab_ocd_side_hint">The executives' orders, oldest first. Tap one to open it.</div>
+                <div t-if="!this.state.waiting.rows.length" class="o_lab_ocd_empty">Nothing is waiting. 🎉</div>
+                <button t-foreach="this.state.waiting.rows" t-as="row" t-key="row.id" class="o_lab_ocd_row"
+                        t-att-class="{ o_lab_ocd_row_on: this.state.order and this.state.order.id === row.id }"
+                        t-on-click="() => this.openOrder(row.id)">
+                    <span class="o_lab_ocd_row_name" t-out="row.name"/>
+                    <span class="o_lab_ocd_row_body">
+                        <span class="o_lab_ocd_row_clinic" t-out="row.clinic"/>
+                        <span class="o_lab_ocd_row_meta">
+                            <t t-out="row.date"/><t t-if="row.by"> · <t t-out="row.by"/></t>
+                        </span>
+                        <span t-if="row.rush or row.on_hold" class="o_lab_ocd_row_tags">
+                            <span t-if="row.rush === 'emergency'" class="o_lab_ocd_tag o_lab_ocd_tag_danger">Emergency</span>
+                            <span t-elif="row.rush === 'urgent'" class="o_lab_ocd_tag o_lab_ocd_tag_warning">Urgent</span>
+                            <span t-if="row.on_hold" class="o_lab_ocd_tag o_lab_ocd_tag_warning">Pending information</span>
+                        </span>
+                    </span>
+                    <span class="o_lab_ocd_row_amount" t-out="row.amount"/>
+                </button>
+                <div t-if="this.state.waiting.count > this.state.waiting.rows.length" class="o_lab_ocd_side_hint">
+                    Showing the oldest <t t-out="this.state.waiting.rows.length"/>. Type a number to find any other.
+                </div>
+            </aside>
+        </div>
+    </div>
+</t>
+
+</templates>

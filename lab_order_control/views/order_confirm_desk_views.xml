@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_order_confirm_desk" model="ir.actions.client">
+        <field name="name">Confirm Orders</field>
+        <field name="tag">lab_order_confirm_desk</field>
+    </record>
+
+    <!-- An app of its own on the home screen: one tile, one screen. -->
+    <menuitem id="menu_order_confirm_desk_root"
+              name="Confirm Orders"
+              action="action_order_confirm_desk"
+              web_icon="lab_order_control,static/description/confirm_orders.png"
+              groups="lab_order_control.group_order_confirm_desk"
+              sequence="6"/>
+</odoo>

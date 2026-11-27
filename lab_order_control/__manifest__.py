@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Order Control — Maker/Checker & Credit Limit',
-    'version': '20.0.1.16.0',
+    'version': '20.0.1.17.0',
     'category': 'Sales/Sales',
     'summary': 'Second-person verification of registered cases before processing, plus '
                'enforced customer credit limits',
@@ -31,6 +31,7 @@ This module only surfaces it on the verification screens.
                 'ebshel_dynamic_filter'],
     'data': [
         'security/lab_order_control_security.xml',
+        'security/order_confirm_desk_security.xml',
         'data/ir_cron.xml',
         'views/doctor_call_views.xml',
         'views/hold_views.xml',
@@ -42,10 +43,18 @@ This module only surfaces it on the verification screens.
         'views/res_partner_views.xml',
         'views/res_config_settings_views.xml',
         'views/lab_order_control_menus.xml',
+        'views/order_confirm_desk_views.xml',
         'security/ir.access.csv',
     ],
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,
     'license': 'LGPL-3',
+    'assets': {
+        'web.assets_backend': [
+            'lab_order_control/static/src/confirm_desk/confirm_desk.js',
+            'lab_order_control/static/src/confirm_desk/confirm_desk.xml',
+            'lab_order_control/static/src/confirm_desk/confirm_desk.scss',
+        ],
+    },
 }
