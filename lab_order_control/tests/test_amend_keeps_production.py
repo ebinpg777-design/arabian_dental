@@ -209,3 +209,30 @@ class TestAmendKeepsProduction(TransactionCase):
         self._amend_and_confirm(order)
         self.assertEqual(order.lab_amend_count, 2)
 
+    # ---------------------------------------------- the unit price, when amended
+    def test_an_invoiced_line_can_be_repriced_in_an_amendment(self):
+        """(client, 2026-11-27: "On amending a SO unit price also to be edited")"""
+        order = self._order()
+        invoice = order._create_invoices()               # left in draft
+        self.assertEqual(order.order_line.qty_invoiced, 1)
+        order.action_amend()
+        order.order_line.price_unit = 750.0
+        order.action_confirm()
+        self.assertEqual(invoice.state, 'draft')
+        self.assertEqual(invoice.invoice_line_ids.price_unit, 750.0, "the draft invoice follows")
+        self.assertIn('carried to the draft invoice', ' '.join(order.message_ids.mapped('body')))
+
+    def test_a_posted_invoice_keeps_its_price_and_the_order_says_so(self):
+        order = self._order()
+        invoice = order._create_invoices()
+        invoice.action_post()
+        order.action_amend()
+        order.order_line.price_unit = 750.0
+        order.action_confirm()
+        self.assertEqual(invoice.invoice_line_ids.price_unit, 1000.0, "the books are not rewritten")
+        self.assertIn('already posted', ' '.join(order.message_ids.mapped('body')))
+
+    def test_the_price_is_open_on_the_form_while_amending(self):
+        arch = self.env['sale.order'].get_view(self.env.ref('sale.view_order_form').id, 'form')['arch']
+        self.assertIn('qty_invoiced &gt; 0 and not parent.lab_amending', arch)
+

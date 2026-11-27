@@ -146,11 +146,51 @@ class SaleOrder(models.Model):
         res = super().action_confirm()
         done = amended.filtered(lambda o: o.state == 'sale')
         for order in done.sudo():
+            order._lab_amend_reprice_invoices()
             order.write({'lab_amending': False, 'lab_amending_by_id': False,
                          'lab_amending_at': False,
                          'lab_amended_on': fields.Datetime.now(),
                          'lab_amended_by_id': order.lab_amending_by_id.id or self.env.uid})
         return res
+
+    def _lab_amend_reprice_invoices(self):
+        """The prices changed in the amendment, carried to the invoice.
+
+        A unit price can be changed while the order is amended even where the line
+        is already invoiced (core locks it as soon as an invoice exists). A DRAFT
+        invoice takes the new price, as the counter expects; a POSTED one is the
+        books, and is left as it is - the order says which line differs, for
+        accounts to settle with a credit note. (client, 2026-11-27: "On amending a
+        SO unit price also to be edited")
+        """
+        self.ensure_one()
+        repriced, differs = [], []
+        for line in self.order_line.filtered(lambda l: not l.display_type):
+            for move_line in line.invoice_lines.filtered(
+                    lambda ml: ml.move_id.move_type == 'out_invoice'
+                    and ml.move_id.state != 'cancel'):
+                price = line.currency_id._convert(
+                    line.price_unit, move_line.currency_id, line.company_id,
+                    move_line.move_id.invoice_date or fields.Date.context_today(self)) \
+                    if move_line.currency_id != line.currency_id else line.price_unit
+                if move_line.currency_id.compare_amounts(move_line.price_unit, price) == 0:
+                    continue
+                if move_line.move_id.state == 'draft':
+                    move_line.price_unit = price
+                    repriced.append('%s: %s' % (move_line.move_id.name or _('draft'),
+                                                line.product_id.display_name))
+                else:
+                    differs.append(_("%(inv)s bills %(product)s at %(old)s, the order now "
+                                     "says %(new)s", inv=move_line.move_id.name,
+                                     product=line.product_id.display_name,
+                                     old=move_line.price_unit, new=price))
+        if repriced:
+            self.message_post(body=_("Amended prices carried to the draft invoice: %s.",
+                                     ', '.join(repriced)))
+        if differs:
+            self.message_post(body=_(
+                "The invoice is already posted and keeps its prices - %s. Issue a credit "
+                "note or a new invoice for the difference.", '; '.join(differs)))
 
     def _lab_stop_jobs_of_removed_lines(self):
         """A line taken off the order in the amendment: its job, if still being

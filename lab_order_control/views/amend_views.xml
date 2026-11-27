@@ -22,6 +22,14 @@
                 <attribute name="confirm"/>
                 <attribute name="confirm-title"/>
             </xpath>
+            <!-- While the order is amended its unit prices can be changed, even on
+                 a line already invoiced (core locks them once an invoice exists); the
+                 draft invoice follows when the order is confirmed again.
+                 (client, 2026-11-27) -->
+            <xpath expr="//field[@name='order_line']//column[@name='price_unit']/field[@name='price_unit']"
+                   position="attributes">
+                <attribute name="readonly">qty_invoiced &gt; 0 and not parent.lab_amending</attribute>
+            </xpath>
             <xpath expr="//sheet" position="before">
                 <field name="lab_amending" invisible="1"/>
                 <field name="lab_amend_count" invisible="1"/>
