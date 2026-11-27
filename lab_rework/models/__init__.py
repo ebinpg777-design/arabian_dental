@@ -2,3 +2,4 @@
 from . import rework_reason
 from . import sale_order
 from . import account_move
+from . import case_kind

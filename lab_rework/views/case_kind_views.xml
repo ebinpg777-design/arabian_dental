@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- TRIAL on the order, beside Rework. (client, 2026-11-27) -->
+    <record id="view_order_form_trial" model="ir.ui.view">
+        <field name="name">sale.order.form.lab.trial</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="lab_rework.view_order_form_rework"/>
+        <field name="arch" type="xml">
+            <field name="is_rework" position="after">
+                <field name="is_trial" widget="boolean_toggle" invisible="is_rework"/>
+            </field>
+            <field name="is_rework" position="attributes">
+                <attribute name="invisible">is_trial</attribute>
+            </field>
+            <xpath expr="//sheet" position="inside">
+                <widget name="web_ribbon" title="TRIAL" bg_color="text-bg-warning"
+                        class="o_lab_ribbon_second" invisible="not is_trial"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_list_trial" model="ir.ui.view">
+        <field name="name">sale.order.list.lab.trial</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="lab_rework.view_order_list_rework"/>
+        <field name="arch" type="xml">
+            <field name="is_rework" position="after">
+                <field name="is_trial" widget="boolean_toggle" optional="hide" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_sales_order_filter_trial" model="ir.ui.view">
+        <field name="name">sale.order.search.lab.trial</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <filter string="Trials" name="filter_trials" domain="[('is_trial', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_trial" model="ir.actions.act_window">
+        <field name="name">Trials</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('is_trial', '=', True)]</field>
+        <field name="context">{'default_is_trial': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No trials</p>
+            <p>A trial is an order with <b>Trial</b> ticked: a try-in sent to the clinic
+               before the work is finished, not charged, numbered TR.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_trial_all" name="Trials"
+              parent="sale.sale_order_menu" sequence="23" action="action_trial"
+              groups="lab_order_control.group_lab_order_checker,lab_fieldwork.group_fieldwork_manager"/>
+
+    <!-- THE KIND OF CASE, chosen by the executive on the case itself. -->
+    <record id="view_case_form_kind" model="ir.ui.view">
+        <field name="name">lab.case.form.kind</field>
+        <field name="model">lab.case</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_case_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('o_fw_sec_violet')]" position="before">
+                <div class="o_fw_sec o_fw_sec_slate">
+                    <div class="o_fw_sec_h">
+                        <span class="o_fw_sec_i"><i class="fa fa-tags" title="Type of case"/></span>
+                        <div>
+                            <div class="o_fw_sec_t">Type of case</div>
+                            <div class="o_fw_sec_s">New work, a rework of an earlier job, or a trial. A rework and a trial are not charged.</div>
+                        </div>
+                    </div>
+                    <field name="case_kind" widget="fw_choice" readonly="state != 'draft'"
+                           options="{'colors': {'new': 'blue', 'rework': 'amber', 'trial': 'violet'}}"/>
+                    <div invisible="case_kind != 'rework'" class="mt-2">
+                        <div class="o_fw_sec_l">Why is it being made again?</div>
+                        <field name="rework_reason_id" options="{'no_create': True, 'no_open': True}"
+                               readonly="state != 'draft'" required="case_kind == 'rework'"
+                               placeholder="Rework reason"/>
+                        <div class="o_fw_sec_l">Original order (if you know it)</div>
+                        <field name="rework_origin_id" options="{'no_create': True, 'no_open': True}"
+                               readonly="state != 'draft'" placeholder="The earlier order"/>
+                        <div class="o_fw_sec_l">What came back</div>
+                        <field name="rework_note" readonly="state != 'draft'"
+                               placeholder="e.g. loose at the clasp, wrong shade"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_case_list_kind" model="ir.ui.view">
+        <field name="name">lab.case.list.kind</field>
+        <field name="model">lab.case</field>
+        <field name="inherit_id" ref="lab_fieldwork.view_case_list"/>
+        <field name="arch" type="xml">
+            <field name="priority" position="before">
+                <field name="case_kind" widget="badge" optional="show"
+                       decoration-warning="case_kind == 'rework'"
+                       decoration-info="case_kind == 'trial'"
+                       decoration-muted="case_kind == 'new'"/>
+            </field>
+        </field>
+    </record>
+</odoo>

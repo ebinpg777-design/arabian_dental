@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Rework',
-    'version': '20.0.2.2.1',
+    'version': '20.0.2.3.0',
     'summary': "Reworks as sale orders: tick Rework, give a reason, optionally point at the original job",
     'author': 'Ebin P G',
     'maintainer': 'Ebin P G',
@@ -10,9 +10,11 @@
     'depends': ['lab_fieldwork', 'lab_order_control', 'lab_delivery', 'account'],
     'data': [
         'data/ir_sequence.xml',
+        'data/ir_sequence_trial.xml',
         'data/rework_reason_data.xml',
         'views/rework_views.xml',
         'views/menus.xml',
+        'views/case_kind_views.xml',
         'data/filter_tiles.xml',
         'security/ir.access.csv',
     ],

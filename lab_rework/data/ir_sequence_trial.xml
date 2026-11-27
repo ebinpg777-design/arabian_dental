@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Trial orders: their own numbers, as reworks have RE. (client, 2026-11-27) -->
+        <record id="seq_sale_trial" model="ir.sequence">
+            <field name="name">Sales Trial</field>
+            <field name="code">sale.trial</field>
+            <field name="prefix">TR</field>
+            <field name="padding">3</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
