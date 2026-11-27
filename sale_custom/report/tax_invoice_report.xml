@@ -6,6 +6,65 @@
         Tables everywhere (wkhtmltopdf's WebKit has no flexbox), sizes in the report
         stylesheet (static/src/scss/invoice_report.scss).
     -->
+    <!-- The letterhead card the tax invoice opens with, and the red rule under it.
+         Its own template since 2026-11-27, so the purchase order, the RFQ and the
+         purchase request's RFQ (lab_reports) print on the same stationery as the
+         invoice. `company`: the company whose letterhead it is. -->
+    <template id="invoice_letterhead">
+        <!-- one row: the logo on the left, who and where on the right (2026-10-19 -
+             a logo row above the address pushed the pay card onto a second page) -->
+        <!-- Two balanced columns (client, 2026-10-19: "remove unwanted spaces,
+             align properly"): who the lab is on the left - logo, certification
+             marks, tax ids - and how to reach it on the right, address, phones and
+             e-mails each behind its icon as on the lab's own stationery. The lines
+             come from the company's Letterhead fields, written as they should
+             print. The marks once sat above the contact lines and made the card
+             tall enough to push a five-line invoice onto a second page. -->
+        <div class="oi-letterhead">
+            <table>
+                <tr>
+                    <td class="oi-lhlogo">
+                        <!-- the invoice logo, else the company's own: an invoice
+                             with no logo at all printed no lab name anywhere -->
+                        <t t-set="head_logo" t-value="company.logo1 or company.logo"/>
+                        <img t-if="head_logo" class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
+                        <div t-else="" class="oi-companyname" t-out="company.name"/>
+                        <!-- the GSTIN large and bold, the e-mails under it (client,
+                             2026-10-19: "move email to the left block below the GST
+                             number, increase the GST number font size and make bold") -->
+                        <t t-set="lh" t-value="company._lab_letterhead()"/>
+                        <div t-if="company.gst_number or company.pan_number" class="oi-ids">
+                            <span t-if="company.gst_number">GSTIN <b t-field="company.gst_number"/></span>
+                            <span t-if="company.gst_number and company.pan_number"> · </span>
+                            <span t-if="company.pan_number">PAN <b t-field="company.pan_number"/></span>
+                        </div>
+                        <table class="oi-lhblock oi-lhleft">
+                            <tr t-foreach="[r for r in lh if r[0] == 'emails']" t-as="row">
+                                <td class="oi-lhicon"><img t-att-src="row[1]"/></td>
+                                <td class="oi-lhtext"><div t-foreach="row[2]" t-as="line" t-out="line"/></td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td class="oi-lhinfo">
+                        <!-- the certification marks in the top-right corner, above the
+                             contact lines, as on the lab's stationery (client, 2026-10-19:
+                             "move the marked logo to right top") -->
+                        <div t-if="company.logo2" class="oi-lhcerts">
+                            <img class="oi-cert" t-att-src="image_data_uri(company.logo2)"/>
+                        </div>
+                        <table class="oi-lhblock">
+                            <tr t-foreach="[r for r in lh if r[0] != 'emails']" t-as="row">
+                                <td class="oi-lhicon"><img t-att-src="row[1]"/></td>
+                                <td class="oi-lhtext"><div t-foreach="row[2]" t-as="line" t-out="line"/></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="oi-rule"/>
+    </template>
+
     <template id="report_dental_invoice_document">
         <t t-call="sale_custom.external_layout_lab"
             mo="{'widget': 'monetary', 'display_currency': cur}"
@@ -55,59 +114,10 @@
                     <tr><td class="oi-sheet-top">
 
                 <!-- letterhead, in the body: the design puts it in a card at the top of
-                     the page, and a body block cannot be clipped by the header band -->
-                <!-- one row: the logo on the left, who and where on the right (2026-10-19 -
-                     a logo row above the address pushed the pay card onto a second page) -->
-                <!-- Two balanced columns (client, 2026-10-19: "remove unwanted spaces,
-                     align properly"): who the lab is on the left - logo, certification
-                     marks, tax ids - and how to reach it on the right, address, phones and
-                     e-mails each behind its icon as on the lab's own stationery. The lines
-                     come from the company's Letterhead fields, written as they should
-                     print. The marks once sat above the contact lines and made the card
-                     tall enough to push a five-line invoice onto a second page. -->
-                <div class="oi-letterhead">
-                    <table>
-                        <tr>
-                            <td class="oi-lhlogo">
-                                <!-- the invoice logo, else the company's own: an invoice
-                                     with no logo at all printed no lab name anywhere -->
-                                <t t-set="head_logo" t-value="o.company_id.logo1 or o.company_id.logo"/>
-                                <img t-if="head_logo" class="oi-logo" t-att-src="image_data_uri(head_logo)"/>
-                                <div t-else="" class="oi-companyname" t-out="o.company_id.name"/>
-                                <!-- the GSTIN large and bold, the e-mails under it (client,
-                                     2026-10-19: "move email to the left block below the GST
-                                     number, increase the GST number font size and make bold") -->
-                                <t t-set="lh" t-value="o.company_id._lab_letterhead()"/>
-                                <div t-if="o.company_id.gst_number or o.company_id.pan_number" class="oi-ids">
-                                    <span t-if="o.company_id.gst_number">GSTIN <b t-field="o.company_id.gst_number"/></span>
-                                    <span t-if="o.company_id.gst_number and o.company_id.pan_number"> · </span>
-                                    <span t-if="o.company_id.pan_number">PAN <b t-field="o.company_id.pan_number"/></span>
-                                </div>
-                                <table class="oi-lhblock oi-lhleft">
-                                    <tr t-foreach="[r for r in lh if r[0] == 'emails']" t-as="row">
-                                        <td class="oi-lhicon"><img t-att-src="row[1]"/></td>
-                                        <td class="oi-lhtext"><div t-foreach="row[2]" t-as="line" t-out="line"/></td>
-                                    </tr>
-                                </table>
-                            </td>
-                            <td class="oi-lhinfo">
-                                <!-- the certification marks in the top-right corner, above the
-                                     contact lines, as on the lab's stationery (client, 2026-10-19:
-                                     "move the marked logo to right top") -->
-                                <div t-if="o.company_id.logo2" class="oi-lhcerts">
-                                    <img class="oi-cert" t-att-src="image_data_uri(o.company_id.logo2)"/>
-                                </div>
-                                <table class="oi-lhblock">
-                                    <tr t-foreach="[r for r in lh if r[0] != 'emails']" t-as="row">
-                                        <td class="oi-lhicon"><img t-att-src="row[1]"/></td>
-                                        <td class="oi-lhtext"><div t-foreach="row[2]" t-as="line" t-out="line"/></td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="oi-rule"/>
+                     the page, and a body block cannot be clipped by the header band.
+                     The card is its own template so the purchase print-outs come out
+                     on the same stationery (lab_reports, 2026-11-27). -->
+                <t t-call="sale_custom.invoice_letterhead" company="o.company_id"/>
 
                 <!-- ── title ─────────────────────────────────────────────── -->
                 <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">

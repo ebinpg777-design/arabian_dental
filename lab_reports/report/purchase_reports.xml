@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Purchase print-outs on the lab's stationery (client, 2026-11-27: "Improve the
+        printout of PO, use the template like the current invoice printout. Also improve
+        the printout of RFQ in the Purchase Request module").
+
+        The same sheet as the tax invoice (sale_custom/report/tax_invoice_report.xml):
+        the letterhead card, the title in red with the number on the right, a card for
+        the other party, the dates in a strip, the line table with each GST in its own
+        column and every column summed, then - at the foot of the page - the total in
+        words, terms and the signature, and the closing bar. The invoice's stylesheet
+        (.lab-invoice) does the drawing; purchase_report.scss adds the few pieces a
+        purchase needs (deliver-to card, blank columns for the vendor to fill).
+    -->
+
+    <!-- ══ purchase.order: Purchase Order and Request for Quotation ══════════════
+         `priced`: the "Purchase Order" print shows rates, GST and totals; the
+         "Request for Quotation" print asks the vendor for them, so it lists only
+         what is wanted, how many and by when - as Odoo's own two prints do. -->
+    <template id="report_lab_purchase_document">
+        <t t-call="sale_custom.external_layout_lab"
+           footer_class="'lab-brand'"
+           footer_minimal="True"
+           hide_letterhead="True">
+            <t t-set="o" t-value="o.with_context(lang=o.partner_id.lang)"/>
+            <t t-set="title" t-value="o._lab_print_title()"/>
+            <t t-set="is_rfq" t-value="o.state in ('draft', 'sent', 'to approve')"/>
+            <t t-set="lines" t-value="o._lab_print_lines()"/>
+            <t t-set="plines" t-value="lines.filtered(lambda l: not l.display_type)"/>
+            <t t-set="show_hsn" t-value="any(o._lab_hsn(l) for l in plines)"/>
+            <t t-set="show_disc" t-value="priced and any(l.discount for l in plines)"/>
+            <t t-set="show_tax" t-value="priced and (bool(o.amount_tax) or any(l.tax_ids for l in plines))"/>
+            <t t-set="gst" t-value="o._lab_gst_table() if show_tax else ([], {})"/>
+            <t t-set="gst_names" t-value="gst[0]"/>
+            <t t-set="tot" t-value="o._lab_column_totals(gst if show_tax else None) if priced else {}"/>
+            <t t-set="partner" t-value="o.partner_id"/>
+            <t t-set="deliver" t-value="o._lab_deliver_to()"/>
+            <style>
+                html, body, #wrapwrap, main, .article { margin: 0 !important; padding: 0 !important; }
+            </style>
+            <div class="page lab-invoice lab-purchase">
+                <!-- the invoice's sheet: the closing block sits at the foot of the
+                     page however short the order is (353 mm, probed for this paper
+                     format - see the tax invoice) -->
+                <table class="oi-sheet" t-attf-style="height:{{o.env.context.get('lab_sheet_h', 353)}}mm;">
+                    <tr><td class="oi-sheet-top">
+
+                <t t-call="sale_custom.invoice_letterhead" company="o.company_id"/>
+
+                <!-- ── title ── -->
+                <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+                    <tr>
+                        <td style="border:none;padding:0;vertical-align:bottom;">
+                            <div class="oi-title" t-out="title[0]"/>
+                        </td>
+                        <td style="border:none;padding:0;text-align:right;vertical-align:bottom;">
+                            <div class="oi-numlabel" t-out="title[1]"/>
+                            <div class="oi-number"><span t-field="o.name"/></div>
+                            <div t-if="o.state == 'cancel'" class="oi-stamp cancel">CANCELLED</div>
+                            <div t-elif="o.state == 'to approve'" class="oi-stamp draft">AWAITING APPROVAL</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ── the vendor, and where the goods go ── -->
+                <table class="oi-headrow">
+                    <tr>
+                        <td class="oi-billcell">
+                            <div class="oi-billcard">
+                                <div class="oi-label">Vendor</div>
+                                <div class="oi-partyname" t-field="o.partner_id.name"/>
+                                <div class="oi-partyline"
+                                     t-field="o.partner_id"
+                                     t-options='{"widget": "contact", "fields": ["address"], "no_marker": True}'/>
+                                <div class="oi-partysub">
+                                    <t t-set="gstin" t-value="partner.gst_number or partner.vat or (partner.parent_id and (partner.parent_id.gst_number or partner.parent_id.vat))"/>
+                                    <span t-if="gstin">GSTIN: <t t-out="gstin"/></span>
+                                    <span t-if="gstin and partner.pan_number">  ·  </span>
+                                    <span t-if="partner.pan_number">PAN: <span t-field="partner.pan_number"/></span>
+                                    <!-- the phone is in the address block already -->
+                                    <div t-if="partner.email" t-out="partner.email"/>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="op-shipcell">
+                            <div class="op-shipcard">
+                                <div class="oi-label">Deliver to</div>
+                                <div class="op-shipname" t-out="deliver.commercial_partner_id.name if deliver.parent_id else deliver.name"/>
+                                <div class="op-shipline">
+                                    <div t-foreach="o._lab_address_lines(deliver)" t-as="line" t-out="line"/>
+                                    <div t-if="deliver.phone">Ph: <t t-out="deliver.phone"/></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ── the dates and references, one strip the full width ── -->
+                <t t-set="meta" t-value="[c for c in [
+                    (title[1], o.name, False),
+                    ('Quote by' if is_rfq else 'Order date', (o.date_order if is_rfq else (o.date_approve or o.date_order)), 'date'),
+                    ('Required by' if is_rfq else 'Expected arrival', o.date_planned, 'date'),
+                    ('Your reference', o.partner_ref, False),
+                    ('Buyer', o.user_id.name, False),
+                    ('Source', o.origin, False),
+                ] if c[1]]"/>
+                <t t-set="meta_w" t-value="round(100.0 / len(meta), 2)"/>
+                <div class="oi-metacard">
+                    <table style="table-layout:fixed;">
+                        <tr>
+                            <td t-foreach="meta" t-as="m" t-attf-style="width:{{meta_w}}%;">
+                                <div class="oi-label" t-out="m[0]"/>
+                                <div t-if="m[2] == 'date'" class="oi-metaval"><span t-out="m[1]" t-options="{'widget': 'datetime', 'date_only': True}"/></div>
+                                <div t-else="" class="oi-metaval oi-wrap" t-out="m[1]"/>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- ── lines ── -->
+                <table class="oi-lines oi-gst op-lines">
+                    <thead>
+                        <tr>
+                            <th class="mid" style="width:3%">#</th>
+                            <th>Description</th>
+                            <th t-if="show_hsn" class="mid" style="width:8%">HSN</th>
+                            <th t-if="not priced" class="mid" style="width:13%">Required by</th>
+                            <th class="num" style="width:8%">Qty</th>
+                            <t t-if="priced">
+                                <th class="num" style="width:9%">Rate</th>
+                                <th t-if="show_disc" class="num" style="width:6%">Disc %</th>
+                                <th class="num" style="width:10%"><t t-if="gst_names">Taxable</t><t t-else="">Amount</t></th>
+                                <th t-foreach="gst_names" t-as="g" class="num" style="width:8%"><t t-out="g"/></th>
+                                <th t-if="gst_names" class="num" style="width:11%">Total</th>
+                            </t>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="lines" t-as="l">
+                            <tr t-if="l.display_type in ('line_section', 'line_subsection')" class="op-section">
+                                <td colspan="99"><span t-field="l.name"/></td>
+                            </tr>
+                            <tr t-elif="l.display_type == 'line_note'" class="op-note">
+                                <td colspan="99"><span t-field="l.name"/></td>
+                            </tr>
+                            <tr t-else="">
+                                <t t-set="cells" t-value="gst[1].get(l.id, {})"/>
+                                <td class="mid oi-slno"><t t-out="plines.ids.index(l.id) + 1"/></td>
+                                <td><span t-out="o._lab_label(l)" style="white-space:pre-line"/></td>
+                                <td t-if="show_hsn" class="mid oi-hsn"><t t-out="o._lab_hsn(l)"/></td>
+                                <td t-if="not priced" class="mid"><span t-field="l.date_planned" t-options="{'date_only': True}"/></td>
+                                <td class="num">
+                                    <span t-field="l.product_qty"/>
+                                    <span class="op-uom" t-field="l.uom_id"/>
+                                </td>
+                                <t t-if="priced">
+                                    <td class="num"><span t-out="o._lab_rate(l.price_unit)"/></td>
+                                    <td t-if="show_disc" class="num"><span t-if="l.discount" t-out="l.discount"/></td>
+                                    <td class="num"><span t-out="o._lab_money(l.price_subtotal)"/></td>
+                                    <td t-foreach="gst_names" t-as="g" class="num">
+                                        <t t-if="g in cells">
+                                            <span t-out="o._lab_money(cells[g][1])"/>
+                                            <div class="oi-rate"><t t-out="('%.2f' % cells[g][0]).rstrip('0').rstrip('.')"/>%</div>
+                                        </t>
+                                    </td>
+                                    <td t-if="gst_names" class="num oi-linetotal"><span t-out="o._lab_money(l.price_total)"/></td>
+                                </t>
+                            </tr>
+                        </t>
+                    </tbody>
+                    <tfoot t-if="priced">
+                        <tr class="oi-sum">
+                            <td/>
+                            <td>Total</td>
+                            <td t-if="show_hsn"/>
+                            <td class="num"><t t-out="tot['qty_text']"/></td>
+                            <td/>
+                            <td t-if="show_disc"/>
+                            <td class="num"><span t-out="o._lab_money(tot['taxable'])"/></td>
+                            <td t-foreach="gst_names" t-as="g" class="num"><span t-out="o._lab_money(tot['gst'].get(g, 0.0))"/></td>
+                            <td t-if="gst_names" class="num oi-linetotal"><span t-out="o._lab_money(tot['total'])"/></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                    </td></tr>
+                    <tr><td class="oi-sheet-foot">
+
+                <!-- ── words + total ── -->
+                <table t-if="priced" style="width:100%;border-collapse:collapse;margin-top:6px;page-break-inside:avoid;">
+                    <tr>
+                        <td style="width:52%;border:none;padding:0 22px 0 0;vertical-align:top;">
+                            <div class="oi-label">Amount in words</div>
+                            <div class="oi-words"><t t-out="o._lab_words(o.amount_total)"/></div>
+                        </td>
+                        <td style="border:none;padding:0;vertical-align:top;">
+                            <table class="oi-totals">
+                                <t t-set="round_off" t-value="o.currency_id.round(o.amount_total - tot['total'])"/>
+                                <tr t-if="round_off" class="tax">
+                                    <td class="k">Round off</td>
+                                    <td class="v"><span t-out="o._lab_money(round_off)"/></td>
+                                </tr>
+                                <tr class="total">
+                                    <td><t t-if="is_rfq">Total</t><t t-else="">Order total</t></td>
+                                    <td class="v"><span t-out="o._lab_money(o.amount_total)"/></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- ── terms / sign ── -->
+                <t t-set="has_note" t-value="not is_html_empty(o.note)"/>
+                <table style="width:100%;border-collapse:collapse;margin-top:6px;page-break-inside:avoid;">
+                    <tr>
+                        <td style="width:64%;border:none;padding:0;vertical-align:bottom;">
+                            <div class="oi-gstbox op-terms" t-if="has_note or o.payment_term_id">
+                                <div t-if="o.payment_term_id" class="op-payterm">
+                                    <span class="oi-gsttitle">Payment terms:</span> <span t-field="o.payment_term_id.name"/>
+                                </div>
+                                <t t-if="has_note">
+                                    <div class="oi-gsttitle">Terms &amp; conditions:</div>
+                                    <div class="op-notebody" t-field="o.note"/>
+                                </t>
+                            </div>
+                        </td>
+                        <td style="border:none;padding:0 0 0 10px;vertical-align:bottom;">
+                            <div class="oi-sign op-sign">
+                                <div class="oi-label">Authorised signatory</div>
+                                <div class="op-signspace"/>
+                                <div class="oi-signfor">For <span t-field="o.company_id.name"/></div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="oi-foot">
+                    <table>
+                        <tr>
+                            <td class="oi-footnote">
+                                <t t-if="is_rfq">Please quote against RFQ No. <t t-out="o.name"/>.</t>
+                                <t t-else="">Please quote PO No. <t t-out="o.name"/> on your invoice and delivery challan.</t>
+                            </td>
+                            <td class="oi-footsite"><t t-out="(o.company_id.website or '').replace('https://', '').replace('http://', '').rstrip('/')"/></td>
+                        </tr>
+                    </table>
+                </div>
+
+                    </td></tr>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <!-- Odoo's two purchase prints (Print menu, Send by Email, the vendor portal)
+         draw the lab's sheet instead of the standard layout. -->
+    <template id="report_purchaseorder_lab" inherit_id="purchase.report_purchaseorder">
+        <xpath expr="//t[@t-call='purchase.report_purchaseorder_document']" position="replace">
+            <t t-call="lab_reports.report_lab_purchase_document" t-lang="o.partner_id.lang" priced="True"/>
+        </xpath>
+    </template>
+
+    <template id="report_purchasequotation_lab" inherit_id="purchase.report_purchasequotation">
+        <xpath expr="//t[@t-call='purchase.report_purchasequotation_document']" position="replace">
+            <t t-call="lab_reports.report_lab_purchase_document" t-lang="o.partner_id.lang" priced="False"/>
+        </xpath>
+    </template>
+
+    <!-- ══ ebshel.purchase.rfq: the Purchase Request module's RFQ ════════════════
+         One sheet for every vendor invited (the RFQ names none): what is wanted and
+         by when, blank Rate / GST / Amount columns and a reply strip for the vendor
+         to fill in, the terms, and both signatures. -->
+    <template id="report_lab_pr_rfq_document">
+        <t t-call="sale_custom.external_layout_lab"
+           footer_class="'lab-brand'"
+           footer_minimal="True"
+           hide_letterhead="True">
+            <t t-set="o" t-value="doc"/>
+            <t t-set="lines" t-value="doc.rfq_line_ids"/>
+            <t t-set="show_hsn" t-value="any((l.product_id.hsn_number or '').strip() for l in lines if l.product_id and 'hsn_number' in l.product_id._fields)"/>
+            <t t-set="officer" t-value="doc.procurement_officer_id"/>
+            <style>
+                html, body, #wrapwrap, main, .article { margin: 0 !important; padding: 0 !important; }
+            </style>
+            <div class="page lab-invoice lab-purchase">
+                <table class="oi-sheet" t-attf-style="height:{{doc.env.context.get('lab_sheet_h', 353)}}mm;">
+                    <tr><td class="oi-sheet-top">
+
+                <t t-call="sale_custom.invoice_letterhead" company="doc.company_id"/>
+
+                <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+                    <tr>
+                        <td style="border:none;padding:0;vertical-align:bottom;">
+                            <div class="oi-title">REQUEST FOR QUOTATION</div>
+                        </td>
+                        <td style="border:none;padding:0;text-align:right;vertical-align:bottom;">
+                            <div class="oi-numlabel">RFQ No.</div>
+                            <div class="oi-number"><span t-field="doc.name"/></div>
+                            <div t-if="doc.state == 'cancelled'" class="oi-stamp cancel">CANCELLED</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- the dates and who to answer, as the invoice's strip -->
+                <div class="oi-metacard">
+                    <table style="table-layout:fixed;">
+                        <tr>
+                            <td style="width:22%;">
+                                <div class="oi-label">RFQ date</div>
+                                <div class="oi-metaval"><span t-field="doc.date_rfq"/></div>
+                            </td>
+                            <td style="width:22%;">
+                                <div class="oi-label">Quote by</div>
+                                <div class="oi-metaval">
+                                    <span t-if="doc.deadline" t-field="doc.deadline"/>
+                                    <t t-else="">Soonest</t>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="oi-label">Contact</div>
+                                <div class="oi-metaval oi-wrap"><t t-out="officer.name or doc.company_id.name"/></div>
+                                <div class="op-contact" t-if="officer.phone or officer.email">
+                                    <t t-out="' · '.join(x for x in [officer.phone, officer.email] if x)"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <p class="op-intro">
+                    We invite you to quote your best price for the items below. Please fill in the
+                    rate, GST and amount of each line and the reply strip under the table, and send
+                    the sheet back before the quote-by date.
+                </p>
+
+                <table class="oi-lines oi-gst op-lines">
+                    <thead>
+                        <tr>
+                            <th class="mid" style="width:3%">#</th>
+                            <th>Description</th>
+                            <th t-if="show_hsn" class="mid" style="width:8%">HSN</th>
+                            <th class="mid" style="width:11%">Required by</th>
+                            <th class="num" style="width:9%">Qty</th>
+                            <th class="num op-fillh" style="width:11%">Rate</th>
+                            <th class="num op-fillh" style="width:7%">GST %</th>
+                            <th class="num op-fillh" style="width:13%">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="lines" t-as="l">
+                            <td class="mid oi-slno"><t t-out="l_index + 1"/></td>
+                            <td>
+                                <t t-set="shown" t-value="l.product_id.display_name if l.product_id else ''"/>
+                                <t t-set="extra" t-value="(l.name or '').strip()"/>
+                                <!-- the product, then whatever the request adds to it; a
+                                     description that only repeats the product is said once -->
+                                <span t-out="shown or extra" style="white-space:pre-line"/>
+                                <t t-if="shown and extra and extra.splitlines()[0].strip().lower() != shown.lower()">
+                                    <div class="op-extra" t-out="extra" style="white-space:pre-line"/>
+                                </t>
+                                <t t-elif="shown and extra and len(extra.splitlines()) > 1">
+                                    <div class="op-extra" t-out="'\n'.join(extra.splitlines()[1:])" style="white-space:pre-line"/>
+                                </t>
+                                <div t-if="l.remarks" class="op-extra">Note: <t t-out="l.remarks"/></div>
+                            </td>
+                            <td t-if="show_hsn" class="mid oi-hsn"><t t-out="(l.product_id.hsn_number or '') if l.product_id and 'hsn_number' in l.product_id._fields else ''"/></td>
+                            <td class="mid"><span t-field="l.date_required"/></td>
+                            <td class="num">
+                                <span t-field="l.qty"/>
+                                <span class="op-uom" t-field="l.uom_id"/>
+                            </td>
+                            <td class="op-fill"/>
+                            <td class="op-fill"/>
+                            <td class="op-fill"/>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- the vendor's reply, written in -->
+                <div class="oi-metacard op-reply">
+                    <table style="table-layout:fixed;">
+                        <tr>
+                            <td style="width:25%;"><div class="oi-label">Delivery lead time</div><div class="op-blank">days</div></td>
+                            <td style="width:25%;"><div class="oi-label">Payment terms</div><div class="op-blank"/></td>
+                            <td style="width:25%;"><div class="oi-label">Quotation valid until</div><div class="op-blank"/></td>
+                            <td style="width:25%;"><div class="oi-label">Your GSTIN</div><div class="op-blank"/></td>
+                        </tr>
+                    </table>
+                </div>
+
+                    </td></tr>
+                    <tr><td class="oi-sheet-foot">
+
+                <div class="oi-gstbox op-terms" t-if="not is_html_empty(doc.terms_conditions)" style="page-break-inside:avoid;">
+                    <div class="oi-gsttitle">Terms &amp; conditions:</div>
+                    <div class="op-notebody" t-field="doc.terms_conditions"/>
+                </div>
+
+                <table style="width:100%;border-collapse:collapse;margin-top:8px;page-break-inside:avoid;">
+                    <tr>
+                        <td style="width:50%;border:none;padding:0 10px 0 0;vertical-align:bottom;">
+                            <div class="oi-sign op-sign">
+                                <div class="oi-label">Vendor's signature, stamp and date</div>
+                                <div class="op-signspace"/>
+                                <div class="oi-signfor">Name: ______________________</div>
+                            </div>
+                        </td>
+                        <td style="border:none;padding:0 0 0 10px;vertical-align:bottom;">
+                            <div class="oi-sign op-sign">
+                                <div class="oi-label">Authorised signatory</div>
+                                <div class="op-signspace"/>
+                                <div class="oi-signfor">For <span t-field="doc.company_id.name"/></div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="oi-foot">
+                    <table>
+                        <tr>
+                            <td class="oi-footnote">Please quote against RFQ No. <t t-out="doc.name"/>.</td>
+                            <td class="oi-footsite"><t t-out="(doc.company_id.website or '').replace('https://', '').replace('http://', '').rstrip('/')"/></td>
+                        </tr>
+                    </table>
+                </div>
+
+                    </td></tr>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_rfq_document_lab" inherit_id="ebshel_purchase_request.report_rfq_document">
+        <xpath expr="//t[@t-call='web.external_layout']" position="replace">
+            <t t-call="lab_reports.report_lab_pr_rfq_document"/>
+        </xpath>
+    </template>
+</odoo>

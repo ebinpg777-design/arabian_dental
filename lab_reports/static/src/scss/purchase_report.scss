@@ -1,0 +1,57 @@
+// Purchase print-outs on the invoice's stationery (2026-11-27). Everything shared -
+// letterhead, title, cards, line table, totals, closing bar - comes from the tax
+// invoice's stylesheet (sale_custom/static/src/scss/invoice_report.scss, `.lab-invoice`).
+// Only what a purchase has and an invoice has not is drawn here.
+.lab-invoice.lab-purchase {
+    $grey: #606a70;
+    $head: #474f54;
+    $card: #f3f4f5;
+    $muted: #6b7479;
+    $line: #e1e4e6;
+    $ink: #2b3135;
+
+    // where the goods go: a card beside the vendor's, in the barcode's place
+    td.op-shipcell { width: 82mm; padding-left: 4mm; vertical-align: top; }
+    .op-shipcard { border: 1px solid $line; border-radius: 8px; padding: 8px 14px; }
+    .op-shipname { font-size: 12.5pt; font-weight: 700; color: $head; line-height: 1.2; margin: 2px 0 1px; }
+    .op-shipline { font-size: 10.5pt; line-height: 1.3; }
+
+    // the vendor's contact under the GSTIN
+    .oi-partysub div { margin-top: 2px; }
+
+    // a purchase line is mostly a product name: normal weight reads better than the
+    // invoice's bold when there are forty of them
+    table.op-lines {
+        // the summed row once, under the last line: wkhtmltopdf repeats a tfoot at the
+        // foot of every page, which put the order's grand total under page one's lines
+        tfoot { display: table-row-group; }
+        tbody td { font-weight: 400; }
+        tbody td.num, tbody td.oi-linetotal { font-weight: 700; }
+        .op-uom { font-weight: 400; color: $muted; font-size: 8.6pt; }
+        tr.op-section td { background: $card; font-weight: 700; color: $head;
+            text-transform: uppercase; letter-spacing: .3px; font-size: 9.4pt; }
+        tr.op-note td { font-style: italic; color: $muted; font-size: 9.4pt; }
+        .op-extra { font-size: 9pt; color: $muted; margin-top: 1px; }
+        // the columns the vendor writes in: white, ruled, a hand's height
+        th.op-fillh { border-left: 1px solid #8a9399; }
+        td.op-fill { background: #fff; min-height: 9mm; height: 9mm; }
+    }
+
+    .op-contact { font-size: 9pt; color: $muted; margin-top: 1px; }
+    .op-intro { font-size: 9.6pt; color: $ink; margin: 8px 0 0; line-height: 1.35; }
+
+    // the reply strip: a writing line under each label
+    .op-reply { margin-top: 10px;
+        .op-blank { border-bottom: 1px solid #8a9399; height: 8mm; text-align: right;
+            font-size: 9pt; color: $muted; line-height: 12mm; } }
+
+    // terms and payment terms in the invoice's declaration box
+    .op-terms { margin-top: 0;
+        .op-payterm { margin-bottom: 3px; }
+        .op-notebody { font-size: 9pt;
+            p { margin: 0 0 1px; } ul, ol { margin: 0; padding-left: 16px; } } }
+
+    // the signature: room to sign, no image (a PO commits the lab's money; it is
+    // signed by hand, not stamped by the printer)
+    .op-sign { .op-signspace { height: 16mm; } }
+}
