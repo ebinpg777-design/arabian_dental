@@ -55,4 +55,17 @@
     </xpath>
 </t>
 
+<!-- Odoo 20's "More" (+) menu checks `this.item`, which does not exist there.
+     Online the check never reads it; once the server cannot be reached (a
+     restart, a phone losing signal) it does, and the open menu crashes with
+     "Cannot read properties of undefined (reading 'actionID')". -->
+<t t-name="ebshel_backend_theme.NavBar.SectionsMenu.MoreDropdown" t-inherit="web.NavBar.SectionsMenu.MoreDropdown" t-inherit-mode="extension">
+    <xpath expr="//DropdownItem[contains(@class, 'o_more_dropdown_section')]" position="attributes">
+        <attribute name="class">{
+                  'o_more_dropdown_section': true,
+                  o_disabled_offline: !this._isAvailable(section)
+                }</attribute>
+    </xpath>
+</t>
+
 </templates>

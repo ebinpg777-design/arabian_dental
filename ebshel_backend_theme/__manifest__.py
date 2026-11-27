@@ -34,7 +34,7 @@ Do not install together with Odoo Enterprise ``web_enterprise`` (conflicting web
     'author': 'Ebshel Technologies, Zarixsol',
     'website': 'https://ebshel.com',
 
-    'version': '20.0.1.2.0',
+    'version': '20.0.1.2.1',
     'license': 'LGPL-3',
     'category': 'Productivity',
 
