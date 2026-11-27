@@ -331,6 +331,10 @@ class MrpProduction(models.Model):
             'modification': order.modification or '',
             'instruction': order.instruction or '',
             'model': named('model'),
+            # every model preparation line: Wax Up's is Cutting, Scooping and Blocking
+            # since 2026-11-27, each with its own technician
+            'models': [self._lab_sheet_step(step) for step in
+                       steps.filtered(lambda s: s.workcenter_id.sheet_position == 'model')],
             'sections': sections,
             'other_materials': other_materials,
             'checked': named('check'),

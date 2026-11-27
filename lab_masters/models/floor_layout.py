@@ -53,7 +53,12 @@ LABOUR = 105.77
 # lab asked: "Metal/Trimming", "Acrylic/Model Preparation". A row only one
 # department has keeps its plain name. (client, 2026-11-24)
 BENCHES = [
-    ('model_preparation', 'wc_model_preparation', 'Model Preparation', 'WX-01', 'dept_wax_up', LABOUR, True),
+    # Wax Up's model preparation is three benches since 2026-11-27 ("Split Wax Up/Model
+    # Preparation to Cutting, Scooping, Blocking"): the record that was all of it is
+    # Cutting, so the key and xmlid still say model preparation
+    ('model_preparation', 'wc_model_preparation', 'Cutting', 'WX-01', 'dept_wax_up', LABOUR, False),
+    ('scooping', 'wc_wax_scooping', 'Scooping', 'WX-04', 'dept_wax_up', LABOUR, False),
+    ('blocking', 'wc_wax_blocking', 'Blocking', 'WX-05', 'dept_wax_up', LABOUR, False),
     # ---- CAD / CAM: the white sheet's "3D" column and the blue sheet
     ('scanning', 'wc_scanning', 'Scanning', 'CC-01', 'dept_cadcam', 0.0, False),
     ('designing', 'wc_designing', 'Designing', 'CC-02', 'dept_cadcam', 0.0, False),
@@ -65,7 +70,15 @@ BENCHES = [
     ('spruing', 'wc_spruing', 'Spruing', 'WX-02', 'dept_wax_up', LABOUR, False),
     ('investing', 'wc_investing', 'Investing', 'WX-03', 'dept_wax_up', LABOUR, False),
     # ---- Metal
-    ('casting', 'wc_casting', 'Casting', 'MT-01', 'dept_metal', 0.0, False),
+    # Sintering before the casting and Printing after it (client, 2026-11-27: "Add two
+    # workcentres before and after Metal/Casting: Metal/Sintering, Metal/Casting,
+    # Metal/printing"). Named for the department: CAD/CAM has a Sintering and a
+    # Printing of its own.
+    ('metal_sintering', 'wc_metal_sintering', 'Sintering', 'MT-04', 'dept_metal', 0.0, True),
+    # "Metal/Casting" on the floor, as the lab named it, and beside Metal/Sintering and
+    # Metal/Printing: never put back to a plain "Casting"
+    ('casting', 'wc_casting', 'Casting', 'MT-01', 'dept_metal', 0.0, True),
+    ('metal_printing', 'wc_metal_printing', 'Printing', 'MT-05', 'dept_metal', 0.0, True),
     ('metal_trimming', 'wc_metal_trimming', 'Trimming', 'MT-02', 'dept_metal', LABOUR, True),
     ('metal_polishing', 'wc_metal_polishing', 'Polishing', 'MT-03', 'dept_metal', LABOUR, True),
     # ---- Ceramic
@@ -116,8 +129,10 @@ def bench_name(row, department, shared):
 # and a denture has no metal trimming to fold it into.
 STAGE_OF = {
     'wc_model_preparation': ['model_preparation'],
-    'wc_margin_scooping': ['model_preparation'],
-    'wc_undercut_blocking': ['model_preparation'],
+    # the old benches that came back as stages of their own on 2026-11-27; a route
+    # without them still folds them into the model preparation
+    'wc_margin_scooping': ['scooping', 'model_preparation'],
+    'wc_undercut_blocking': ['blocking', 'model_preparation'],
     # the twin block is articulated at the orthodontic model bench
     'wc_articulation': ['model_preparation', 'ortho_model_preparation'],
     'wc_acr_model_prep': ['acrylic_model_preparation'],
@@ -176,18 +191,18 @@ FOOT = ['final_check', 'packing']
 # The rows of each sheet, in the order the sheet prints them.
 ROUTES = {
     # the blue sheet
-    'zirconia': ['model_preparation', 'scanning', 'designing', 'milling', 'sintering',
+    'zirconia': ['model_preparation', 'scooping', 'blocking', 'scanning', 'designing', 'milling', 'sintering',
                  'opaque', 'buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the white sheet, every section of it
-    'metal_ceramic': ['model_preparation', 'scanning', 'designing', 'printing', 'light_curing',
-                      'spruing', 'investing', 'casting', 'metal_trimming', 'metal_polishing',
+    'metal_ceramic': ['model_preparation', 'scooping', 'blocking', 'scanning', 'designing', 'printing', 'light_curing',
+                      'spruing', 'investing', 'metal_sintering', 'casting', 'metal_printing', 'metal_trimming', 'metal_polishing',
                       'opaque', 'buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the white sheet without its ceramic section
-    'full_metal': ['model_preparation', 'scanning', 'designing', 'printing', 'light_curing',
-                   'spruing', 'investing', 'casting', 'metal_trimming', 'metal_polishing'] + FOOT,
+    'full_metal': ['model_preparation', 'scooping', 'blocking', 'scanning', 'designing', 'printing', 'light_curing',
+                   'spruing', 'investing', 'metal_sintering', 'casting', 'metal_printing', 'metal_trimming', 'metal_polishing'] + FOOT,
     # pressed, not cast: the press is the casting of it, and there is no metal to polish
-    'pressed': ['model_preparation', 'scanning', 'designing', 'printing', 'light_curing',
-                'spruing', 'investing', 'casting', 'metal_trimming',
+    'pressed': ['model_preparation', 'scooping', 'blocking', 'scanning', 'designing', 'printing', 'light_curing',
+                'spruing', 'investing', 'metal_sintering', 'casting', 'metal_printing', 'metal_trimming',
                 'opaque', 'buildup', 'ceramic_trimming', 'ceramic_finishing'] + FOOT,
     # the yellow sheet
     'orthodontic': ['ortho_model_preparation', 'wire_bending', 'acrylization',
@@ -462,6 +477,152 @@ class LabMastersLoader(models.AbstractModel):
                      "bills of materials", len(boms))
         return len(boms)
 
+    @api.model
+    def _floor_twin(self, bench, model):
+        """A new bench made the twin of the one its work came from: the same rate,
+        calendar, cost centre, technicians and leads, until the lab says who is
+        where. Only while nothing stands at it yet - afterwards it is the lab's."""
+        if self.env['mrp.routing.workcenter'].sudo().with_context(active_test=False).search_count(
+                [('workcenter_id', '=', bench.id)], limit=1):
+            return
+        vals = {'costs_hour': model.costs_hour}
+        for field in ('resource_calendar_id', 'analytic_distribution', 'users',
+                      'head_user_ids', 'is_finisher', 'scan_confirm'):
+            if field not in bench._fields:
+                continue        # other modules' fields: not there in a fresh install
+            if bench._fields[field].type == 'many2many':
+                if not bench[field]:
+                    vals[field] = [(6, 0, model[field].ids)]
+            elif bench._fields[field].type == 'many2one':
+                vals[field] = model[field].id
+            else:
+                vals[field] = model[field]
+        bench.write(vals)
+
+    @api.model
+    def _floor_slot_before(self, steps, step):
+        """The number for a new step right before `step` among `steps`: halfway from
+        the one before it. Where there is no room, `step` and everything after it
+        move down ten first."""
+        earlier = steps.filtered(lambda s: (s.sequence, s.id) < (step.sequence, step.id))
+        floor = max(earlier.mapped('sequence')) if earlier else -10
+        if step.sequence - floor < 2:
+            for other in steps.filtered(lambda s: (s.sequence, s.id) >= (step.sequence, step.id)):
+                other.sequence += 10
+        return floor + (step.sequence - floor) // 2
+
+    @api.model
+    def _floor_split_model_preparation(self):
+        """Wax Up's Model Preparation becomes Cutting, Scooping and Blocking, in every
+        bill of materials that has it (client, 2026-11-27).
+
+        The bench that was all three is Cutting (`_floor_benches` renames it);
+        Scooping and Blocking are new, twins of it. The step's minutes are divided
+        the way the old stages had them - Model Preparation and Articulation to
+        Cutting, Margin Scooping to Scooping, Undercut Blocking to Blocking (metal
+        ceramic: 8 = 6 + 1 + 1) - the costed products still carry those stages,
+        archived, and a category route takes its costed product's division. A step
+        re-timed since, with nothing to say how it divides, stays on Cutting. So no
+        product's labour cost moves. A bill of materials that already has Scooping is
+        left alone. Returns how many were changed.
+        """
+        benches = self._floor_benches()
+        cutting, scooping, blocking = benches['model_preparation'], benches['scooping'], benches['blocking']
+        self._floor_twin(scooping, cutting)
+        self._floor_twin(blocking, cutting)
+        Operation = self.env['mrp.routing.workcenter'].sudo()
+        old_stages = self._floor_old_stages()
+        keys = ['model_preparation', 'scooping', 'blocking']
+        todo, known = [], {}
+        # a route split before divides the same total the same way (a costed product
+        # is split with the first upgrade; a route made later has no old stages)
+        for done in self.env['mrp.bom'].sudo().search([('operation_ids.workcenter_id', '=', scooping.id)]):
+            trio = [sum(done.operation_ids.filtered(lambda o, b=b: o.workcenter_id == b)
+                        .mapped('time_cycle_manual')) for b in (cutting, scooping, blocking)]
+            if sum(trio):
+                known.setdefault(round(sum(trio), 2), [part / sum(trio) for part in trio])
+        for bom in self.env['mrp.bom'].sudo().search([('operation_ids.workcenter_id', '=', cutting.id)]):
+            steps = bom.operation_ids
+            if steps.filtered(lambda o: o.workcenter_id == scooping):
+                continue
+            step = steps.filtered(lambda o: o.workcenter_id == cutting).sorted(
+                lambda o: (o.sequence, o.id))[:1]
+            old = Operation.with_context(active_test=False).search([
+                ('bom_id', '=', bom.id), ('active', '=', False),
+                ('workcenter_id', 'in', list(old_stages))])
+            minutes = self._floor_minutes(old, keys, benches, old_stages)[0] if old else {}
+            shares = None
+            if minutes and sum(minutes.values()):
+                total_old = sum(minutes.values())
+                shares = [minutes[k] / total_old for k in keys]
+                if abs(total_old - step.time_cycle_manual) < 0.01:
+                    known[round(step.time_cycle_manual, 2)] = shares
+            todo.append((bom, step, shares))
+        for bom, step, shares in todo:
+            total = step.time_cycle_manual
+            if shares is None:
+                shares = known.get(round(total, 2)) or [1.0, 0.0, 0.0]
+            parts = [round(total * share, 2) for share in shares]
+            parts[0] = round(total - parts[1] - parts[2], 2)
+            before = self._floor_labour(bom)
+            step.write({'name': cutting.name, 'time_cycle_manual': parts[0]})
+            second = Operation.create({
+                'bom_id': bom.id, 'name': scooping.name, 'workcenter_id': scooping.id,
+                'sequence': self._floor_slot_after(bom.operation_ids, step),
+                'time_mode': 'manual', 'time_cycle_manual': parts[1],
+            })
+            bom.invalidate_recordset(['operation_ids'])
+            Operation.create({
+                'bom_id': bom.id, 'name': blocking.name, 'workcenter_id': blocking.id,
+                'sequence': self._floor_slot_after(bom.operation_ids, second),
+                'time_mode': 'manual', 'time_cycle_manual': parts[2],
+            })
+            bom.invalidate_recordset(['operation_ids'])
+            after = self._floor_labour(bom)
+            if abs(before - after) > 0.005:
+                _logger.warning("lab_masters: %s labour moved from %.2f to %.2f",
+                                bom.display_name, before, after)
+        _logger.info("lab_masters: Model Preparation made Cutting, Scooping and Blocking in "
+                     "%s bills of materials", len(todo))
+        return len(todo)
+
+    @api.model
+    def _floor_add_metal_steps(self):
+        """Metal/Sintering before Metal/Casting and Metal/Printing after it, in every
+        bill of materials that casts (client, 2026-11-27). New benches, twins of the
+        casting bench; no minutes (nobody has timed them), so no cost moves. A bill
+        of materials that has Metal/Sintering already is left alone. Returns how many
+        were changed."""
+        benches = self._floor_benches()
+        casting, sintering, printing = benches['casting'], benches['metal_sintering'], benches['metal_printing']
+        self._floor_twin(sintering, casting)
+        self._floor_twin(printing, casting)
+        Operation = self.env['mrp.routing.workcenter'].sudo()
+        boms = self.env['mrp.bom'].sudo().search([('operation_ids.workcenter_id', '=', casting.id)])
+        # a step is named for its bench: the lab renamed the bench "Metal/Casting" and
+        # its steps still said "Casting"
+        Operation.search([('workcenter_id', '=', casting.id), ('name', '!=', casting.name)]).write(
+            {'name': casting.name})
+        boms = boms.filtered(lambda b: sintering not in b.operation_ids.workcenter_id)
+        for bom in boms:
+            cast = bom.operation_ids.filtered(lambda o: o.workcenter_id == casting).sorted(
+                lambda o: (o.sequence, o.id))[:1]
+            Operation.create({
+                'bom_id': bom.id, 'name': sintering.name, 'workcenter_id': sintering.id,
+                'sequence': self._floor_slot_before(bom.operation_ids, cast),
+                'time_mode': 'manual', 'time_cycle_manual': 0.0,
+            })
+            bom.invalidate_recordset(['operation_ids'])
+            Operation.create({
+                'bom_id': bom.id, 'name': printing.name, 'workcenter_id': printing.id,
+                'sequence': self._floor_slot_after(bom.operation_ids, cast),
+                'time_mode': 'manual', 'time_cycle_manual': 0.0,
+            })
+            bom.invalidate_recordset(['operation_ids'])
+        _logger.info("lab_masters: Metal/Sintering and Metal/Printing added around Metal/Casting "
+                     "in %s bills of materials", len(boms))
+        return len(boms)
+
     # ------------------------------------------- the jobs already on the floor
     @api.model
     def _floor_insert_step(self, after, bench, operation, minutes=0.0):
@@ -570,6 +731,97 @@ class LabMastersLoader(models.AbstractModel):
             if limit and done >= limit:
                 break
         return done
+
+    @api.model
+    def _floor_insert_step_before(self, before, bench, operation, minutes=0.0):
+        """A step for `bench` right before the work order `before`, in its own chain:
+        `before` then waits for it (core links the chain again by number when a
+        step is added, and the state follows the links)."""
+        job = before.production_id
+        has_arch = 'arch' in before._fields
+        chain = job.workorder_ids.filtered(
+            lambda w: w.state != 'cancel' and (not has_arch or (w.arch or '') == (before.arch or '')))
+        waiting = chain.filtered(lambda w: (w.sequence, w.id) < (before.sequence, before.id)
+                                 and w.state not in ('done', 'cancel'))
+        return self.env['mrp.workorder'].sudo().create({
+            'name': bench.name,
+            'production_id': job.id,
+            'workcenter_id': bench.id,
+            'operation_id': operation.id or False,
+            'duration_expected': minutes,
+            'sequence': self._floor_slot_before(job.workorder_ids, before),
+            'state': 'blocked' if waiting else 'ready',
+            **({'arch': before.arch} if has_arch and before.arch else {}),
+        })
+
+    @api.model
+    def split_open_model_preparation(self, limit=None, productions=None):
+        """The jobs not yet past Wax Up's Model Preparation: the step becomes Cutting,
+        and Scooping and Blocking follow it. Only a step nobody has started - one
+        started or done was done as one, and stays one. Returns how many are left.
+
+        Online after the upgrade, with a limit and a commit between calls.
+        `productions` narrows it to those jobs - a test gives it its own.
+        """
+        benches = self._floor_benches()
+        cutting, scooping, blocking = benches['model_preparation'], benches['scooping'], benches['blocking']
+        Workorder = self.env['mrp.workorder'].sudo()
+        domain = [('workcenter_id', '=', cutting.id),
+                  ('state', 'not in', ('done', 'cancel', 'progress')),
+                  ('production_id.state', 'not in', ('done', 'cancel')),
+                  ('name', '!=', cutting.name)]
+        if productions is not None:
+            domain.append(('production_id', 'in', productions.ids))
+        for step in Workorder.search(domain, order='id desc', limit=limit):
+            has_arch = 'arch' in step._fields
+            twin = step.production_id.workorder_ids.filtered(
+                lambda w: w.workcenter_id == scooping
+                and (not has_arch or (w.arch or '') == (step.arch or '')))
+            if not twin:
+                ops = step.production_id.bom_id.operation_ids
+                first = ops.filtered(lambda o: o.workcenter_id == cutting)[:1]
+                second = ops.filtered(lambda o: o.workcenter_id == scooping)[:1]
+                third = ops.filtered(lambda o: o.workcenter_id == blocking)[:1]
+                total = step.duration_expected or 0.0
+                whole = sum((o.time_cycle_manual or 0.0) for o in (first, second, third))
+                scoop = round(total * second.time_cycle_manual / whole, 2) if whole else 0.0
+                block = round(total * third.time_cycle_manual / whole, 2) if whole else 0.0
+                made = self._floor_insert_step(step, scooping, second, scoop)
+                self._floor_insert_step(made, blocking, third, block)
+                step.duration_expected = round(total - scoop - block, 2)
+            step.name = cutting.name
+            self._floor_job_is_current(step.production_id)
+        return Workorder.search_count(domain)
+
+    @api.model
+    def add_open_metal_steps(self, limit=None, productions=None):
+        """The jobs not yet past Metal/Casting: Metal/Sintering before the casting
+        step and Metal/Printing after it. Only a casting nobody has started.
+        Returns how many casting steps are left to do."""
+        benches = self._floor_benches()
+        casting, sintering, printing = benches['casting'], benches['metal_sintering'], benches['metal_printing']
+        domain = [('workcenter_id', '=', casting.id),
+                  ('state', 'not in', ('done', 'cancel', 'progress')),
+                  ('production_id.state', 'not in', ('done', 'cancel'))]
+        if productions is not None:
+            domain.append(('production_id', 'in', productions.ids))
+
+        def untouched(step):
+            has_arch = 'arch' in step._fields
+            return not step.production_id.workorder_ids.filtered(
+                lambda w: w.workcenter_id == sintering
+                and (not has_arch or (w.arch or '') == (step.arch or '')))
+
+        todo = self.env['mrp.workorder'].sudo().search(domain, order='id desc').filtered(untouched)
+        for step in todo[:limit] if limit else todo:
+            ops = step.production_id.bom_id.operation_ids
+            self._floor_insert_step_before(
+                step, sintering, ops.filtered(lambda o: o.workcenter_id == sintering)[:1])
+            self._floor_insert_step(
+                step, printing, ops.filtered(lambda o: o.workcenter_id == printing)[:1])
+            step.name = casting.name
+            self._floor_job_is_current(step.production_id)
+        return max(0, len(todo) - (limit or len(todo)))
 
     # ------------------------------------------------------------------- routes
     @api.model

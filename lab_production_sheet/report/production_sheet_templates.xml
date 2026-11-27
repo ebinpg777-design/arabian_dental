@@ -279,15 +279,17 @@
                 <t t-call="lab_production_sheet.sheet_css"/>
                 <t t-call="lab_production_sheet.sheet_heading" title.f="DAILY PRODUCTION REPORT"/>
 
-                <!-- model preparation: a line of its own, as on the form -->
+                <!-- model preparation: a line of its own, as on the form - one line a
+                     step where it is several (Wax Up: Cutting, Scooping, Blocking) -->
                 <table class="ps-box" style="margin-top:3mm;">
-                    <tr class="ps-row">
-                        <td class="ps-k" style="width:34mm;">Model Preparation</td>
-                        <td class="ps-v" t-out="s['model'] and s['model']['technician'] or ''"/>
+                    <t t-set="model_lines" t-value="s.get('models') or [s['model'] or {}]"/>
+                    <tr t-foreach="model_lines" t-as="m" class="ps-row">
+                        <td class="ps-k" style="width:34mm;" t-out="m.get('label') or 'Model Preparation'"/>
+                        <td class="ps-v" t-out="m.get('technician') or ''"/>
                         <td style="width:13mm;">Date</td>
-                        <td class="ps-v" style="width:26mm;" t-out="s['model'] and s['model']['date'] or ''"/>
+                        <td class="ps-v" style="width:26mm;" t-out="m.get('date') or ''"/>
                         <td style="width:13mm;">Time</td>
-                        <td class="ps-v" style="width:18mm;" t-out="s['model'] and s['model']['time'] or ''"/>
+                        <td class="ps-v" style="width:18mm;" t-out="m.get('time') or ''"/>
                     </tr>
                 </table>
 

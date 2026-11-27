@@ -54,7 +54,7 @@ CATEGORY_ROUTE = {
 # row of the acrylic sheet, sent and returned on their own before the denture.
 EXTRA_ROUTES = {
     'model': ['scanning', 'designing', 'printing', 'light_curing', 'model_preparation',
-              'final_check', 'packing'],
+              'scooping', 'blocking', 'final_check', 'packing'],
     'special_tray': ['acrylic_model_preparation', 'special_tray', 'final_check', 'packing'],
     'bite_registration': ['acrylic_model_preparation', 'wax_bite', 'final_check', 'packing'],
 }
@@ -157,7 +157,7 @@ class LabMastersLoader(models.AbstractModel):
                 raise UserError(_("The work centre for %s is missing or archived.", key))
             # a printed model's preparation has never been timed: no minutes, as on
             # the models already in the list - not the crown's model preparation
-            timed = not (route == 'model' and key == 'model_preparation')
+            timed = not (route == 'model' and key in ('model_preparation', 'scooping', 'blocking'))
             steps.append((bench, minutes.get(bench.id, 0.0) if timed else 0.0))
         return steps
 
@@ -192,9 +192,14 @@ class LabMastersLoader(models.AbstractModel):
             if route == 'model':
                 # its own department's model bench, where it has one
                 general = self.env.ref('lab_masters.wc_model_preparation')
-                own = self._floor_model_bench_of(product, self._floor_benches())
+                benches = self._floor_benches()
+                own = self._floor_model_bench_of(product, benches)
+                # Scooping and Blocking are Wax Up's: a model prepared at the
+                # orthodontic or acrylic bench has its one step there
+                wax_only = benches['scooping'] | benches['blocking']
                 steps = [(own if bench == general else bench, minutes)
-                         for bench, minutes in steps]
+                         for bench, minutes in steps
+                         if own == general or bench not in wax_only]
             if product.type != 'consu' or product.is_storable or \
                     set(routes.ids) - set(product.route_ids.ids):
                 product.write({

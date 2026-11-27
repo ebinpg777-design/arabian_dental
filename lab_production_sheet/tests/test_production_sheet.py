@@ -101,12 +101,13 @@ class TestProductionSheet(TransactionCase):
         rows = {s['title']: [r['label'] for r in s['rows']] for s in sheet['sections']}
         self.assertEqual(rows['CAD/CAM'], ['Scanning', 'Designing', 'Printing', 'Light Curing'])
         self.assertEqual(rows['WAX UP'], ['Spruing', 'Investing'])
-        self.assertEqual(rows['METAL'], ['Casting', 'Trimming', 'Polishing'])
+        self.assertEqual(rows['METAL'], ['Sintering', 'Casting', 'Printing', 'Trimming', 'Polishing'])
         self.assertEqual(rows['CERAMIC'], ['Opaque', 'Buildup', 'Trimming', 'Finishing'])
         subtitles = {s['title']: s['subtitle'] for s in sheet['sections']}
         self.assertEqual((subtitles['CAD/CAM'], subtitles['CERAMIC']), ('3D', 'Metal Ceramic'))
         self.assertTrue(sheet['model'], "model preparation has its own line")
-        self.assertEqual(sheet['model']['label'], 'Model Preparation')
+        self.assertEqual([m['label'] for m in sheet['models']], ['Cutting', 'Scooping', 'Blocking'],
+                         "Wax Up's model preparation is three lines since 2026-11-27")
 
     def test_a_zirconia_case_has_the_blue_sheets_two(self):
         _order, production = self._order('ZR-BSC')
@@ -141,27 +142,32 @@ class TestProductionSheet(TransactionCase):
         self.assertEqual(label('Scanning', cadcam), 'Scanning')
 
     def test_every_sheet_has_its_own_model_preparation_line(self):
-        for code in ('MC-BSC', 'OR-HAW', 'AC-RPD'):
+        expected = {'MC-BSC': ['Cutting', 'Scooping', 'Blocking'],
+                    'OR-HAW': ['Model Preparation'], 'AC-RPD': ['Model Preparation']}
+        for code, labels in expected.items():
             _order, production = self._order(code)
             sheet = production._lab_sheet()
             self.assertTrue(sheet['model'], code)
-            self.assertEqual(sheet['model']['label'], 'Model Preparation', code)
-            self.assertNotIn('Model Preparation',
-                             [r['label'] for s in sheet['sections'] for r in s['rows']], code)
+            self.assertEqual([m['label'] for m in sheet['models']], labels, code)
+            rows = [r['label'] for s in sheet['sections'] for r in s['rows']]
+            for label in labels:
+                self.assertNotIn(label, rows, code)
 
     def test_a_step_says_who_did_it_and_when(self):
         _order, production = self._order('MC-BSC')
-        casting = production.workorder_ids.filtered(lambda w: w.name == 'Casting')
+        casting = production.workorder_ids.filtered(
+            lambda w: w.workcenter_id == self.env.ref('lab_masters.wc_casting'))
         casting.write({'bench_user_id': self.bench_user.id,
                        'handed_over_at': datetime(2026, 11, 24, 6, 30)})   # 12:00 in the lab
         checked = production.workorder_ids.filtered(lambda w: w.name == 'Final Check')
         checked.bench_user_id = self.bench_user
         sheet = production.with_context(tz='Asia/Kolkata')._lab_sheet()
         metal = next(s for s in sheet['sections'] if s['title'] == 'METAL')
-        row = metal['rows'][0]
+        rows = {r['label']: r for r in metal['rows']}
+        row = rows['Casting']
         self.assertEqual((row['technician'], row['date'], row['time']),
                          ('Sheet Technician', '24-11-2026', '12:00'))
-        self.assertEqual((metal['rows'][1]['technician'], metal['rows'][1]['date']), ('', ''),
+        self.assertEqual((rows['Trimming']['technician'], rows['Trimming']['date']), ('', ''),
                          "a step nobody has done yet is left for a pen")
         self.assertEqual(sheet['checked']['technician'], 'Sheet Technician')
         self.assertFalse(sheet['packed']['technician'])

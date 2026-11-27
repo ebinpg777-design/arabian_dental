@@ -28,7 +28,7 @@ class TestCategoryBoms(TransactionCase):
 
     def test_each_product_follows_its_category(self):
         cases = {
-            'ZZ PREMIUM CERAMIC': ('METAL CERAMIC', 'Casting'),
+            'ZZ PREMIUM CERAMIC': ('METAL CERAMIC', 'Metal/Casting'),
             'ZZ MONOLITH': ('ZIRCONIA', 'Milling'),
             'ZZ BEGGS': ('ORTHODONTIC', 'Wire Bending'),
             'ZZ FLEXIBLE RPD': ('ACRYLIC', 'Flasking'),
@@ -76,7 +76,7 @@ class TestCategoryBoms(TransactionCase):
         self.assertNotIn('Wire Bending', self._route(essix))
         self.assertIn('Wire Bending', self._route(rme), "an RME is made, its kit aside")
         self.assertIn('Milling', self._route(implant), "an implant crown: the zirconia route")
-        self.assertIn('Casting', self._route(coping), "metal: the full metal route")
+        self.assertIn('Metal/Casting', self._route(coping), "metal: the full metal route")
 
     def test_a_second_run_leaves_a_product_with_a_bom_alone(self):
         product = self._service('ZZ GINGIVAL CERAMIC', 'METAL CERAMIC')

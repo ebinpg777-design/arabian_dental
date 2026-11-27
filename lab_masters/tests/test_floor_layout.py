@@ -20,13 +20,14 @@ class TestFloorLayout(TransactionCase):
         """Named Department/Row, as the lab asked; a row only one department has
         keeps its plain name."""
         names = self.env['mrp.workcenter'].search([]).mapped('name')
-        for name in ('Wax Up/Model Preparation', 'Orthodontic/Model Preparation',
+        for name in ('Cutting', 'Scooping', 'Blocking', 'Metal/Sintering', 'Metal/Casting',
+                     'Metal/Printing', 'Sintering', 'Orthodontic/Model Preparation',
                      'Acrylic/Model Preparation', 'Metal/Trimming', 'Ceramic/Trimming',
                      'Orthodontic/Trimming', 'Acrylic/Trimming', 'Metal/Polishing',
                      'Acrylic/Polishing', 'Acrylic/Packing', 'Packing', 'Scanning', 'Finishing'):
             self.assertIn(name, names)
         self.assertEqual(len(names), len(set(names)), "no two benches share a name")
-        self.assertEqual(len(names), 34)
+        self.assertEqual(len(names), 38)
 
     def test_the_benches_are_the_rows_of_the_sheets(self):
         for key, xmlid, _row, code, _dept, _rate, _shared in BENCHES:
@@ -157,7 +158,7 @@ class TestFloorLayout(TransactionCase):
                          "it has the step now: a second run leaves it alone")
         steps = bom.operation_ids.sorted(lambda o: (o.sequence, o.id))
         self.assertEqual(steps.mapped('workcenter_id.name'), [
-            'Scanning', 'Designing', 'Printing', 'Light Curing', 'Wax Up/Model Preparation',
+            'Scanning', 'Designing', 'Printing', 'Light Curing', 'Cutting',
             'Final Check', 'Packing'])
         self.assertFalse(steps[4].time_cycle_manual, "no minutes, no cost")
         # the job already on the floor
@@ -255,3 +256,120 @@ class TestFloorLayout(TransactionCase):
         self.assertEqual(steps[0].state, 'ready', "the case is at its first step")
         self.assertEqual(set(steps[1:].mapped('state')), {'blocked'})
         self.assertFalse(order.is_outdated_bom)
+
+    # ----------------------- Wax Up's model preparation as Cutting, Scooping, Blocking
+    def _wax_bom(self, minutes=8.0):
+        ref = lambda x: self.env.ref('lab_masters.%s' % x)      # noqa: E731
+        return self.env['mrp.bom'].create({
+            'product_tmpl_id': self.env['product.template'].create({'name': 'ZZ Wax Crown'}).id,
+            'operation_ids': [
+                (0, 0, {'name': 'Wax Up/Model Preparation', 'workcenter_id': ref('wc_model_preparation').id,
+                        'sequence': 10, 'time_mode': 'manual', 'time_cycle_manual': minutes}),
+                (0, 0, {'name': 'Spruing', 'workcenter_id': ref('wc_spruing').id, 'sequence': 20,
+                        'time_mode': 'manual', 'time_cycle_manual': 1.0}),
+                (0, 0, {'name': 'Investing', 'workcenter_id': ref('wc_investing').id, 'sequence': 30}),
+                (0, 0, {'name': 'Metal/Casting', 'workcenter_id': ref('wc_casting').id, 'sequence': 40}),
+                (0, 0, {'name': 'Metal/Trimming', 'workcenter_id': ref('wc_metal_trimming').id, 'sequence': 50}),
+            ]})
+
+    def test_model_preparation_is_three_benches(self):
+        """(client, 2026-11-27: "In Waxup split Wax Up/Model Preparation to Cutting,
+        Scooping, Blocking")"""
+        cutting = self.env.ref('lab_masters.wc_model_preparation')
+        scooping = self.env.ref('lab_masters.wc_wax_scooping')
+        blocking = self.env.ref('lab_masters.wc_wax_blocking')
+        self.assertEqual((cutting.name, scooping.name, blocking.name), ('Cutting', 'Scooping', 'Blocking'))
+        self.assertEqual(set((scooping | blocking).mapped('costs_hour')), {cutting.costs_hour})
+        self.assertEqual((scooping | blocking).department_id, cutting.department_id)
+
+    def test_the_metal_benches_around_the_casting(self):
+        """(client, 2026-11-27: "Add two workcentres before and after Metal/Casting")"""
+        casting = self.env.ref('lab_masters.wc_casting')
+        sintering = self.env.ref('lab_masters.wc_metal_sintering')
+        printing = self.env.ref('lab_masters.wc_metal_printing')
+        self.assertEqual((sintering.name, casting.name, printing.name),
+                         ('Metal/Sintering', 'Metal/Casting', 'Metal/Printing'))
+        self.assertEqual((sintering | printing).department_id, casting.department_id)
+        self.assertNotEqual(sintering, self.env.ref('lab_masters.wc_sintering'), "CAD/CAM keeps its own")
+
+    def test_the_routes_split_and_grow_only_once(self):
+        bom = self._wax_bom(8.0)
+        before = self.Loader._floor_labour(bom)
+        self.Loader._floor_split_model_preparation()
+        self.Loader._floor_add_metal_steps()
+        self.assertFalse(self.Loader._floor_split_model_preparation(), "a second run finds nothing")
+        self.assertFalse(self.Loader._floor_add_metal_steps(), "a second run finds nothing")
+        steps = bom.operation_ids.sorted(lambda o: (o.sequence, o.id))
+        self.assertEqual(steps.mapped('workcenter_id.name'), [
+            'Cutting', 'Scooping', 'Blocking', 'Spruing', 'Investing',
+            'Metal/Sintering', 'Metal/Casting', 'Metal/Printing', 'Metal/Trimming'])
+        self.assertEqual(steps[:3].mapped('time_cycle_manual'), [6.0, 1.0, 1.0],
+                         "divided as the costed crown's old stages say (8 = 6 + 1 + 1)")
+        self.assertFalse(sum(steps.filtered(lambda o: o.workcenter_id.name in (
+            'Metal/Sintering', 'Metal/Printing')).mapped('time_cycle_manual')), "no minutes, no cost")
+        self.assertAlmostEqual(self.Loader._floor_labour(bom), before, places=2)
+
+    def test_the_costed_crown_has_the_new_steps(self):
+        steps = self.env.ref('lab_masters.bom_metal_ceramic').operation_ids
+        minutes = {s.workcenter_id.name: s.time_cycle_manual for s in steps}
+        self.assertEqual((minutes['Cutting'], minutes['Scooping'], minutes['Blocking']), (6.0, 1.0, 1.0))
+        self.assertIn('Metal/Sintering', minutes)
+        self.assertIn('Metal/Printing', minutes)
+
+    def test_a_job_on_the_floor_gets_the_new_steps(self):
+        bom = self._wax_bom(8.0)
+        job = self.env['mrp.production'].create({
+            'product_id': bom.product_tmpl_id.product_variant_id.id,
+            'bom_id': bom.id, 'product_qty': 1})
+        job.action_confirm()
+        self.Loader._floor_split_model_preparation()
+        self.Loader._floor_add_metal_steps()
+        self.assertFalse(self.Loader.split_open_model_preparation(productions=job))
+        self.assertFalse(self.Loader.add_open_metal_steps(productions=job))
+        self.assertFalse(self.Loader.split_open_model_preparation(productions=job), "and only once")
+        self.assertFalse(self.Loader.add_open_metal_steps(productions=job), "and only once")
+        steps = job.workorder_ids.sorted(lambda w: (w.sequence, w.id))
+        self.assertEqual(steps.mapped('workcenter_id.name'), [
+            'Cutting', 'Scooping', 'Blocking', 'Spruing', 'Investing',
+            'Metal/Sintering', 'Metal/Casting', 'Metal/Printing', 'Metal/Trimming'])
+        self.assertEqual(steps.mapped('name')[:3], ['Cutting', 'Scooping', 'Blocking'])
+        self.assertAlmostEqual(sum(steps[:3].mapped('duration_expected')), 8.0, places=2)
+        for later, earlier in zip(steps[1:], steps[:-1]):
+            self.assertEqual(later.blocked_by_workorder_ids, earlier,
+                             "%s waits for %s" % (later.name, earlier.name))
+        self.assertEqual(steps[0].state, 'ready')
+        self.assertEqual(set(steps[1:].mapped('state')), {'blocked'})
+        self.assertFalse(job.is_outdated_bom, "it has every step of its bill of materials again")
+
+    def test_a_job_waiting_at_the_casting_goes_to_sintering_first(self):
+        bom = self._wax_bom(8.0)
+        job = self.env['mrp.production'].create({
+            'product_id': bom.product_tmpl_id.product_variant_id.id,
+            'bom_id': bom.id, 'product_qty': 1})
+        job.action_confirm()
+        for step in job.workorder_ids.sorted(lambda w: (w.sequence, w.id)):
+            if step.workcenter_id == self.env.ref('lab_masters.wc_casting'):
+                break
+            step.write({'state': 'done'})
+        cast = job.workorder_ids.filtered(lambda w: w.workcenter_id == self.env.ref('lab_masters.wc_casting'))
+        job.workorder_ids.invalidate_recordset(['state'])
+        self.Loader._floor_add_metal_steps()
+        self.assertFalse(self.Loader.add_open_metal_steps(productions=job))
+        sintering = job.workorder_ids.filtered(lambda w: w.workcenter_id.name == 'Metal/Sintering')
+        self.assertEqual(sintering.state, 'ready', "the previous steps are done")
+        self.assertEqual(cast.blocked_by_workorder_ids, sintering)
+        self.assertEqual(cast.state, 'blocked', "the casting now waits for the sintering")
+
+    def test_a_started_step_is_left_as_it_is(self):
+        bom = self._wax_bom(8.0)
+        job = self.env['mrp.production'].create({
+            'product_id': bom.product_tmpl_id.product_variant_id.id,
+            'bom_id': bom.id, 'product_qty': 1})
+        job.action_confirm()
+        first = job.workorder_ids.sorted(lambda w: (w.sequence, w.id))[0]
+        first.write({'state': 'progress'})
+        self.Loader._floor_split_model_preparation()
+        self.Loader.split_open_model_preparation(productions=job)
+        self.assertNotIn('Scooping', job.workorder_ids.mapped('workcenter_id.name'),
+                         "a model preparation begun as one is finished as one")
+
