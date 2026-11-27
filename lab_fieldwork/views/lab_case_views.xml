@@ -123,14 +123,16 @@
                             <span class="o_fw_sec_i"><i class="fa fa-archive" title="Sent to the lab"/></span>
                             <div>
                                 <div class="o_fw_sec_t">How it came</div>
-                                <div class="o_fw_sec_s">No visit: the case was sent to the lab.</div>
+                                <div class="o_fw_sec_s">Collected at the clinic, or sent by courier or transport.</div>
                             </div>
                         </div>
                         <field name="received_via" widget="fw_choice" readonly="state != 'draft'"
-                               options="{'exclude': ['visit'], 'colors': {'courier': 'orange', 'transport': 'teal'}}"/>
+                               options="{'exclude': ['visit'], 'colors': {'clinic': 'violet', 'courier': 'orange', 'transport': 'teal'}}"/>
                         <div class="o_fw_sec_l">Clinic / Doctor</div>
-                        <field name="partner_id" readonly="state != 'draft'" placeholder="Which clinic sent it"
-                               options="{'no_create': True, 'no_open': True}"/>
+                        <!-- starred and recent clinics first, typing narrows the rest
+                             (client, 2026-11-27) -->
+                        <field name="partner_id" widget="fw_clinic" readonly="state != 'draft'"
+                               placeholder="Search clinic, doctor, place or phone"/>
                         <div class="o_fw_sec_l">Received on</div>
                         <field name="date" readonly="state != 'draft'"/>
                         <div class="o_fw_sec_l" groups="lab_fieldwork.group_fieldwork_manager">Executive</div>
@@ -139,8 +141,9 @@
                                groups="lab_fieldwork.group_fieldwork_manager"
                                domain="[('id', 'in', allowed_user_ids)]"
                                options="{'no_create': True, 'no_open': True}"/>
-                        <div class="o_fw_sec_l">Docket / LR no.</div>
+                        <div class="o_fw_sec_l" invisible="received_via not in ('courier', 'transport')">Docket / LR no.</div>
                         <field name="received_ref" readonly="state != 'draft'"
+                               invisible="received_via not in ('courier', 'transport')"
                                placeholder="Courier docket or transport LR number"/>
                     </div>
                     <field name="patient_key" invisible="1"/>
@@ -377,6 +380,7 @@
                 <field name="user_id" optional="show"
                        groups="lab_fieldwork.group_fieldwork_manager"/>
                 <field name="received_via" optional="show" widget="badge"
+                       decoration-muted="received_via == 'clinic'"
                        decoration-warning="received_via == 'courier'"
                        decoration-info="received_via == 'transport'"/>
                 <field name="contact_user_id" optional="hide"/>
@@ -418,6 +422,7 @@
                             <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
                                 <span class="o_fw_cs_chip o_fw_cs_items"><i class="fa fa-cubes me-1" title="Items"/><field name="line_count"/> item(s)</span>
                                 <span t-if="record.order_name.raw_value" class="o_fw_cs_chip o_fw_cs_order"><i class="fa fa-file-text-o me-1" title="Order"/><field name="order_name"/></span>
+                                <span t-if="record.received_via.raw_value === 'clinic'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-hospital-o me-1" title="Clinic"/>Clinic</span>
                                 <span t-if="record.received_via.raw_value === 'courier'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-archive me-1" title="Courier"/>Courier</span>
                                 <span t-if="record.received_via.raw_value === 'transport'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-bus me-1" title="Transport"/>Transport</span>
                                 <span t-if="record.needs_doctor_call.raw_value" class="o_fw_cs_chip o_fw_cs_call"><i class="fa fa-phone me-1" title="Call the doctor"/>Call doctor</span>
@@ -486,7 +491,7 @@
              courier or transport - and New opens exactly that. A case handed over at
              a clinic is still registered from the visit, where the check-in rule
              lives. -->
-        <field name="context">{'default_received_via': 'courier'}</field>
+        <field name="context">{'default_received_via': 'clinic'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No cases registered yet</p>
             <p>Register a case from the visit you are on, or tap <b>New</b> for one
@@ -500,7 +505,7 @@
         <field name="name">Case Slips</field>
         <field name="res_model">lab.case</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="context">{'search_default_g_user': 1, 'default_received_via': 'courier'}</field>
+        <field name="context">{'search_default_g_user': 1, 'default_received_via': 'clinic'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No case slips yet</p>
             <p>A slip is registered from the visit it was handed over on - open the
@@ -516,7 +521,7 @@
         <field name="res_model">lab.case</field>
         <field name="view_mode">form</field>
         <field name="target">current</field>
-        <field name="context">{'default_received_via': 'courier'}</field>
+        <field name="context">{'default_received_via': 'clinic'}</field>
     </record>
 
     <!-- The order the office works from says where the case came from and who

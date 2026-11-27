@@ -70,12 +70,16 @@ class LabCase(models.Model):
     visit_id = fields.Many2one(
         'lab.visit', ondelete='cascade', index=True,
         string='Visit', copy=False)
+    # 'clinic': collected at the clinic by the executive with no visit recorded
+    # - the commonest way a case without a visit comes in, so it is the default.
+    # (client, 2026-11-27: "Add 'Clinic' option in How it came and set it by default")
     received_via = fields.Selection(
-        [('visit', 'At the clinic'), ('courier', 'Courier'), ('transport', 'Transport')],
+        [('visit', 'At a visit'), ('clinic', 'Clinic'), ('courier', 'Courier'),
+         ('transport', 'Transport')],
         string='Received via', compute='_compute_received_via', store=True,
         readonly=False, precompute=True, required=True, tracking=True,
-        help="How the case reached the lab: handed over at a visit, or sent by "
-             "courier or transport.")
+        help="How the case reached the lab: handed over at a visit, collected at the "
+             "clinic, or sent by courier or transport.")
     received_ref = fields.Char(
         'Docket / LR no.', tracking=True,
         help="The courier's docket number or the transport's LR number, so the "
@@ -284,8 +288,8 @@ class LabCase(models.Model):
         for case in self:
             if case.visit_id:
                 case.received_via = 'visit'
-            elif case.received_via not in ('courier', 'transport'):
-                case.received_via = 'courier'
+            elif case.received_via not in ('clinic', 'courier', 'transport'):
+                case.received_via = 'clinic'
 
     @api.depends('patient', 'partner_id')
     def _compute_name(self):
@@ -464,8 +468,8 @@ class LabCase(models.Model):
         for case in self:
             if not case.visit_id and case.received_via == 'visit':
                 raise ValidationError(_(
-                    "%s was not taken at a visit: say whether it came by courier or by "
-                    "transport.", case.patient or _('This case')))
+                    "%s was not taken at a visit: say whether it was collected at the "
+                    "clinic or came by courier or transport.", case.patient or _('This case')))
 
     # ------------------------------------------------------------------ nothing listed
     # A case may be registered with nothing on it: the box came by courier with no
@@ -645,6 +649,54 @@ class LabCase(models.Model):
                 ', '.join(ordered.mapped('patient'))))
         self.write({'state': 'cancel'})
 
+    # ------------------------------------------------------------------ the clinic picker
+    @api.model
+    def clinic_picker(self, query='', limit=30):
+        """What the Clinic / Doctor picker shows: the executive's starred clinics,
+        the ones they took cases or made visits at lately, and - once something is
+        typed - every clinic of theirs that matches by name, place or phone. Only
+        the clinics the field offers anyway (`lab_on_my_route`).
+        (client, 2026-11-27: "an attractive easy widget for adding Clinic/Doctor")
+        """
+        Partner = self.env['res.partner']
+        scope = [('lab_on_my_route', '=', True)]
+        starred_ids = self.env['lab.clinic.favourite'].my_partner_ids()
+
+        def rows(partners):
+            stars = set(starred_ids)
+            return [{
+                'id': p.id,
+                'name': p.display_name,
+                'place': ', '.join(filter(None, [(p.city or '').strip(),
+                                                 (p.street or '').strip()]))[:60],
+                'phone': p.phone or '',
+                'route': p.team_id.name or '',
+                'starred': p.id in stars,
+            } for p in partners.sudo()]
+
+        query = (query or '').strip()
+        if query:
+            found = Partner.search(scope + [
+                '|', '|', '|', ('name', 'ilike', query), ('city', 'ilike', query),
+                ('street', 'ilike', query), ('phone', 'ilike', query)],
+                order='name', limit=limit)
+            return {'query': query, 'results': rows(found), 'starred': [], 'recent': []}
+        starred = Partner.search(scope + [('id', 'in', starred_ids or [0])], order='name')
+        since = fields.Date.context_today(self) - timedelta(days=45)
+        recent_ids = []
+        for model, user_field in (('lab.case', 'user_id'), ('lab.visit', 'user_id')):
+            for rec in self.env[model].sudo().search_read(
+                    [(user_field, '=', self.env.uid), ('date', '>=', since),
+                     ('partner_id', '!=', False)],
+                    ['partner_id'], order='date desc, id desc', limit=60):
+                pid = rec['partner_id'][0]
+                if pid not in recent_ids and pid not in starred.ids:
+                    recent_ids.append(pid)
+        recent = Partner.search(scope + [('id', 'in', recent_ids or [0])])
+        order = {pid: i for i, pid in enumerate(recent_ids)}
+        recent = recent.sorted(lambda p: order.get(p.id, 0))[:5]
+        return {'query': '', 'results': [], 'starred': rows(starred), 'recent': rows(recent)}
+
     def action_another_case(self):
         """Another case from the same clinic, without going back to find it.
 
@@ -663,8 +715,8 @@ class LabCase(models.Model):
         if visit and visit.state in ('open', 'done'):
             context = {'default_visit_id': visit.id}
         else:
-            via = self.received_via if self.received_via in ('courier', 'transport') \
-                else 'courier'
+            via = self.received_via if self.received_via in ('clinic', 'courier', 'transport') \
+                else 'clinic'
             context = {
                 'default_partner_id': self.partner_id.id,
                 'default_received_via': via,

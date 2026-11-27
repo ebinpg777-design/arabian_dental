@@ -21,7 +21,8 @@ class SaleOrder(models.Model):
     # What the case slip said about where the case came from and who deals with the
     # doctor, kept on the order that the office actually works from.
     case_received_via = fields.Selection(
-        [('visit', 'At the clinic'), ('courier', 'Courier'), ('transport', 'Transport')],
+        [('visit', 'At a visit'), ('clinic', 'Clinic'), ('courier', 'Courier'),
+         ('transport', 'Transport')],
         string='Case received via', readonly=True, copy=False)
     case_received_ref = fields.Char('Docket / LR no.', readonly=True, copy=False)
     case_contact_user_id = fields.Many2one(

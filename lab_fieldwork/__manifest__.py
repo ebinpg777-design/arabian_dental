@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab Field Work',
-    'version': '20.0.9.12.0',
+    'version': '20.0.9.13.0',
     'summary': 'Field work for an orthodontic lab: beats, visits, travel and targets',
     'description': """
 Lab Field Work
@@ -139,6 +139,9 @@ in the server, not merely in the form.
             'lab_fieldwork/static/src/xml/count_field.xml',
             'lab_fieldwork/static/src/js/mobile_widgets.js',
             'lab_fieldwork/static/src/xml/mobile_widgets.xml',
+            'lab_fieldwork/static/src/js/clinic_picker.js',
+            'lab_fieldwork/static/src/xml/clinic_picker.xml',
+            'lab_fieldwork/static/src/scss/clinic_picker.scss',
             'lab_fieldwork/static/src/scss/case_entry.scss',
             'lab_fieldwork/static/src/js/case_items.js',
             'lab_fieldwork/static/src/xml/case_items.xml',

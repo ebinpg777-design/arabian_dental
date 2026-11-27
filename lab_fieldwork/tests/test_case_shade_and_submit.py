@@ -170,7 +170,8 @@ class TestCaseShadeAndSubmit(TransactionCase):
         visit.sudo().write({'state': 'cancel'})
         context = case.action_another_case()['context']
         self.assertEqual(context.get('default_partner_id'), self.clinic.id)
-        self.assertEqual(context.get('default_received_via'), 'courier')
+        # no visit to take it to: collected at the clinic, the default since 2026-11-27
+        self.assertEqual(context.get('default_received_via'), 'clinic')
         self.assertNotIn('default_visit_id', context)
 
     # ---------------------------------------------- what came with the case
@@ -193,3 +194,32 @@ class TestCaseShadeAndSubmit(TransactionCase):
         self.assertEqual(order.impression_type, 'Rubber Base')
         if 'opposing_model' in order._fields:
             self.assertEqual(order.opposing_model, 'No')
+
+    # ------------------------------------------------- Clinic, and the clinic picker
+    def test_a_case_without_a_visit_is_collected_at_the_clinic_by_default(self):
+        """(client, 2026-11-27: "Add 'Clinic' option in How it came and set it by default")"""
+        case = self.Case.create({'partner_id': self.clinic.id, 'patient': 'At The Door'})
+        self.assertEqual(case.received_via, 'clinic')
+        case.action_submit()
+        self.assertEqual(case.sudo().sale_order_id.case_received_via, 'clinic')
+
+    def test_the_picker_offers_starred_and_recent_clinics_and_finds_by_place(self):
+        """(client, 2026-11-27: "an attractive easy widget for adding Clinic/Doctor")"""
+        other = self.env['res.partner'].create({
+            'name': 'ZZ Picker Dental', 'is_clinic': True, 'city': 'Picker Town',
+            'phone': '9000011111', 'team_id': self.clinic.team_id.id})
+        Case = self.Case
+        self.env['lab.clinic.favourite'].with_user(self.exec_user).toggle(other.id)
+        Case.create({'partner_id': self.clinic.id, 'patient': 'Recent One'})
+        data = Case.clinic_picker('')
+        self.assertIn(other.id, [r['id'] for r in data['starred']])
+        self.assertIn(self.clinic.id, [r['id'] for r in data['recent']])
+        self.assertNotIn(other.id, [r['id'] for r in data['recent']], "a starred clinic is not listed twice")
+        found = Case.clinic_picker('picker town')['results']
+        self.assertEqual([r['id'] for r in found], [other.id])
+        self.assertEqual((found[0]['place'], found[0]['phone'], found[0]['starred']),
+                         ('Picker Town', '9000011111', True))
+        stranger = self.env['res.partner'].create({'name': 'ZZ Picker Elsewhere', 'is_clinic': True})
+        self.assertNotIn(stranger.id, [r['id'] for r in Case.clinic_picker('ZZ Picker')['results']],
+                         "only the clinics of the executive's own routes")
+

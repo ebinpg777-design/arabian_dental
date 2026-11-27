@@ -64,7 +64,10 @@
         <field name="model">lab.case</field>
         <field name="inherit_id" ref="lab_fieldwork.view_case_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[hasclass('o_fw_sec_violet')]" position="before">
+            <!-- At the very top of the case: what kind of case it is decides what
+                 the rest means. (client, 2026-11-27: "Move the Type of work to top
+                 of case form") -->
+            <xpath expr="//div[hasclass('o_fw_sec_orange')]" position="before">
                 <div class="o_fw_sec o_fw_sec_slate">
                     <div class="o_fw_sec_h">
                         <span class="o_fw_sec_i"><i class="fa fa-tags" title="Type of case"/></span>
