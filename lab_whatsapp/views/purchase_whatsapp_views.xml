@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- The PO (or RFQ) PDF to the vendor on WhatsApp. (client, 2026-11-27) -->
+    <record id="purchase_order_form_whatsapp" model="ir.ui.view">
+        <field name="name">purchase.order.form.lab.whatsapp</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_whatsapp_vendor" type="object" string="WhatsApp"
+                        icon="fa-whatsapp" invisible="state == 'cancel'"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- The Purchase Request's RFQ, as PDF and Excel, to a vendor on WhatsApp. -->
+    <record id="purchase_rfq_form_whatsapp" model="ir.ui.view">
+        <field name="name">ebshel.purchase.rfq.form.lab.whatsapp</field>
+        <field name="model">ebshel.purchase.rfq</field>
+        <field name="inherit_id" ref="ebshel_purchase_request.view_ebshel_purchase_rfq_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_whatsapp_vendors" type="object" string="WhatsApp to Vendor"
+                        icon="fa-whatsapp" invisible="state in ('cancelled', 'po_created')"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+            <xpath expr="(//field[@name='vendor_quotation_ids']/list)[1]" position="inside">
+                <button name="action_whatsapp_rfq" type="object" icon="fa-whatsapp"
+                        title="Send this vendor the RFQ (PDF and Excel) on WhatsApp"
+                        groups="epg_whatsapp.group_whatsapp_user"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

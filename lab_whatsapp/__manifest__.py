@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Lab WhatsApp Notifications',
-    'version': '20.0.2.19.0',
+    'version': '20.0.2.20.0',
     'category': 'Marketing/WhatsApp',
     'summary': "Dental-lab WhatsApp notifications - case registered, dispatched, invoice, "
                "payment, reminders - sent free from the lab's own WhatsApp or by Cloud API",
@@ -43,7 +43,7 @@ This module adds only the dental-lab-specific glue on top:
     'website': 'https://www.arabiandentallab.com',
     # phone_validation: owns phone.blacklist, which the opt-in writes and every send reads.
     'depends': ['epg_whatsapp', 'sale_custom', 'account', 'stock', 'mail',
-                'phone_validation'],
+                'phone_validation', 'purchase', 'ebshel_purchase_request'],
     'data': [
         'data/whatsapp_data.xml',
         'data/whatsapp_template_data.xml',
@@ -52,6 +52,7 @@ This module adds only the dental-lab-specific glue on top:
         'views/res_config_settings_views.xml',
         'views/epg_whatsapp_template_views.xml',
         'views/record_views.xml',
+        'views/purchase_whatsapp_views.xml',
         'wizard/number_wizard_views.xml',
         'wizard/enquiry_wizard_views.xml',
         'security/ir.access.csv',

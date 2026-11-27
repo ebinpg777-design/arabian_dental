@@ -356,11 +356,15 @@ export class WaSendDialog extends Component {
  */
 registry.category("actions").add("epg_whatsapp_send", async (env, action) => {
     const params = action.params || {};
-    if (!params.message_id) {
+    // `message_ids`: several messages for one number - a PDF and an Excel sheet,
+    // say - opened as the one WhatsApp they go out as. (2026-11-27)
+    const ids = params.message_ids && params.message_ids.length
+        ? params.message_ids : params.message_id ? [params.message_id] : [];
+    if (!ids.length) {
         return;
     }
     env.services.dialog.add(WaSendDialog, {
-        messageId: params.message_id,
+        ...(ids.length > 1 ? { messageIds: ids } : { messageId: ids[0] }),
         onDone: async (result) => {
             if (result === "sent" && (params.close || params.reload)) {
                 env.services.action.doAction({ type: "ir.actions.client", tag: "soft_reload" });
@@ -368,7 +372,7 @@ registry.category("actions").add("epg_whatsapp_send", async (env, action) => {
             // Made for this one click and not sent: it does not linger on the Desk.
             if (params.discard_on_close && (result === "closed" || result === "skipped")) {
                 await env.services.orm.call(
-                    "epg.whatsapp.message", "action_discard", [[params.message_id]]);
+                    "epg.whatsapp.message", "action_discard", [ids]);
                 env.bus.trigger("EPG_WA:CHANGED");
             }
         },

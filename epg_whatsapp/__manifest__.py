@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'EPG WhatsApp',
-    'version': '20.0.2.13.1',
+    'version': '20.0.2.13.2',
     'summary': 'WhatsApp from Odoo for free through your own WhatsApp, or through the '
                'Meta Cloud API - with chatter logging, read receipts and quick replies',
     'description': """

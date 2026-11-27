@@ -5,3 +5,4 @@ from . import test_consent
 from . import test_whatsapp_number
 from . import test_records_chat
 from . import test_hold_messages
+from . import test_purchase_whatsapp
