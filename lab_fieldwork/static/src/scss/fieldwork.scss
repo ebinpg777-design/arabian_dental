@@ -1145,6 +1145,10 @@ $fw-teal:        #0d7c8a;
     &:hover { border-color: $warning; }
 }
 
+// The field's wrapper sizes to its text: a short card (Scan case) came out narrower
+// than the long one under it (Call the doctor first). (2026-11-27)
+.o_form_view .o_field_fw_flag { display: block; width: 100%; }
+
 .o_fw_flag_on {
     border-left-color: $warning;
     background-color: rgba($warning, .10);
