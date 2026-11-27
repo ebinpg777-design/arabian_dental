@@ -1,7 +1,7 @@
 # Part of ebshel_hr_auto_attendance. See LICENSE file for full copyright and licensing details.
 {
     "name": "Automatic Attendance from Working Hours",
-    "version": "20.0.1.0.0",
+    "version": "20.0.1.1.0",
     "category": "Human Resources/Attendances",
     "summary": "Attendance entries made from each employee's working hours, "
     "skipping public holidays, time off and days they recorded themselves.",
@@ -28,6 +28,7 @@ somebody deletes is not made again.
         "views/hr_attendance_views.xml",
         "views/res_config_settings_views.xml",
     ],
+    "post_init_hook": "_post_init_hook",
     "installable": True,
     "application": False,
 }

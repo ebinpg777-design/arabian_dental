@@ -132,3 +132,15 @@ class TestAutoAttendance(TransactionCase):
         self.assertTrue(self.env['hr.employee'].create({'name': 'T New'}).auto_attendance)
         self.env.company.auto_attendance_default = False
         self.assertFalse(self.env['hr.employee'].create({'name': 'T New 2'}).auto_attendance)
+
+    def test_a_public_holiday_loaded_without_length_is_its_whole_day(self):
+        """Odoo 20 loads public holidays as date = date at midnight UTC (no length)."""
+        self.env.company.tz = 'Asia/Kolkata'
+        hol = self.env['resource.calendar.leaves'].create({
+            'name': 'T Loaded Holiday', 'company_id': self.env.company.id,
+            'date_from': datetime(2026, 11, 19), 'date_to': datetime(2026, 11, 19),
+        })
+        self.assertEqual((hol.date_from, hol.date_to),
+                         (datetime(2026, 11, 18, 18, 30), datetime(2026, 11, 19, 18, 29, 59)))
+        self.run_until(utc(2026, 11, 19, 13, 0), done_until=date(2026, 11, 18))
+        self.assertFalse(self.entries(date(2026, 11, 19)), "holiday")

@@ -21,6 +21,14 @@ made from their working schedule, e.g. 09:00-18:00 in their own time zone.
 Entries are marked **Created Automatically** (filter and list column), with
 in/out mode "Technical".
 
+## Public holidays loaded by Odoo
+
+Odoo 20 loads its public holidays (Time Off > Public Holidays > Load, and the
+yearly job adding next year's) as the date at midnight UTC with no length, so
+they take no working hour out - neither here nor in Odoo's time-off counts.
+This module makes every such company-wide holiday its whole day in the
+company's time zone, on install, on upgrade and whenever one is created.
+
 ## Settings (Attendances)
 
 * **New Employees** - tick Automatic Attendance on new employees.
@@ -31,4 +39,4 @@ in/out mode "Technical".
 
 Hourly cron `cron_auto_attendance` (`hr.employee._cron_auto_attendance`),
 catching up at most 31 days after downtime. Tests:
-`--test-tags /ebshel_hr_auto_attendance` (10).
+`--test-tags /ebshel_hr_auto_attendance` (11).
