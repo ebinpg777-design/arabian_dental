@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_hr_auto_attendance. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+    <record id="view_attendance_tree" model="ir.ui.view">
+        <field name="name">hr.attendance.list.auto</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <field name="in_mode" position="before">
+                <field name="auto_created" optional="show" widget="boolean"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="hr_attendance_view_filter" model="ir.ui.view">
+        <field name="name">hr.attendance.search.auto</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_filter"/>
+        <field name="arch" type="xml">
+            <filter name="state_validated" position="after">
+                <separator/>
+                <filter string="Created Automatically" name="auto_created"
+                        domain="[('auto_created', '=', True)]"/>
+                <filter string="Recorded by the Employee" name="not_auto_created"
+                        domain="[('auto_created', '=', False)]"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

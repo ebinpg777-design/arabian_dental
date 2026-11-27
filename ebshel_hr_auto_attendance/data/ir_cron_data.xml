@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_hr_auto_attendance. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+    <!-- Hourly: a day is made once it is over where the employee works, whatever
+         their time zone, and a run missed while the server was down is caught up. -->
+    <record id="cron_auto_attendance" model="ir.cron">
+        <field name="name">Attendances: make automatic attendance entries</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_auto_attendance()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

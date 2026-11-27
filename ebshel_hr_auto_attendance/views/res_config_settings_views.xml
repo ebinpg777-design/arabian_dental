@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_hr_auto_attendance. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.form.auto.attendance</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="hr_attendance.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <block name="attendance_settings" position="after">
+                <block title="Automatic Attendance" name="auto_attendance_settings">
+                    <setting string="New Employees" company_dependent="1"
+                             help="Tick Automatic Attendance on new employees: once each working day is over, an entry is made from their working hours.">
+                        <field name="auto_attendance_default"/>
+                    </setting>
+                    <setting string="Never for Members of" company_dependent="1"
+                             help="People in these groups record their own attendance (a field force, say): they get no automatic entries even when ticked.">
+                        <field name="auto_attendance_excluded_group_ids" widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                    </setting>
+                </block>
+            </block>
+        </field>
+    </record>
+</odoo>

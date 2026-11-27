@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Part of ebshel_hr_auto_attendance. See LICENSE file for full copyright and licensing details. -->
+<odoo>
+    <!-- Beside the working hours the entries are made from. -->
+    <record id="view_employee_form" model="ir.ui.view">
+        <field name="name">hr.employee.form.auto.attendance</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="priority">120</field>
+        <field name="arch" type="xml">
+            <field name="resource_calendar_id" position="after">
+                <field name="auto_attendance" groups="hr.group_hr_user"/>
+                <field name="auto_attendance_done_until" groups="hr.group_hr_user"
+                       invisible="not auto_attendance or not auto_attendance_done_until"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_employee_filter" model="ir.ui.view">
+        <field name="name">hr.employee.search.auto.attendance</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_filter"/>
+        <field name="arch" type="xml">
+            <filter name="inactive" position="before">
+                <filter name="auto_attendance" string="Automatic Attendance"
+                        domain="[('auto_attendance', '=', True)]" groups="hr.group_hr_user"/>
+            </filter>
+        </field>
+    </record>
+</odoo>
