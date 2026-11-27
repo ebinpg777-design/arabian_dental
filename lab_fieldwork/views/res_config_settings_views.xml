@@ -108,6 +108,14 @@
                         </setting>
                     </block>
 
+                    <block title="Scan Orders" name="fw_scan_block"
+                           help="A case marked Scan becomes a 3D Model Print order. These people see a notice on their home screen while one is waiting to be confirmed.">
+                        <setting id="fw_scan_notify" string="Who is told">
+                            <field name="lab_scan_notify_user_ids" widget="many2many_tags"
+                                   options="{'no_create': True}"/>
+                        </setting>
+                    </block>
+
                     <block title="Travel Reimbursement" name="fw_travel_block"
                            help="What the lab pays per kilometre. Set here rather than on the trip, so a rate is a policy and not a negotiation.">
                         <setting id="fw_rates" string="Mileage Rates">

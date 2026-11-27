@@ -308,3 +308,37 @@ body:not(.o_home_menu_background) .o_main_navbar,
         }
     }
 }
+
+// Notices above the apps (res.users.ebshel_home_notices): a card per thing that
+// needs this user, flat, in the tone of what it says.
+.o_home_menu .o_home_notices {
+    display: flex; flex-direction: column; gap: .5rem;
+    max-width: 44rem; margin: 0 auto 1rem; padding: 0 .5rem;
+}
+.o_home_menu .o_home_notice {
+    --notice: #2563eb; --notice-tint: #eff6ff;
+    display: flex; align-items: center; gap: .75rem; width: 100%;
+    padding: .625rem .875rem; text-align: left;
+    border: 1px solid var(--notice); border-left-width: .3125rem; border-radius: .75rem;
+    background: var(--notice-tint); color: #1f2937;
+    &:disabled { cursor: default; }
+    &.o_home_notice_warning { --notice: #d97706; --notice-tint: #fffbeb; }
+    &.o_home_notice_danger { --notice: #dc2626; --notice-tint: #fef2f2; }
+    &.o_home_notice_success { --notice: #16a34a; --notice-tint: #f0fdf4; }
+    .o_home_notice_icon {
+        flex: 0 0 auto; width: 2.25rem; height: 2.25rem; border-radius: .625rem;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: var(--notice); color: #fff; font-size: 1rem;
+    }
+    .o_home_notice_body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+    .o_home_notice_title { font-weight: 700; font-size: .9375rem; }
+    .o_home_notice_text { font-size: .8125rem; color: #4b5563; }
+    .o_home_notice_count {
+        flex: 0 0 auto; min-width: 2rem; padding: .125rem .5rem; border-radius: 1rem;
+        background: var(--notice); color: #fff; font-weight: 800; text-align: center;
+    }
+    .o_home_notice_go { flex: 0 0 auto; color: var(--notice); font-size: 1.25rem; }
+}
+html[data-color-scheme="dark"] .o_home_menu .o_home_notice,
+.o_dark .o_home_menu .o_home_notice { background: #1f2937; color: #f3f4f6;
+    .o_home_notice_text { color: #d1d5db; } }

@@ -239,8 +239,8 @@
         <div class="o_fw_flag_body">
             <div class="o_fw_flag_title" t-out="this.field.string"/>
             <div class="o_fw_flag_help">
-                <t t-if="this.on">The lab will not start until the doctor has been called.</t>
-                <t t-else="" t-out="this.field.help or 'Tap if the lab must call the doctor first.'"/>
+                <t t-if="this.on" t-out="this.props.onText or 'The lab will not start until the doctor has been called.'"/>
+                <t t-else="" t-out="this.props.offText or this.field.help or 'Tap if the lab must call the doctor first.'"/>
             </div>
         </div>
         <span class="o_fw_flag_state"><t t-out="this.on ? 'ON' : 'OFF'"/></span>

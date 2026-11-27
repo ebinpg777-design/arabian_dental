@@ -106,7 +106,10 @@ export class HomeMenu extends Component {
         this.state = proxy({
             focusedIndex: null,
             isIosApp: isIosApp(),
+            notices: [],
         });
+        this.orm = useService("orm");
+        this.actionService = useService("action");
         this.pressTimer;
 
         if (!this.ui.isSmall) {
@@ -132,6 +135,10 @@ export class HomeMenu extends Component {
             this.state.focusedIndex = null;
         });
 
+        // Notices for this user (res.users.ebshel_home_notices): fetched after the
+        // apps are on screen, never in their way - a slow or failed answer just
+        // shows nothing.
+        onMounted(() => this.loadNotices());
         onMounted(() => {
             if (hasTouch()) {
                 // 46px is the navbar height
@@ -187,6 +194,21 @@ export class HomeMenu extends Component {
 
     get hasTouch() {
         return hasTouch();
+    }
+
+    async loadNotices() {
+        try {
+            const notices = await this.orm.silent.call("res.users", "ebshel_home_notices", []);
+            this.state.notices = Array.isArray(notices) ? notices : [];
+        } catch {
+            this.state.notices = [];
+        }
+    }
+
+    openNotice(notice) {
+        if (notice.action) {
+            this.actionService.doAction(notice.action);
+        }
     }
 
     get greetingTitle() {

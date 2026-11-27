@@ -26,6 +26,20 @@
                 <div class="o_home_greeting__hello" t-out="this.greetingTitle"/>
                 <div class="o_home_greeting__date" t-out="this.greetingDate"/>
             </div>
+            <!-- What needs this user, above the apps (res.users.ebshel_home_notices). -->
+            <div t-if="this.state.notices.length" class="o_home_notices">
+                <button t-foreach="this.state.notices" t-as="n" t-key="n.key" type="button"
+                        class="o_home_notice" t-attf-class="o_home_notice_{{ n.tone or 'info' }}"
+                        t-att-disabled="!n.action" t-on-click="() => this.openNotice(n)">
+                    <span class="o_home_notice_icon"><i t-attf-class="fa {{ n.icon or 'fa-bell' }}" t-att-title="n.title"/></span>
+                    <span class="o_home_notice_body">
+                        <span class="o_home_notice_title" t-out="n.title"/>
+                        <span t-if="n.text" class="o_home_notice_text" t-out="n.text"/>
+                    </span>
+                    <span t-if="n.count" class="o_home_notice_count" t-out="n.count"/>
+                    <i t-if="n.action" class="fa fa-angle-right o_home_notice_go" title="Open"/>
+                </button>
+            </div>
             <div t-if="this.displayedApps.length" role="listbox" class="o_apps row user-select-none mt-md-4 mx-0">
                 <div t-foreach="this.displayedApps" t-as="app" t-key="app.id" class="col-3 col-md-2 o_draggable mb-3 px-0">
                     <a t-att-id="'result_app_' + app_index"

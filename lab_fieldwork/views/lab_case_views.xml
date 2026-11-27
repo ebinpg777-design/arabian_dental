@@ -233,6 +233,11 @@
                         </field>
                     </div>
 
+                    <!-- 3b. A case that came as a digital scan: the order is a 3D Model
+                         Print order. (client, 2026-11-27) -->
+                    <field name="is_scan" widget="fw_flag" nolabel="1" readonly="state != 'draft'"
+                           options="{'icon': 'fa-cube', 'on_text': 'Its order is a 3D Model Print order: the lab prints the model from the scan.', 'off_text': 'Tap if the case came as a digital scan.'}"/>
+
                     <!-- 4. Before the bag contents: it changes whether the lab starts at
                          all, so it is not buried under six checkboxes. -->
                     <field name="needs_doctor_call" widget="fw_flag"
@@ -406,6 +411,7 @@
                 <field name="state"/>
                 <field name="duplicate_ack"/>
                 <field name="received_via"/>
+                <field name="is_scan"/>
                 <field name="needs_doctor_call"/>
                 <field name="order_name"/>
                 <templates>
@@ -422,6 +428,7 @@
                             <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
                                 <span class="o_fw_cs_chip o_fw_cs_items"><i class="fa fa-cubes me-1" title="Items"/><field name="line_count"/> item(s)</span>
                                 <span t-if="record.order_name.raw_value" class="o_fw_cs_chip o_fw_cs_order"><i class="fa fa-file-text-o me-1" title="Order"/><field name="order_name"/></span>
+                                <span t-if="record.is_scan.raw_value" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-cube me-1" title="Scan"/>Scan</span>
                                 <span t-if="record.received_via.raw_value === 'clinic'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-hospital-o me-1" title="Clinic"/>Clinic</span>
                                 <span t-if="record.received_via.raw_value === 'courier'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-archive me-1" title="Courier"/>Courier</span>
                                 <span t-if="record.received_via.raw_value === 'transport'" class="o_fw_cs_chip o_fw_cs_sent"><i class="fa fa-bus me-1" title="Transport"/>Transport</span>

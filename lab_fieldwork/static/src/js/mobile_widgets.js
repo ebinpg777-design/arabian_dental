@@ -622,7 +622,13 @@ registry.category("view_widgets").add("fw_toggles", fwToggles);
 // ---------------------------------------------------------------------------
 export class FwFlag extends Component {
     static template = "lab_fieldwork.FwFlag";
-    props = useProps({ ...standardFieldProps, icon: t.string().optional() });
+    props = useProps({
+        ...standardFieldProps,
+        icon: t.string().optional(),
+        // what it says when on and when off; the doctor call's words by default
+        onText: t.string().optional(),
+        offText: t.string().optional(),
+    });
 
     get on() {
         return !!this.props.record.data[this.props.name];
@@ -643,6 +649,10 @@ export const fwFlag = {
     component: FwFlag,
     displayName: _t("Attention flag"),
     supportedTypes: ["boolean"],
-    extractProps: ({ options }) => ({ icon: options.icon }),
+    extractProps: ({ options }) => ({
+        icon: options.icon,
+        onText: options.on_text || undefined,
+        offText: options.off_text || undefined,
+    }),
 };
 registry.category("fields").add("fw_flag", fwFlag);
