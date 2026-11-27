@@ -31,18 +31,14 @@
                 <i t-if="this.state.busy" class="fa fa-circle-o-notch fa-spin o_fw_cp_spin" title="Searching"/>
             </div>
 
-            <t t-if="this.state.query.trim()">
-                <t t-set="list" t-value="this.state.results"/>
+            <t t-set="list" t-value="this.shownRows"/>
+            <div t-if="this.listTitle and list.length" class="o_fw_cp_h"><i class="fa fa-history me-1" title="Recent"/><t t-out="this.listTitle"/></div>
+            <div t-if="list.length" class="o_fw_cp_list">
                 <t t-call="lab_fieldwork.FwClinicRows"/>
-            </t>
-            <t t-else="">
-                <div t-if="this.state.starred.length" class="o_fw_cp_h"><i class="fa fa-star me-1" title="Starred"/>Your starred clinics</div>
-                <t t-set="list" t-value="this.state.starred"/>
-                <t t-call="lab_fieldwork.FwClinicRows"/>
-                <div t-if="this.state.recent.length" class="o_fw_cp_h"><i class="fa fa-history me-1" title="Recent"/>Lately</div>
-                <t t-set="list" t-value="this.state.recent"/>
-                <t t-call="lab_fieldwork.FwClinicRows"/>
-            </t>
+            </div>
+            <button t-if="this.hiddenCount" class="o_fw_cp_more" t-on-click="() => this.state.more = true">
+                Show <t t-out="this.hiddenCount"/> more
+            </button>
             <div t-if="this.showEmpty" class="o_fw_cp_empty" t-out="this.emptyText"/>
             <button t-if="this.value" class="o_fw_cp_keep" t-on-click="() => this.closePicker()">
                 Keep <t t-out="this.chosenName"/>
@@ -55,7 +51,6 @@
     <button t-foreach="list" t-as="row" t-key="row.id" class="o_fw_cp_row"
             t-att-class="{ o_fw_cp_row_on: this.value and this.value.id === row.id }"
             t-on-click="() => this.pick(row)">
-        <span class="o_fw_cp_ico o_fw_cp_ico_sm"><i class="fa fa-hospital-o" title="Clinic"/></span>
         <span class="o_fw_cp_body">
             <span class="o_fw_cp_name" t-out="row.name"/>
             <span t-if="row.place or row.phone" class="o_fw_cp_meta">

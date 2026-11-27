@@ -148,13 +148,16 @@ class LabCase(models.Model):
         string='Impression')
     impression_tray = fields.Selection(
         [('Upper', 'Upper'), ('Lower', 'Lower'), ('Both', 'Both')], string='Tray')
-    scanned_impression = fields.Selection([('Yes', 'Yes'), ('No', 'No')], string='Scanned')
-    wax_bite = fields.Selection([('Yes', 'Yes'), ('No', 'No')], string='Wax Bite')
+    # The four Yes/No answers start at No: the executive taps only what did come.
+    # (client, 2026-11-27)
+    scanned_impression = fields.Selection([('Yes', 'Yes'), ('No', 'No')], string='Scanned',
+                                          default='No')
+    wax_bite = fields.Selection([('Yes', 'Yes'), ('No', 'No')], string='Wax Bite', default='No')
     opposing_model = fields.Selection(
-        [('Yes', 'Yes'), ('No', 'No')], string='Opposing Model',
+        [('Yes', 'Yes'), ('No', 'No')], string='Opposing Model', default='No',
         help="Did the model of the opposing arch come with the case?")
     pre_cutting_model = fields.Selection(
-        [('Yes', 'Yes'), ('No', 'No')], string='Pre Cutting Model',
+        [('Yes', 'Yes'), ('No', 'No')], string='Pre Cutting Model', default='No',
         help="Is a model to be kept as it was before the dies are cut?")
     send_through_id = fields.Many2one('send.through', string='Send Through')
 

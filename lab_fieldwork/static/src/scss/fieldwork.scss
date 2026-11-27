@@ -812,7 +812,13 @@ $fw-teal:        #0d7c8a;
     font-weight: 600;
     line-height: 1.2;
 
-    &:hover:not(:disabled) { border-color: $fw-violet; }
+    // Hover only where there is a mouse, and never on the chosen chip. A phone
+    // keeps the last tapped button "hovered" until the next touch, and the hover
+    // colour beat the chosen style: the chip just picked lost its text, the same
+    // colour as its fill. (client, 2026-11-27: "letters are not visible")
+    @media (hover: hover) {
+        &:hover:not(:disabled):not(.o_fw_choice_on) { border-color: $fw-violet; }
+    }
     &:disabled { opacity: .75; }
 }
 
@@ -820,6 +826,7 @@ $fw-teal:        #0d7c8a;
     background-color: $fw-violet;
     border-color: $fw-violet;
     color: #fff;
+    &:hover, &:focus, &:active { color: #fff; }
 }
 
 .o_fw_choice_ro .o_fw_choice_chip:not(.o_fw_choice_on) { display: none; }

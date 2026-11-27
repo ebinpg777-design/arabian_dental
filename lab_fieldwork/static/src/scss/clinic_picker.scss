@@ -28,7 +28,7 @@ $fw-cp-accent: #4f46e5;
         flex: 0 0 auto; font-size: .8125rem; font-weight: 700; color: $fw-cp-accent;
         padding: .375rem .625rem; border-radius: 1rem; background: rgba($fw-cp-accent, .1);
     }
-    .o_fw_cp_sheet { display: flex; flex-direction: column; gap: .5rem; }
+    .o_fw_cp_sheet { display: flex; flex-direction: column; gap: .375rem; }
     .o_fw_cp_search {
         position: relative; display: flex; align-items: center; gap: .5rem;
         padding: 0 .75rem; min-height: 3rem; border: 1.5px solid $fw-cp-line;
@@ -45,10 +45,24 @@ $fw-cp-accent: #4f46e5;
         margin-top: .375rem; font-size: .6875rem; font-weight: 700; letter-spacing: .05em;
         text-transform: uppercase; color: $fw-cp-muted;
     }
+    // One list, one line a clinic: four rows take what one tall card took.
+    // (client, 2026-11-27: "needs long scrolls in case register form")
+    .o_fw_cp_list {
+        border: 1px solid $fw-cp-line; border-radius: .875rem; overflow: hidden; background: #fff;
+    }
     .o_fw_cp_row {
-        min-height: 3.5rem;
+        min-height: 3rem; gap: .5rem; padding: .4375rem .25rem .4375rem .875rem;
+        border: 0; border-radius: 0; border-bottom: 1px solid $fw-cp-line;
+        &:last-child { border-bottom: 0; }
         &:active { background: rgba($fw-cp-accent, .06); }
-        &.o_fw_cp_row_on { border-color: $fw-cp-accent; background: rgba($fw-cp-accent, .06); }
+        &.o_fw_cp_row_on { background: rgba($fw-cp-accent, .08); }
+        .o_fw_cp_name, .o_fw_cp_meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .o_fw_cp_name { font-size: .9375rem; overflow-wrap: normal; }
+        .o_fw_cp_meta { font-size: .75rem; margin-top: 0; }
+    }
+    .o_fw_cp_more {
+        align-self: flex-start; border: 0; background: transparent; color: $fw-cp-accent;
+        font-weight: 700; font-size: .875rem; padding: .125rem .25rem;
     }
     .o_fw_cp_star {
         flex: 0 0 auto; width: 2.5rem; height: 2.5rem; display: inline-flex;

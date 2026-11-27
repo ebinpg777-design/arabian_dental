@@ -36,8 +36,13 @@ $fwc-line: #e2e8f0;
     // (client, 2026-11-27: "only selected one should be colored")
     .o_fw_choice_chip.o_fw_c_#{$name} {
         border-color: $fw-off-line; background-color: $fw-off-bg; color: $fw-off-ink;
-        &:hover:not(:disabled) { border-color: nth($c, 3); color: nth($c, 1); }
-        &.o_fw_choice_on { background-color: nth($c, 1); border-color: nth($c, 1); color: #fff;
+        // see .o_fw_choice_chip: a sticky touch "hover" painted the chosen chip's
+        // text in its own fill colour (client, 2026-11-27)
+        @media (hover: hover) {
+            &:hover:not(:disabled):not(.o_fw_choice_on) { border-color: nth($c, 3); color: nth($c, 1); }
+        }
+        &.o_fw_choice_on, &.o_fw_choice_on:hover, &.o_fw_choice_on:focus, &.o_fw_choice_on:active {
+            background-color: nth($c, 1); border-color: nth($c, 1); color: #fff;
             box-shadow: 0 2px 8px rgba(nth($c, 1), .35); }
     }
 }

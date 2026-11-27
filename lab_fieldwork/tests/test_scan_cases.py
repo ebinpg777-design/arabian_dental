@@ -68,3 +68,23 @@ class TestScanCases(TransactionCase):
             'line_ids': [(0, 0, {'product_id': self.model.id, 'ul': 'upper'})]})
         case.action_submit()
         self.assertFalse(case.sudo().sale_order_id.is_3d_model_print)
+
+    def test_switching_scan_off_undoes_it(self):
+        """Off puts back what on set. (client, 2026-11-27: "after deactivating it is
+        not resetting")"""
+        case = self.env['lab.case'].new({'partner_id': self.clinic.id})
+        case.is_scan = True
+        case._onchange_is_scan()
+        self.assertTrue(case.is_3d_model_print)
+        self.assertEqual(case.scanned_impression, 'Yes')
+        case.is_scan = False
+        case._onchange_is_scan()
+        self.assertFalse(case.is_3d_model_print)
+        self.assertEqual(case.scanned_impression, 'No')
+
+    def test_the_yes_no_answers_start_at_no(self):
+        case = self.env['lab.case'].with_user(self.exec_user).create({
+            'partner_id': self.clinic.id, 'patient': 'Default Patient'})
+        self.assertEqual(
+            (case.scanned_impression, case.wax_bite, case.opposing_model, case.pre_cutting_model),
+            ('No', 'No', 'No', 'No'))

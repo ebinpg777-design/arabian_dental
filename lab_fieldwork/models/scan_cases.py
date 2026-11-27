@@ -23,9 +23,10 @@ class LabCase(models.Model):
 
     @api.onchange('is_scan')
     def _onchange_is_scan(self):
-        if self.is_scan:
-            self.is_3d_model_print = True
-            self.scanned_impression = 'Yes'
+        # Off undoes what on did: a case marked Scan by mistake kept "3D Model
+        # Print" and "Scanned: Yes" after the switch went back. (client, 2026-11-27)
+        self.is_3d_model_print = self.is_scan
+        self.scanned_impression = 'Yes' if self.is_scan else 'No'
 
     def _order_values(self):
         vals = super()._order_values()

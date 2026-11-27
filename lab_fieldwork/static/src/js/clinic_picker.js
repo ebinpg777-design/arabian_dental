@@ -17,6 +17,8 @@ import { standardFieldProps } from "@web/views/fields/standard_field_props";
  * where it is, so the wrong DR. ANSALA is visible before the case is saved.
  * (client, 2026-11-27: "Provide an attractive easy widget for adding Clinic/Doctor")
  */
+const ROWS_SHOWN = 4;
+
 export class FwClinicPicker extends Component {
     static template = "lab_fieldwork.FwClinicPicker";
     props = useProps({ ...standardFieldProps, placeholder: t.string().optional() });
@@ -25,7 +27,7 @@ export class FwClinicPicker extends Component {
         this.orm = useService("orm");
         this.state = proxy({
             open: false, query: "", busy: false, loaded: false,
-            starred: [], recent: [], results: [], chosen: null,
+            starred: [], recent: [], results: [], chosen: null, more: false,
         });
         this.token = 0;
         this.timer = null;
@@ -82,12 +84,14 @@ export class FwClinicPicker extends Component {
 
     onInput(ev) {
         this.state.query = ev.target.value;
+        this.state.more = false;
         clearTimeout(this.timer);
         this.timer = setTimeout(() => this.load(this.state.query.trim()), 250);
     }
 
     clearQuery() {
         this.state.query = "";
+        this.state.more = false;
         this.load("");
     }
 
@@ -129,6 +133,33 @@ export class FwClinicPicker extends Component {
         if (this.state.chosen && this.state.chosen.id === row.id) {
             this.state.chosen.starred = starred;
         }
+    }
+
+    /**
+     * The rows on screen. A handful only: the picker opens at the top of a long
+     * slip, and every starred and recent clinic as a tall card pushed the rest of
+     * the form a phone's height down. (client, 2026-11-27: "needs long scrolls")
+     */
+    get allRows() {
+        return this.state.query.trim()
+            ? this.state.results
+            : [...this.state.starred, ...this.state.recent];
+    }
+
+    get shownRows() {
+        const rows = this.allRows;
+        return this.state.more ? rows : rows.slice(0, ROWS_SHOWN);
+    }
+
+    get hiddenCount() {
+        return this.state.more ? 0 : Math.max(0, this.allRows.length - ROWS_SHOWN);
+    }
+
+    get listTitle() {
+        if (this.state.query.trim()) {
+            return "";
+        }
+        return this.state.starred.length ? _t("Starred and recent") : _t("Lately");
     }
 
     get showEmpty() {
