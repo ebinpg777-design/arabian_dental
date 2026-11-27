@@ -24,7 +24,24 @@
 
             <!-- ── the stage: camera / photo / type ───────────────────── -->
             <div class="o_fws_stage">
-                <t t-if="this.state.mode === 'camera'">
+                <!-- The app's own scanner (ADL Pro 1.0.19): one tap, any angle. -->
+                <t t-if="this.state.mode === 'native'">
+                    <button class="o_fws_shutter o_fws_native" t-att-disabled="this.state.busy"
+                            t-on-click="() => this.openScanner()">
+                        <span class="o_fws_shutter_ring">
+                            <i class="fa fa-barcode" t-if="!this.state.busy"/>
+                            <i class="fa fa-circle-o-notch fa-spin" t-else=""/>
+                        </span>
+                        <span class="o_fws_shutter_label">
+                            <t t-if="this.state.busy" t-out="this.state.stage"/>
+                            <t t-else="">Scan</t>
+                        </span>
+                    </button>
+                    <div class="o_fws_camhint">The phone's scanner reads the sticker at any
+                    angle, then opens again for the next one. Press Back on the phone when
+                    the run is done.</div>
+                </t>
+                <t t-elif="this.state.mode === 'camera'">
                     <div class="o_fws_viewport">
                         <video t-ref="this.videoRef" muted="muted" autoplay="autoplay"
                                playsinline="playsinline"
@@ -128,13 +145,18 @@
                         the code and presses Enter by itself.</t>
                     </div>
                 </t>
-                <div class="o_fws_busyline" t-if="this.state.busy and this.state.mode !== 'photo'">
+                <div class="o_fws_busyline" t-if="this.state.busy and this.state.mode !== 'photo' and this.state.mode !== 'native'">
                     <i class="fa fa-circle-o-notch fa-spin me-2"/><t t-out="this.state.stage"/>
                 </div>
             </div>
 
             <!-- ── ways in ────────────────────────────────────────────── -->
             <div class="o_fws_modes">
+                <button t-if="this.native" class="o_fws_mode"
+                        t-att-class="this.state.mode === 'native' ? 'o_fws_mode_on' : ''"
+                        t-on-click="() => this.setMode('native')">
+                    <i class="fa fa-barcode me-1"/>Scanner
+                </button>
                 <button t-if="this.live" class="o_fws_mode"
                         t-att-class="this.state.mode === 'camera' ? 'o_fws_mode_on' : ''"
                         t-on-click="() => this.setMode('camera')">

@@ -14,6 +14,69 @@ import {
     toCanvas as toCanvasFromBlob,
 } from "@lab_delivery/js/photo_barcode";
 
+/** Long side, in pixels, of what goes to the server: the stills are never scaled
+ *  down. Bench 2026-11-27 (60 synthetic sticker stills, zxing-cpp): the framed part
+ *  at full size read exactly what the whole still read, at a quarter less upload;
+ *  scaled to 1920 px the smallest barcodes stopped reading. */
+const SERVER_PX = 2400;
+/** A takePhoto() slower than this stalls the live loop: video frames from then on. */
+const SLOW_STILL_MS = 700;
+
+/**
+ * The ADL Pro app's own barcode scanner (app 1.0.19, `LabApp.scanBarcode`): Google's
+ * code scanner reads a sticker at any angle in a fraction of a second. Inside the
+ * app's WebView there is no BarcodeDetector, so the live camera below decodes every
+ * frame in JavaScript and sends what it cannot read to the server - ten to twenty
+ * seconds a sticker on the road. (client, 2026-11-27: "the scanning of deliveries
+ * is very slow")
+ */
+export function nativeScannerAvailable() {
+    const app = window.LabApp;
+    if (!app || typeof app.scanBarcode !== "function") {
+        return false;
+    }
+    try {
+        return typeof app.canScan !== "function" || Boolean(app.canScan());
+    } catch {
+        return false;
+    }
+}
+
+/** One look through the app's scanner: {status: ok|cancelled|unavailable|error, value}. */
+export function nativeScan(timeoutMs = 600000) {
+    return new Promise((resolve) => {
+        const id = "scan-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+        let timer = null;
+        const finish = (detail) => {
+            window.removeEventListener("labscan", onEvent);
+            clearTimeout(timer);
+            resolve(detail);
+        };
+        const onEvent = (ev) => {
+            let detail = ev.detail;
+            if (typeof detail === "string") {
+                try {
+                    detail = JSON.parse(detail);
+                } catch {
+                    return;
+                }
+            }
+            if (detail && detail.id === id) {
+                finish(detail);
+            }
+        };
+        window.addEventListener("labscan", onEvent);
+        // An answer that never comes (the app killed under the scanner) must not
+        // hold the station: after ten minutes it counts as Back.
+        timer = setTimeout(() => finish({ id, status: "cancelled" }), timeoutMs);
+        try {
+            window.LabApp.scanBarcode(id);
+        } catch (error) {
+            finish({ id, status: "error", message: String(error) });
+        }
+    });
+}
+
 /**
  * The Scan Station: a full-screen hand-over counter, not a prompt.
  *
@@ -50,9 +113,11 @@ export class ScanStation extends Component {
         // nothing else: the order number on the case's sticker is typed.
         // (client, 2026-09-28; the sticker, not the invoice, since 2026-10-22)
         this.live = isBarcodeScannerSupported() && !this.cameraExempt;
+        // The app's own scanner first, where the app has one (1.0.19).
+        this.native = !this.cameraExempt && nativeScannerAvailable();
         this.state = proxy({
             // 'camera' only ever offered when the live scanner can exist at all.
-            mode: this.cameraExempt ? "type" : (this.live ? "camera" : "photo"),
+            mode: this.cameraExempt ? "type" : this.native ? "native" : (this.live ? "camera" : "photo"),
             cameraReady: false,
             // What the loop is going through, said out loud: a camera that sees
             // the wrong thing and says nothing reads as a broken scanner.
@@ -113,20 +178,96 @@ export class ScanStation extends Component {
         };
         onMounted(() => {
             window.addEventListener("keydown", this.onWedgeKey, true);
-            if (this.state.mode === "camera") {
+            this.watchPosition();
+            if (this.state.mode === "native") {
+                this.openScanner();
+            } else if (this.state.mode === "camera") {
                 this.startCamera();
             } else if (this.state.mode === "type") {
                 setTimeout(() => this.manualRef() && this.manualRef().focus(), 80);
             }
         });
         onWillUnmount(() => {
+            this.closed = true;
+            clearTimeout(this.reopenTimer);
             window.removeEventListener("keydown", this.onWedgeKey, true);
+            if (this.positionWatch !== undefined && navigator.geolocation) {
+                navigator.geolocation.clearWatch(this.positionWatch);
+            }
             this.stopCamera();
         });
     }
 
     get cameraExempt() {
         return Boolean(session.fw_camera_exception);
+    }
+
+    // ------------------------------------------------------- the app's scanner
+    /**
+     * Open the phone's scanner; a read goes through the same scan as every other
+     * way in, and the scanner opens again for the next sticker while the run goes
+     * well - Back ends it. Anything that needs the person (a hand-over to confirm,
+     * a code the lab does not know, a pick-list) leaves the station in view.
+     */
+    async openScanner() {
+        if (this.scannerOpen || this.state.busy || this.closed) {
+            return;
+        }
+        clearTimeout(this.reopenTimer);
+        this.scannerOpen = true;
+        let reply = null;
+        try {
+            reply = await nativeScan();
+        } finally {
+            this.scannerOpen = false;
+        }
+        if (this.closed || !reply || reply.status === "cancelled") {
+            return;
+        }
+        if (reply.status !== "ok") {
+            this.buzz([40, 60, 40]);
+            this.card({
+                tone: "info",
+                title: _t("The phone's scanner did not open"),
+                detail: (reply.message ? reply.message + " " : "") +
+                    _t("Scanning with the camera here instead."),
+            });
+            this.native = false;
+            this.setMode(this.live ? "camera" : "photo");
+            return;
+        }
+        const code = (reply.value || "").trim();
+        if (!code) {
+            return;
+        }
+        if (looksLikePayment(code)) {
+            this.buzz([40, 60, 40]);
+            this.card({
+                tone: "bad",
+                title: _t("That is the payment QR"),
+                detail: _t("Scan the barcode on the case's sticker, not the SCAN TO PAY square on the invoice."),
+            });
+            this.reopenSoon();
+            return;
+        }
+        const outcome = await this.handleCode(code, "native");
+        if (["staged", "again", "delivered", "handled"].includes(outcome)) {
+            this.reopenSoon();
+        }
+    }
+
+    /** Long enough to feel the buzz and see the card land, short enough to keep a
+     *  doorstep of boxes moving. */
+    reopenSoon() {
+        if (this.state.mode !== "native" || this.closed) {
+            return;
+        }
+        clearTimeout(this.reopenTimer);
+        this.reopenTimer = setTimeout(() => {
+            if (this.state.mode === "native" && !this.closed) {
+                this.openScanner();
+            }
+        }, 900);
     }
 
     // ------------------------------------------------------------- live camera
@@ -387,7 +528,12 @@ export class ScanStation extends Component {
     async bestStill(fallbackFrame) {
         if (this.imageCapture) {
             try {
+                const started = performance.now();
                 const blob = await this.imageCapture.takePhoto();
+                // On many phones a still re-runs focus and exposure and takes one
+                // to three seconds: the live loop then sends video frames instead
+                // (Read this frame still takes the still). (2026-11-27)
+                this.stillSlow = performance.now() - started > SLOW_STILL_MS;
                 const canvas = await toCanvasFromBlob(blob, 2400);
                 if (canvas) {
                     return canvas;
@@ -418,12 +564,33 @@ export class ScanStation extends Component {
         }
     }
 
+    /**
+     * What goes to the server: the part of the picture inside the frame drawn on
+     * the screen - what the person aims with - at most SERVER_PX on its long side.
+     * The margins outside the frame were a quarter of every upload on mobile data.
+     */
+    serverImage(frame) {
+        const x = Math.round(frame.width * 0.05);
+        const y = Math.round(frame.height * 0.1);
+        const w = Math.round(frame.width * 0.9);
+        const h = Math.round(frame.height * 0.8);
+        const scale = Math.min(1, SERVER_PX / Math.max(w, h));
+        const out = document.createElement("canvas");
+        out.width = Math.round(w * scale);
+        out.height = Math.round(h * scale);
+        const ctx = out.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(frame, x, y, w, h, 0, 0, out.width, out.height);
+        return out;
+    }
+
     /** One frame to the lab's reader; never two at once. */
     async askServer(frame) {
         this.serverInFlight = true;
         this.lastServerAt = performance.now();
         try {
-            const b64 = frame.toDataURL("image/jpeg", 0.85).split(",")[1];
+            const b64 = this.serverImage(frame).toDataURL("image/jpeg", 0.85).split(",")[1];
             const codes = (await this.orm.silent.call(
                 "lab.delivery", "decode_photo", [b64])) || [];
             return codes.filter((code) => !looksLikePayment(code));
@@ -575,7 +742,7 @@ export class ScanStation extends Component {
                 const worth = this.state.bars >= 1 || this.frameBrightness(frame) > 150;
                 const due = now - this.lastServerAt > (promising ? 400 : 1000);
                 if (worth && !this.serverInFlight && due) {
-                    const still = promising ? await this.bestStill(frame) : frame;
+                    const still = promising && !this.stillSlow ? await this.bestStill(frame) : frame;
                     codes = await this.askServer(still);
                 }
             }
@@ -618,10 +785,56 @@ export class ScanStation extends Component {
         }
     }
 
+    /**
+     * Where the phone is, kept up to date while the station is open: every scan
+     * waited up to four seconds for a fresh fix before it was even sent - most of
+     * the pause between a read and its card. (2026-11-27)
+     */
+    watchPosition() {
+        if (session.fw_location_exception || !navigator.geolocation) {
+            return;
+        }
+        try {
+            this.positionWatch = navigator.geolocation.watchPosition(
+                (position) => {
+                    this.lastCoords = position.coords;
+                    this.lastCoordsAt = Date.now();
+                },
+                () => {},
+                { enableHighAccuracy: true, maximumAge: 30000, timeout: 60000 }
+            );
+        } catch {
+            this.positionWatch = undefined;
+        }
+    }
+
+    /** A fix from the last minute: the station's own watch, or the app's recorder. */
+    freshPosition() {
+        if (this.lastCoords && Date.now() - this.lastCoordsAt < 60000) {
+            return this.lastCoords;
+        }
+        try {
+            const app = window.LabApp;
+            if (app && typeof app.status === "function") {
+                const fix = (JSON.parse(app.status() || "{}") || {}).last_fix;
+                if (fix && fix.at && Date.now() - fix.at < 120000 && (fix.accuracy_m || 0) < 250) {
+                    return { latitude: fix.latitude, longitude: fix.longitude, accuracy: fix.accuracy_m };
+                }
+            }
+        } catch {
+            // no app, or an answer that does not parse: ask the browser below
+        }
+        return null;
+    }
+
     /** A location fix, or nothing, but never a wait. */
     positionOrNothing(ms) {
         if (session.fw_location_exception) {
             return Promise.resolve(null);   // an excused phone is not asked
+        }
+        const fresh = this.freshPosition();
+        if (fresh) {
+            return Promise.resolve(fresh);
         }
         return Promise.race([
             new Promise((resolve) => {
@@ -658,10 +871,14 @@ export class ScanStation extends Component {
     // ------------------------------------------------------------------- inputs
     setMode(mode) {
         this.state.mode = mode;
+        clearTimeout(this.reopenTimer);
         if (mode === "camera") {
             this.startCamera();
         } else {
             this.stopCamera();
+        }
+        if (mode === "native") {
+            this.openScanner();
         }
         if (mode === "type") {
             // after the click has settled, so the keyboard opens on the field
@@ -770,10 +987,12 @@ export class ScanStation extends Component {
     }
 
     // ---------------------------------------------------------------- the scan
+    /** The scan itself. Answers what became of it (see `consume`), for the app's
+     *  scanner to decide whether to open again. */
     async handleCode(code, origin) {
         const token = (code || "").trim();
         if (!token || this.pending.has(token)) {
-            return;
+            return "skipped";
         }
         this.pending.add(token);
         this.buzz([15]);
@@ -789,7 +1008,7 @@ export class ScanStation extends Component {
                 coords ? coords.longitude : false,
                 coords ? coords.accuracy : false,
             ]);
-            this.consume(token, action);
+            return this.consume(token, action);
         } catch (error) {
             this.buzz([40, 60, 40]);
             this.card({
@@ -797,6 +1016,7 @@ export class ScanStation extends Component {
                 title: token,
                 detail: (error && error.data && error.data.message) || String(error),
             });
+            return "error";
         } finally {
             this.pending.delete(token);
             this.state.busy = false;
@@ -805,7 +1025,8 @@ export class ScanStation extends Component {
     }
 
     /** Every outcome the server can answer with, as a card - and a wizard when
-     *  there is a hand-over to confirm. */
+     *  there is a hand-over to confirm. Returns which: staged, again, delivering,
+     *  delivered, several, handled, opened. */
     consume(token, action) {
         const found = action && action.context && action.context.lab_scan_summary;
         if (found && (found.state === "raised" || found.state === "ready")) {
@@ -834,7 +1055,7 @@ export class ScanStation extends Component {
                         _t("Already on the list — load it for delivery, or deliver it now."),
                         { type: "info", title: _t("%s — scanned again", found.delivery) }
                     );
-                    return;
+                    return "again";
                 }
                 // FIRST scan: the bag is open at the lab. The box is staged and
                 // the choice is the executive's - onto the run, or straight into
@@ -865,7 +1086,7 @@ export class ScanStation extends Component {
                                 : _t("%s — ready", found.delivery),
                     }
                 );
-                return;
+                return "staged";
             }
             // SECOND scan (or "deliver now"): the box is out on the run and this
             // is the door. Straight to the hand-over.
@@ -878,7 +1099,7 @@ export class ScanStation extends Component {
             );
             this.state.moved += 1;
             this.action.doAction(action);
-            return;
+            return "delivering";
         }
         if (found && found.state === "delivered") {
             this.buzz([80, 60, 80]);
@@ -892,7 +1113,7 @@ export class ScanStation extends Component {
                 detail: detail + ".",
                 action,
             });
-            return;
+            return "delivered";
         }
         if (found && found.state === "several") {
             this.buzz([15, 40, 15, 40, 15]);
@@ -902,7 +1123,7 @@ export class ScanStation extends Component {
                 detail: _t("Open the list and pick the one in your hand."),
                 action,
             });
-            return;
+            return "several";
         }
         if (action && action.tag === "display_notification") {
             // a colleague's finished box: the server already worded it
@@ -912,11 +1133,12 @@ export class ScanStation extends Component {
                 title: _t("Already handled"),
                 detail: (action.params && action.params.message) || "",
             });
-            return;
+            return "handled";
         }
         // Whatever else came back is something to show, not to hide.
         this.card({ tone: "info", title: token, detail: _t("Opened.") });
         this.action.doAction(action);
+        return "opened";
     }
 
     /** First scan, first answer: onto the run - the door's scan will deliver. */
@@ -989,6 +1211,9 @@ export class ScanStation extends Component {
     /** The case's sticker is what to scan: one sticker per order, its barcode the
      *  order number. (client, 2026-10-22) */
     get emptyHint() {
+        if (this.state.mode === "native") {
+            return _t("Tap Scan: the phone's scanner reads the case's sticker at any angle.");
+        }
         if (this.state.mode === "camera") {
             return _t("Point the camera at the barcode on the case's sticker.");
         }
