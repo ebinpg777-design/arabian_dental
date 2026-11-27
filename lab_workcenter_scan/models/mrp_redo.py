@@ -94,6 +94,12 @@ class MrpProductionRedo(models.Model):
                                    string='Redone', index='btree_not_null')
     lab_redo_reason_id = fields.Many2one('lab.redo.reason', compute='_compute_lab_redo',
                                            store=True, string='Last Redo Reason')
+    # A FINISHED case done again is a new job (see `lab_redo_as_new`): each points
+    # at the other. (client, 2026-11-27)
+    lab_redo_of_id = fields.Many2one(
+        'mrp.production', 'Remake Of', copy=False, readonly=True, index='btree_not_null',
+        help="The finished job this one makes again.")
+    lab_remake_ids = fields.One2many('mrp.production', 'lab_redo_of_id', string='Remakes')
 
     @api.depends('lab_redo_ids')
     def _compute_lab_redo(self):
@@ -168,6 +174,84 @@ class MrpProductionRedo(models.Model):
             count=len(workorders),
             stage=(', sent back from %s' % stage.display_name) if stage else ''))
         return redo
+
+    def lab_redo_as_new(self, reason, note=False):
+        """Do a FINISHED case again: a new job for the same order line, from the
+        first bench. Returns (new job, redo log entry).
+
+        A finished job cannot be reset in place - its finished product has already
+        been posted to stock, and Odoo forces such a job back to done on every
+        write. So the remake is a job of its own: the same product, bill of
+        materials and quantity, raised for the same order line, every step waiting
+        at the first bench. The finished job is left exactly as it was - it is the
+        record of the first attempt - and each points at the other. The remake
+        carries the redo, so it shows as done again on every board.
+        (client, 2026-11-27: "Able to do the rework of finished MOs")
+        """
+        self.ensure_one()
+        if self.state != 'done':
+            raise UserError(_("%s is not finished: start it again where it stands.", self.name))
+        if not reason:
+            raise UserError(_("Say why it is being done again."))
+        finished = self.workorder_ids.filtered(lambda w: w.state == 'done').sorted(
+            lambda w: (w.sequence, w.id))
+        stage = finished[-1:].workcenter_id
+        # A FRESH job, not a copy: a copy carries the finished job's own steps -
+        # the route as it was when it was made (benches since merged or renamed),
+        # and both arches of a two-arch case already split, which the confirm then
+        # splits again. A new job is laid out from the product's route as it is now.
+        product = self.product_id
+        bom = self.env['mrp.bom']._bom_find(
+            product, company_id=self.company_id.id, bom_type='normal')[product] \
+            or self.bom_id
+        remake = self.create({
+            'product_id': product.id,
+            'product_qty': self.product_qty,
+            'uom_id': self.uom_id.id,
+            'bom_id': bom.id or False,
+            'company_id': self.company_id.id,
+            'picking_type_id': self.picking_type_id.id,
+            'origin': self.origin or self.name,
+            'sale_line_id': self.sale_line_id.id or False,
+            'lab_redo_of_id': self.id,
+        })
+        if not remake.workorder_ids:
+            # a job whose steps were laid by hand, with no route to lay them from:
+            # the finished job's own steps, waiting again
+            Workorder = self.env['mrp.workorder']
+            for step in self.workorder_ids.filtered(lambda w: w.state != 'cancel').sorted(
+                    lambda w: (w.sequence, w.id)):
+                Workorder.create({
+                    'name': step.name, 'production_id': remake.id,
+                    'workcenter_id': step.workcenter_id.id,
+                    'operation_id': step.operation_id.id or False,
+                    'sequence': step.sequence,
+                    'duration_expected': step.duration_expected,
+                    **({'arch': step.arch} if 'arch' in step._fields and step.arch else {}),
+                })
+        if remake.state == 'draft':
+            remake.action_confirm()
+        redo = self.env['lab.mrp.redo'].create({
+            'production_id': remake.id,
+            'reason_id': reason.id if hasattr(reason, 'id') else int(reason),
+            'note': note or False,
+            'stage_id': stage.id if stage else False,
+            'operations_reset': len(remake.workorder_ids),
+            'attempt': self.lab_redo_count + 1,
+        })
+        remake.invalidate_recordset(['lab_redo_count', 'lab_is_redo', 'lab_redo_reason_id'])
+        why = redo.reason_id.name + ((' “%s”' % note) if note else '')
+        self.message_post(body=_("Finished, and made again as %(new)s - %(why)s.",
+                                 new=remake.name, why=why))
+        remake.message_post(body=_(
+            "Makes %(old)s again, from the first bench - %(why)s. %(count)s operation(s).",
+            old=self.name, why=why, count=len(remake.workorder_ids)))
+        order = self.sale_id if 'sale_id' in self._fields else False
+        if order:
+            order.sudo().message_post(body=_(
+                "%(old)s was finished and is being made again as %(new)s - %(why)s.",
+                old=self.name, new=remake.name, why=why), subtype_xmlid='mail.mt_note')
+        return remake, redo
 
     def action_view_redos(self):
         self.ensure_one()

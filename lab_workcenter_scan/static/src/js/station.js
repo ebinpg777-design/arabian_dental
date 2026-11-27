@@ -975,7 +975,7 @@ export class LabStation extends Component {
                 ]);
                 this.state.data = result.board;
                 this.buzz(true);
-                this.notification.add(result.message, { type: "warning" });
+                this.notification.add(result.message, { type: "warning", sticky: !!result.remake });
             },
         });
     }

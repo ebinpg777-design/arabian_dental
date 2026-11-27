@@ -1686,6 +1686,42 @@ class LabStation(models.AbstractModel):
         }
 
     @api.model
+    def _production_for_restart(self, code, workcenter):
+        """(job, its step at this bench) for a scanned card - an open job or a
+        finished one, by its manufacturing or sales order number."""
+        Production = self.env['mrp.production'].sudo()
+        try:
+            production = self._workorder_from_code(code, workcenter).production_id
+            missed = None
+        except UserError as error:
+            production, missed = Production, error
+        if not production:
+            # nothing open answers to it: a finished job, by its own number or its order's
+            number = (code or '').strip().upper()
+            production = Production.search([('name', '=', number)], limit=1)
+            if not production:
+                order = self.env['sale.order'].sudo().search([('name', '=', number)], limit=1)
+                jobs = Production.search([('sale_id', '=', order.id), ('state', '!=', 'cancel')],
+                                         order='id desc') if order else Production
+                production = (jobs.filtered(
+                    lambda j: workcenter in j.workorder_ids.workcenter_id) or jobs)[:1]
+        if not production:
+            raise missed or UserError(_("Nothing in the lab matches %s.", code))
+        steps = production.workorder_ids.filtered(
+            lambda w: w.workcenter_id == workcenter and w.state != 'cancel')
+        if not steps:
+            benches = production.workorder_ids.filtered(
+                lambda w: w.state != 'cancel').workcenter_id
+            raise UserError(_(
+                "%(job)s does not pass through %(here)s. A case is started again from one "
+                "of its own benches: %(benches)s.",
+                job=production.name, here=workcenter.display_name,
+                benches=', '.join(benches.mapped('display_name')) or _('none')))
+        step = steps.filtered(lambda w: w.state != 'done')[:1] \
+            or steps.sorted(lambda w: (w.sequence, w.id))[-1:]
+        return production, step
+
+    @api.model
     def scan_to_restart(self, code, workcenter_id=None, person_id=None):
         """Find the job a scanned code refers to, so it can be started again.
 
@@ -1695,6 +1731,13 @@ class LabStation(models.AbstractModel):
         work once they have answered. A scan that acted on the spot would make
         a mis-scan unrecoverable. (client, 2026-09-12)
 
+        Scanned at ANY bench the case passes through, not only the one it is
+        standing at: the fault is found where it shows, which is seldom where the
+        case is. And a FINISHED case can be done again too - as a new job from the
+        first bench (`lab_redo_as_new`). (client, 2026-11-27: "Able to do the
+        rework of finished MOs. Allow to do the rework when scanning from any work
+        station of that MO")
+
         Refused here rather than after the question, so nobody picks a reason
         for a job that was never going to take it.
         """
@@ -1702,30 +1745,17 @@ class LabStation(models.AbstractModel):
             if workcenter_id else self._default_workcenter()
         if not workcenter:
             raise UserError(_("Choose a station before scanning."))
-        wo = self._workorder_from_code(code, workcenter)
-        if wo.workcenter_id != workcenter:
-            # sudo on the NAME alone: which bench holds a job is exactly what a
-            # bench-bound user may not read, and being told where it is must not
-            # be an access error.
-            raise UserError(_(
-                "%(job)s is at %(where)s, not here. A case is started again from "
-                "the bench it is standing at.",
-                job=self._job_label(wo),
-                where=wo.workcenter_id.sudo().display_name))
-        wo._check_bench_access(_('start work again'))
-        production = wo.production_id
-        if not production:
-            raise UserError(_("This job has no manufacturing order to start again."))
-        if production.state not in REDOABLE:
+        production, step = self._production_for_restart(code, workcenter)
+        step._check_bench_access(_('start work again'), workcenter)
+        if production.state not in REDOABLE and production.state != 'done':
             raise UserError(_(
                 "%(job)s is %(state)s, so it cannot be started again.",
-                job=self._job_label(wo),
+                job=production.name,
                 state=dict(production._fields['state'].selection).get(
                     production.state, production.state)))
-        return {
-            'job': self._card(wo, self._ul_labels()),
-            'reasons': self._redo_reasons(),
-        }
+        card = self._card(step, self._ul_labels())
+        card['finished_job'] = production.state == 'done'
+        return {'job': card, 'reasons': self._redo_reasons()}
 
     @api.model
     def restart(self, workorder_id, reason_id, note=None, person_id=None):
@@ -1747,16 +1777,27 @@ class LabStation(models.AbstractModel):
         reason = self.env['lab.redo.reason'].sudo().browse(int(reason_id)).exists()
         if not reason:
             raise UserError(_("Choose why the case is being done again."))
-        redo = production.sudo().lab_redo(reason, (note or '').strip() or False)
+        note = (note or '').strip() or False
+        if production.state == 'done':
+            remake, redo = production.sudo().lab_redo_as_new(reason, note)
+            message = _(
+                "%(job)s was finished: it is being made again as %(new)s, from the "
+                "first bench — %(reason)s (attempt %(attempt)s).",
+                job=production.name, new=remake.name, reason=reason.name,
+                attempt=redo.attempt)
+        else:
+            redo = production.sudo().lab_redo(reason, note)
+            message = _(
+                "%(job)s started again from the first bench — %(reason)s "
+                "(attempt %(attempt)s).",
+                job=production.name, reason=reason.name, attempt=redo.attempt)
         return {
             'board': self.get_station(workcenter_id, person_id),
             'attempt': redo.attempt,
             'reason': reason.name,
             'operations': redo.operations_reset,
-            'message': _(
-                "%(job)s started again from the first bench — %(reason)s "
-                "(attempt %(attempt)s).",
-                job=production.name, reason=reason.name, attempt=redo.attempt),
+            'remake': redo.production_id.name if redo.production_id != production else False,
+            'message': message,
         }
 
     @api.model

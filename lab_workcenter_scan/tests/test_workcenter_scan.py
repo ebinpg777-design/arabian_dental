@@ -342,6 +342,57 @@ class TestStationRestart(TransactionCase):
         with self.assertRaises(UserError):
             station.scan_to_restart('NO/SUCH/JOB', self.wc_a.id)
 
+    # ------------------------------------------- any bench, and finished cases
+    def test_any_bench_of_the_case_may_start_it_again(self):
+        """The fault is found where it shows, which is seldom where the case stands.
+        (client, 2026-11-27: "Allow to do the rework when scanning from any work
+        station of that MO")"""
+        finisher = self.env['res.users'].create({
+            'name': 'Redo Finisher', 'login': 'redo_finisher',
+            'group_ids': [(6, 0, [self.env.ref('base.group_user').id,
+                                  self.env.ref('mrp.group_mrp_user').id])]})
+        self.wc_b.users = [(6, 0, finisher.ids)]
+        self.mo.action_confirm()
+        station = self.env['lab.station'].with_user(finisher)
+        found = station.scan_to_restart(self.mo.name, self.wc_b.id)
+        self.assertEqual(found['job']['id'], self.wo_b.id, "the step in front of them")
+        self.assertFalse(found['job']['finished_job'])
+        station.restart(found['job']['id'], self.reason.id)
+        self.mo.invalidate_recordset()
+        self.assertEqual(self.mo.lab_redo_count, 1)
+
+    def test_a_finished_case_is_made_again_as_a_new_job(self):
+        """(client, 2026-11-27: "Able to do the rework of finished MOs")"""
+        self.mo.action_confirm()
+        for step in (self.wo_a, self.wo_b):
+            step.button_start()
+            step.button_finish()
+        self.mo.button_mark_done()
+        self.assertEqual(self.mo.state, 'done')
+        station = self.env['lab.station'].with_user(self.head)
+        found = station.scan_to_restart(self.mo.name, self.wc_a.id)
+        self.assertTrue(found['job']['finished_job'])
+        result = station.restart(found['job']['id'], self.reason.id, 'came back loose')
+        self.assertEqual(self.mo.state, 'done', "the finished job is left as it was")
+        remake = self.mo.lab_remake_ids
+        self.assertEqual(len(remake), 1)
+        self.assertEqual(result['remake'], remake.name)
+        self.assertEqual((remake.product_id, remake.product_qty), (self.mo.product_id, 1.0))
+        self.assertEqual(remake.lab_redo_of_id, self.mo)
+        self.assertEqual(remake.lab_redo_count, 1)
+        self.assertEqual(remake.lab_redo_ids.note, 'came back loose')
+        steps = remake.workorder_ids.sorted(lambda w: (w.sequence, w.id))
+        self.assertEqual(steps.workcenter_id, self.wc_a | self.wc_b)
+        self.assertFalse(steps.filtered(lambda w: w.state == 'done'), "every step waits again")
+        self.assertIn(remake.name, result['message'])
+
+    def test_a_bench_the_case_never_passes_is_still_refused(self):
+        elsewhere = self.env['mrp.workcenter'].create(
+            {'name': 'Elsewhere', 'head_user_ids': [(6, 0, self.head.ids)]})
+        with self.assertRaises(UserError) as caught:
+            self.env['lab.station'].with_user(self.head).scan_to_restart(self.mo.name, elsewhere.id)
+        self.assertIn('Bend', str(caught.exception), "and it names the case's own benches")
+
     def test_a_restart_sends_every_bench_back_and_records_why(self):
         station = self.env['lab.station'].with_user(self.head)
         station.accept(self.wo_a.id)

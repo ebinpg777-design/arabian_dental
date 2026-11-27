@@ -9,7 +9,17 @@
              shrug: the number of operations is the size of the loss. -->
         <div class="o_st_dangerlabel" role="alert">
             <i class="fa fa-refresh" title="Start again"/>
-            <div>
+            <!-- A finished case is made again as a job of its own: what was done
+                 stays on the finished one. (client, 2026-11-27) -->
+            <div t-if="this.props.job.finished_job">
+                <strong>This case is finished. It is made again as a new job, from the first bench.</strong>
+                The finished job stays as it is, and the new one is recorded as done again.
+                <t t-if="this.props.job.redo_count">
+                    This case has already been started again
+                    <t t-out="this.props.job.redo_count"/> time(s).
+                </t>
+            </div>
+            <div t-else="">
                 <strong>Every bench starts again from the first step.</strong>
                 The work already done on this case is not kept, and the case is
                 recorded as having been done again.
@@ -29,7 +39,11 @@
                 <span t-if="this.props.job.patient and this.props.job.clinic"> · </span>
                 <span t-if="this.props.job.clinic" class="o_st_clinic" t-out="this.props.job.clinic"/>
             </div>
-            <div class="o_st_doing_next">
+            <div t-if="this.props.job.finished_job" class="o_st_doing_next">
+                <i class="fa fa-check-circle me-1" title="Finished"/>
+                Finished — <strong t-out="this.props.job.operation"/> was done
+            </div>
+            <div t-else="" class="o_st_doing_next">
                 <i class="fa fa-industry me-1" title="Now at"/>
                 Now at <strong t-out="this.props.job.operation"/>
             </div>
