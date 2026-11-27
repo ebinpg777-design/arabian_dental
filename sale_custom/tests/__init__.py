@@ -25,3 +25,4 @@ from . import test_technicians
 from . import test_route_place_of_supply
 from . import test_order_shade
 from . import test_order_product_categories
+from . import test_route_membership

@@ -14,6 +14,10 @@
                         <field name="emergency_service_perc" class="oe_inline"/>
                     </div>
                 </setting>
+                <setting id="lab_route_membership_multi_setting"
+                         help="A salesperson or executive can be a member of more than one Sales Route. When off, adding them to a route takes them off their other route.">
+                    <field name="lab_route_membership_multi"/>
+                </setting>
             </setting>
         </field>
     </record>
