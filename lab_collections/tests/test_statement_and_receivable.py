@@ -44,6 +44,27 @@ class TestStatementAndReceivable(TransactionCase):
         printed = wizard.action_print()
         self.assertEqual(printed['type'], 'ir.actions.act_url')
         self.assertIn('/web/content/', printed['url'])
+        # Under tests Odoo hands back the report's HTML instead of a PDF; what
+        # matters here is that the download is not an empty file.
+        self.assertGreater(len(self._downloaded(printed)), 500, "not an empty file")
+
+    def _downloaded(self, action):
+        attachment_id = int(action['url'].split('/web/content/')[1].split('?')[0])
+        raw = self.env['ir.attachment'].sudo().browse(attachment_id).raw
+        return bytes(raw) if raw else b''
+
+    def test_an_executive_exports_the_statement_to_excel(self):
+        """The Excel file is a real workbook. Odoo 20 ignores `datas` on an
+        attachment, and the file came out empty: Excel said the format was not
+        valid. (client, 2026-11-27)"""
+        action = self.Perf.with_user(self.executive).action_statement_for_partner(self.mine.id)
+        wizard = self.env['epg.partner.statement.wizard'].browse(
+            action['res_id']).with_user(self.executive)
+        exported = wizard.action_export_xlsx()
+        self.assertEqual(exported['type'], 'ir.actions.act_url')
+        content = self._downloaded(exported)
+        self.assertTrue(content.startswith(b'PK'), "an xlsx is a zip container")
+        self.assertGreater(len(content), 1000)
 
     def test_an_accountant_gets_the_full_statement_dialog(self):
         action = self.Perf.with_user(self.accountant).action_statement_for_partner(self.mine.id)

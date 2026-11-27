@@ -44,7 +44,6 @@ reached yet is open, aged by its own invoice date. Due dates are no extra
 information here — invoice_date_due equals invoice_date on 99.6% of invoices — so
 "overdue" is defined as open money older than 30 days.
 """
-import base64
 import logging
 
 from dateutil.relativedelta import relativedelta
@@ -783,7 +782,9 @@ class CollectionPerformance(models.AbstractModel):
         """
         attachment = self.env['ir.attachment'].sudo().create({
             'name': name, 'type': 'binary', 'mimetype': 'application/pdf',
-            'datas': base64.b64encode(pdf),
+            # Odoo 20 dropped `datas`: given it, create() ignores the content and
+            # the download is an empty file (Excel: "format not valid"). (2026-11-27)
+            'raw': pdf,
         })
         return {
             'type': 'ir.actions.act_url',
@@ -796,7 +797,7 @@ class CollectionPerformance(models.AbstractModel):
         """Any rendered file handed back the same private way as _pdf_download."""
         attachment = self.env['ir.attachment'].sudo().create({
             'name': name, 'type': 'binary', 'mimetype': mimetype,
-            'datas': base64.b64encode(content),
+            'raw': content,
         })
         return {
             'type': 'ir.actions.act_url',
