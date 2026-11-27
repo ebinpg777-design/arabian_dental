@@ -18,6 +18,10 @@ $fwc-tones: (
     red:    (#dc2626, #fef2f2, #fecaca),
     slate:  (#475569, #f1f5f9, #cbd5e1),
 );
+// what an option looks like when it is NOT chosen: grey, every widget alike
+$fw-off-line: #e2e8f0;
+$fw-off-bg: #f8fafc;
+$fw-off-ink: #94a3b8;
 $fwc-ink: #0f172a;
 $fwc-muted: #64748b;
 $fwc-line: #e2e8f0;
@@ -27,10 +31,12 @@ $fwc-line: #e2e8f0;
     .o_fwci_t_#{$name}, .o_fw_sec_#{$name} {
         --fwc: #{nth($c, 1)}; --fwc-tint: #{nth($c, 2)}; --fwc-edge: #{nth($c, 3)};
     }
-    // a chip with a colour of its own: tinted when off, filled when on
+    // a chip with a colour of its own: GREY when off, its colour only when on. A
+    // tinted chip read as chosen, and the wrong one was left chosen.
+    // (client, 2026-11-27: "only selected one should be colored")
     .o_fw_choice_chip.o_fw_c_#{$name} {
-        border-color: nth($c, 3); background-color: nth($c, 2); color: nth($c, 1);
-        &:hover:not(:disabled) { border-color: nth($c, 1); }
+        border-color: $fw-off-line; background-color: $fw-off-bg; color: $fw-off-ink;
+        &:hover:not(:disabled) { border-color: nth($c, 3); color: nth($c, 1); }
         &.o_fw_choice_on { background-color: nth($c, 1); border-color: nth($c, 1); color: #fff;
             box-shadow: 0 2px 8px rgba(nth($c, 1), .35); }
     }
@@ -111,6 +117,7 @@ $fwc-line: #e2e8f0;
 .o_fwci_meta { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .25rem; }
 .o_fwci_tag { border-radius: .75rem; padding: .0625rem .5rem; font-size: .6875rem; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     &.o_fwci_tag_arch { background: #eff6ff; color: #1d4ed8; }
+    &.o_fwci_tag_nojaw { background: #fef2f2; color: #b91c1c; }
     &.o_fwci_tag_shade { background: #fdf2f8; color: #be185d; }
     &.o_fwci_tag_teeth { background: #eef2ff; color: #4338ca; font-variant-numeric: tabular-nums; }
     &.o_fwci_tag_cast { background: #f1f5f9; color: #475569; }
@@ -126,9 +133,10 @@ $fwc-line: #e2e8f0;
     display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .0625rem; line-height: 1.1; transition: transform .08s;
     svg { width: 2.125rem; height: 1.125rem; display: block; }
     &:active { transform: scale(.97); }
-    &.o_fwci_upper { border-color: #bfdbfe; color: #2563eb; background: #eff6ff;
+    // grey (letters AND the arch drawing, which is currentColor) until chosen
+    &.o_fwci_upper { border-color: $fw-off-line; color: $fw-off-ink; background: $fw-off-bg;
         &.on { background: #2563eb; border-color: #2563eb; color: #fff; box-shadow: 0 2px 8px rgba(37, 99, 235, .35); } }
-    &.o_fwci_lower { border-color: #99f6e4; color: #0d9488; background: #f0fdfa;
+    &.o_fwci_lower { border-color: $fw-off-line; color: $fw-off-ink; background: $fw-off-bg;
         &.on { background: #0d9488; border-color: #0d9488; color: #fff; box-shadow: 0 2px 8px rgba(13, 148, 136, .35); } } }
 .o_fwci_qty { display: flex; align-items: center; gap: .25rem; flex: 0 0 auto; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: .75rem; padding: .1875rem; }
 .o_fwci_qbtn { width: 44px; height: 44px; border: 0; border-radius: .625rem; background: #f59e0b; color: #fff; font-size: 1rem;
@@ -143,7 +151,7 @@ $fwc-line: #e2e8f0;
     .fa { font-size: .9375rem; }
     span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     &.o_fwci_a_shade { border-color: #fbcfe8; color: #db2777; background: #fdf2f8; &.on { background: #db2777; border-color: #db2777; color: #fff; } }
-    &.o_fwci_a_urgent { border-color: #fecaca; color: #dc2626; background: #fef2f2; &.on { background: #dc2626; border-color: #dc2626; color: #fff; } }
+    &.o_fwci_a_urgent { border-color: $fw-off-line; color: $fw-off-ink; background: $fw-off-bg; &.on { background: #dc2626; border-color: #dc2626; color: #fff; } }
     &.o_fwci_a_note { border-color: #cbd5e1; color: #475569; background: #f8fafc; &.on { background: #475569; border-color: #475569; color: #fff; } }
     &.o_fwci_a_copy { border-color: #c7d2fe; color: #4f46e5; background: #eef2ff; &:active { background: #4f46e5; color: #fff; } } }
 .o_fwci_notein { width: 100%; min-height: 44px; margin-top: .5rem; border: 1.5px solid #cbd5e1; border-radius: .75rem; padding: .375rem .75rem; font-size: .9375rem;
@@ -168,7 +176,7 @@ $fwc-line: #e2e8f0;
     &:active { filter: brightness(.96); } }
 .o_fwci_cast { flex: 0 1 auto; display: flex; align-items: center; gap: .25rem; }
 .o_fwci_cast_l { font-size: .6875rem; font-weight: 700; color: $fwc-muted; text-transform: uppercase; letter-spacing: .04em; margin-right: .125rem; }
-.o_fwci_castbtn { min-width: 46px; min-height: 52px; border-radius: .75rem; border: 1.5px solid #cbd5e1; background: #fff; color: #475569; font-weight: 800; font-size: .8125rem; padding: 0 .5rem;
+.o_fwci_castbtn { min-width: 46px; min-height: 52px; border-radius: .75rem; border: 1.5px solid $fw-off-line; background: $fw-off-bg; color: $fw-off-ink; font-weight: 800; font-size: .8125rem; padding: 0 .5rem;
     &.o_fwci_upper.on { background: #2563eb; border-color: #2563eb; color: #fff; }
     &.o_fwci_lower.on { background: #0d9488; border-color: #0d9488; color: #fff; }
     &.o_fwci_both.on { background: #7c3aed; border-color: #7c3aed; color: #fff; } }
@@ -337,3 +345,12 @@ $fwc-line: #e2e8f0;
     .o_fw_order_no_v { font-size: 1.125rem; font-weight: 800; letter-spacing: .02em; }
     .o_field_widget { width: auto; }
 }
+
+// A word on the card when the jaw, the teeth and the cast disagree: red where the
+// case will be refused, amber where it is only worth a second look. (client, 2026-11-27)
+.o_fwci_warn {
+    margin: .5rem 0 0; padding: .5rem .75rem; border-radius: .625rem; font-size: .8125rem;
+    line-height: 1.35; background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
+    &.o_fwci_warn_bad { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+}
+

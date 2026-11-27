@@ -92,6 +92,23 @@ export class FwCaseItems extends Component {
     has(line, arch) {
         return line.ul === arch || line.ul === "ul";
     }
+    /** The teeth of an item that are not in its jaw - said on the card at once,
+     *  and refused at submit. */
+    teethOutsideJaw(line) {
+        if (!line.teeth || !["upper", "lower"].includes(line.ul)) {
+            return [];
+        }
+        const jaw = line.ul === "upper" ? "1256" : "3478";
+        return (line.teeth.match(/\b[1-8][1-8]\b/g) || []).filter((t) => !jaw.includes(t[0]));
+    }
+    /** A cast that does not include the item's own jaw: often a stray tap, sometimes
+     *  only the opposing cast came - so said, not refused. */
+    castOffJaw(line) {
+        if (!line.cast || !line.ul || line.cast === "ul" || line.ul === "ul") {
+            return false;
+        }
+        return line.cast !== line.ul;
+    }
     archLabel(line) {
         return { upper: _t("Upper"), lower: _t("Lower"), ul: _t("Upper + Lower") }[line.ul] || "";
     }
@@ -114,8 +131,8 @@ export class FwCaseItems extends Component {
         } else if (lower) {
             value = "lower";
         } else {
-            // the last arch cannot be switched off: the tap moves to the other one
-            value = arch === "upper" ? "lower" : "upper";
+            // the last arch switched off: no jaw, and the card asks for one again
+            value = false;
         }
         line.record.update({ ul: value });
     }
@@ -316,12 +333,12 @@ export class FwCaseItems extends Component {
         this.state.added = Math.max(0, this.state.added - 1);
     }
     async add(product) {
-        const lines = this.lines;
-        const last = lines[lines.length - 1];
         const shade = this.caseShade;
         await this.list.addNewRecord({
             position: "bottom", mode: "readonly",
-            context: { default_product_id: product.id, default_ul: last ? last.ul : "upper", default_quantity: 1,
+            // No jaw until it is tapped (or the teeth say it): a pre-filled Upper was
+            // left on lower work. (client, 2026-11-27)
+            context: { default_product_id: product.id, default_ul: false, default_quantity: 1,
                        // the case's shade, so the new card shows it at once
                        default_colour_id: shade ? shade.id : false },
         });

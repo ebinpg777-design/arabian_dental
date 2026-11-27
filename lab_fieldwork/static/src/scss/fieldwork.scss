@@ -803,10 +803,11 @@ $fw-teal:        #0d7c8a;
 .o_fw_choice_chip {
     min-height: 44px;
     padding: .5rem .875rem;
-    border: 1px solid $border-color;
+    // not chosen: grey, so only the chosen one is in colour (client, 2026-11-27)
+    border: 1px solid #e2e8f0;
     border-radius: 1.5rem;
-    background-color: $body-bg;
-    color: $o-gray-700;
+    background-color: #f8fafc;
+    color: #94a3b8;
     font-size: .875rem;
     font-weight: 600;
     line-height: 1.2;
@@ -1054,10 +1055,10 @@ $fw-teal:        #0d7c8a;
     gap: .125rem;
     min-height: 44px;
     padding: .375rem .75rem;
-    border: 1px solid $border-color;
+    border: 1px solid #e2e8f0;
     border-radius: .625rem;
-    background-color: $body-bg;
-    color: $o-gray-500;
+    background-color: #f8fafc;
+    color: #94a3b8;
     font-size: .6875rem;
     font-weight: 600;
 
@@ -1066,10 +1067,11 @@ $fw-teal:        #0d7c8a;
 
 .o_fw_arch_svg { width: 2.25rem; height: 1.25rem; display: block; }
 
+// chosen: filled, so it cannot be mistaken for the one beside it (client, 2026-11-27)
 .o_fw_arch_on {
-    color: $fw-violet;
+    color: #fff;
     border-color: $fw-violet;
-    background-color: rgba($fw-violet, .10);
+    background-color: $fw-violet;
 }
 
 .o_fw_arch_label { font-size: .75rem; color: $o-gray-600; }

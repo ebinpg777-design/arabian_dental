@@ -41,7 +41,8 @@
                 <div class="o_fwci_name">
                     <div class="o_fwci_product" t-out="l.product or 'Pick what is being made'"/>
                     <div class="o_fwci_meta">
-                        <span class="o_fwci_tag o_fwci_tag_arch" t-out="this.archLabel(l)"/>
+                        <span t-if="l.ul" class="o_fwci_tag o_fwci_tag_arch" t-out="this.archLabel(l)"/>
+                        <span t-else="" class="o_fwci_tag o_fwci_tag_nojaw"><i class="fa fa-hand-pointer-o me-1" title="Jaw"/>Tap the jaw</span>
                         <span class="o_fwci_tag o_fwci_tag_teeth" t-if="l.teeth"><i class="fa fa-th me-1" title="Teeth"/><t t-out="l.teeth"/></span>
                         <span class="o_fwci_tag o_fwci_tag_cast" t-if="l.cast"><i class="fa fa-cube me-1" title="Cast"/>Cast <t t-out="{upper: 'U', lower: 'L', ul: 'U+L'}[l.cast]"/></span>
                         <span class="o_fwci_tag o_fwci_tag_shade" t-if="l.shade"><i class="fa fa-tint me-1" title="Shade"/><t t-out="l.shade"/></span>
@@ -89,11 +90,23 @@
                     </span>
                     <i class="fa fa-angle-right" title="Open"/>
                 </button>
+                <!-- said at once, not only at submit (client, 2026-11-27) -->
+                <div t-if="this.teethOutsideJaw(l).length" class="o_fwci_warn o_fwci_warn_bad">
+                    <i class="fa fa-exclamation-triangle me-1" title="Check"/>
+                    Tooth <t t-out="this.teethOutsideJaw(l).join(', ')"/> is not in the
+                    <t t-out="this.archLabel(l)"/> jaw. Change the jaw or the teeth.
+                </div>
                 <div class="o_fwci_cast" role="group" aria-label="Cast received">
                     <span class="o_fwci_cast_l">Cast</span>
                     <button type="button" t-att-class="'o_fwci_castbtn o_fwci_upper' + (l.cast === 'upper' ? ' on' : '')" t-on-click="() => this.setCast(l, 'upper')">U</button>
                     <button type="button" t-att-class="'o_fwci_castbtn o_fwci_lower' + (l.cast === 'lower' ? ' on' : '')" t-on-click="() => this.setCast(l, 'lower')">L</button>
                     <button type="button" t-att-class="'o_fwci_castbtn o_fwci_both' + (l.cast === 'ul' ? ' on' : '')" t-on-click="() => this.setCast(l, 'ul')">U+L</button>
+                </div>
+                <div t-if="this.castOffJaw(l)" class="o_fwci_warn">
+                    <i class="fa fa-info-circle me-1" title="Check"/>
+                    The cast is <t t-out="{upper: 'U', lower: 'L'}[l.cast]"/> but the item is
+                    <t t-out="this.archLabel(l)"/>. Only the opposing cast came? If not, tap
+                    <t t-out="{upper: 'U', lower: 'L'}[l.cast]"/> again to take it off.
                 </div>
             </div>
 

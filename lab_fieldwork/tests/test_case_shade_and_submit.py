@@ -223,3 +223,29 @@ class TestCaseShadeAndSubmit(TransactionCase):
         self.assertNotIn(stranger.id, [r['id'] for r in Case.clinic_picker('ZZ Picker')['results']],
                          "only the clinics of the executive's own routes")
 
+    # ---------------------------------------------------- the jaw, and its teeth
+    def test_an_item_has_no_jaw_until_one_is_chosen_and_submit_asks_for_it(self):
+        """A pre-filled Upper was left on lower work. (client, 2026-11-27: "Cast and
+        Jaws are some times mistakenly entered by executive")"""
+        case = self.Case.create({'partner_id': self.clinic.id, 'patient': 'No Jaw',
+                                 'line_ids': [(0, 0, {'product_id': self.crown.id})]})
+        self.assertFalse(case.line_ids.ul, "nothing chosen for them")
+        with self.assertRaises(UserError) as caught:
+            case.action_submit()
+        self.assertIn('tap the jaw', str(caught.exception))
+        case.line_ids.ul = 'lower'
+        case.action_submit()
+        self.assertEqual(case.sudo().sale_order_id.order_line.ul, 'lower')
+
+    def test_teeth_of_the_other_jaw_are_refused_by_name(self):
+        case = self.Case.create({'partner_id': self.clinic.id, 'patient': 'Wrong Jaw',
+                                 'line_ids': [(0, 0, {'product_id': self.crown.id, 'ul': 'upper',
+                                                      'teeth': '14, 36'})]})
+        with self.assertRaises(UserError) as caught:
+            case.action_submit()
+        self.assertIn('36', str(caught.exception))
+        self.assertNotIn('14,', str(caught.exception))
+        case.line_ids.ul = 'ul'
+        case.action_submit()
+        self.assertTrue(case.sudo().sale_order_id, "both jaws hold both teeth")
+

@@ -754,6 +754,19 @@ class LabCase(models.Model):
             missing = case.line_ids.filtered(lambda l: not l.product_id)
             if missing:
                 raise UserError(_("A line on %s has no product.", case.patient))
+            for line in case.line_ids:
+                if not line.ul:
+                    raise UserError(_(
+                        "%(patient)s: tap the jaw for %(work)s - Upper, Lower, or both.",
+                        patient=case.patient, work=line.product_id.display_name))
+                wrong = line._lab_teeth_outside_jaw()
+                if wrong:
+                    raise UserError(_(
+                        "%(patient)s: %(work)s is for the %(jaw)s jaw, but tooth %(teeth)s "
+                        "is not in it. Change the jaw or the teeth.",
+                        patient=case.patient, work=line.product_id.display_name,
+                        jaw=dict(line._fields['ul']._description_selection(self.env)).get(
+                            line.ul, line.ul), teeth=', '.join(wrong)))
             if case.deliver_to != 'clinic' and not (case.delivery_address or '').strip():
                 raise UserError(_(
                     "%(patient)s is to be delivered to %(where)s: write the address, or the "
@@ -1144,7 +1157,11 @@ class LabCaseLine(models.Model):
     product_id = fields.Many2one(
         'product.product', string='Work', required=True,
         domain="[('sale_ok', '=', True)]")
-    ul = fields.Selection(UL, string='Jaw', required=True, default='upper')
+    # No jaw until the executive taps one: a default of Upper was left on lower
+    # work. Required when the case is submitted (`_check_ready`), not before, so a
+    # half-entered slip still saves. (client, 2026-11-27: "Cast and Jaws are some
+    # times mistakenly entered by executive")
+    ul = fields.Selection(UL, string='Jaw')
     quantity = fields.Float('Qty', default=1.0, required=True,
                             digits='Product Unit of Measure')
     # The item's shade: the case's own unless this item says otherwise, so a bridge
@@ -1225,6 +1242,15 @@ class LabCaseLine(models.Model):
         # the office with the doctor call on (LabCase._ask_doctor_when_empty).
         cases.exists()._ask_doctor_when_empty()
         return result
+
+    def _lab_teeth_outside_jaw(self):
+        """The FDI teeth of this line that are not in its jaw: upper is quadrants
+        1, 2 (and milk 5, 6), lower 3, 4 (7, 8)."""
+        self.ensure_one()
+        if not self.teeth or self.ul not in ('upper', 'lower'):
+            return []
+        jaw = '1256' if self.ul == 'upper' else '3478'
+        return [t for t in re.findall(r'\b[1-8][1-8]\b', self.teeth) if t[0] not in jaw]
 
     def _line_values(self):
         self.ensure_one()
