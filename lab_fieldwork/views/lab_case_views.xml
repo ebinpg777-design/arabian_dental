@@ -524,7 +524,7 @@
 
     <!-- My Day's "Case by courier" button: a blank slip with no visit behind it. -->
     <record id="action_case_new_sent" model="ir.actions.act_window">
-        <field name="name">Case by courier / transport</field>
+        <field name="name">New Case</field>
         <field name="res_model">lab.case</field>
         <field name="view_mode">form</field>
         <field name="target">current</field>

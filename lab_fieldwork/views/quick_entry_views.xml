@@ -8,7 +8,10 @@
             <form string="Quick Case Entry">
                 <group>
                     <field name="can_edit_executive" invisible="1"/>
-                    <field name="partner_id" options="{'no_create': True}"/>
+                    <!-- the same thumb-sized picker as the case: starred and recent
+                         clinics first, typing narrows the rest (client, 2026-11-27) -->
+                    <field name="partner_id" widget="fw_clinic"
+                           placeholder="Search clinic, doctor, place or phone"/>
                     <field name="entry_date"/>
                     <field name="executive_id" readonly="not can_edit_executive"/>
                     <field name="backdate_reason"

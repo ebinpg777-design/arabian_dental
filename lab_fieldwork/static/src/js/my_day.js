@@ -825,7 +825,8 @@ export class LabMyDay extends Component {
         this.action.doAction("lab_fieldwork.action_visit_my");
     }
 
-    /** A blank slip with no visit behind it: the case came by courier or transport. */
+    /** A blank slip with no visit behind it: collected at the clinic, or come by
+     *  courier or transport. */
     openSentCase() {
         this.action.doAction("lab_fieldwork.action_case_new_sent");
     }
